@@ -62,24 +62,8 @@ export default function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
 
-  return (
-    <Drawer
-      variant={variant}
-      open={variant === 'temporary' ? openMobile : true}
-      onClose={variant === 'temporary' ? onCloseMobile : undefined}
-      sx={{
-        width: drawerWidth,
-        flexShrink: 0,
-        '& .MuiDrawer-paper': {
-          width: drawerWidth,
-          boxSizing: 'border-box',
-          bgcolor: '#0f172a',
-          borderRight: '1px solid #1E293B',
-          top: variant === 'permanent' ? '64px' : 0,
-          height: variant === 'permanent' ? 'calc(100vh - 64px)' : '100vh',
-        },
-      }}
-    >
+  const sidebarContent = (
+    <>
       {/* Logo */}
       <Box sx={{ p: 3, borderBottom: '1px solid #1E293B' }}>
         <Typography
@@ -175,6 +159,44 @@ export default function Sidebar({
           AI Assistant
         </Button>
       </Box>
+    </>
+  );
+
+  if (variant === 'permanent') {
+    return (
+      <Box
+        sx={{
+          width: drawerWidth,
+          height: '100%',
+          bgcolor: '#0f172a',
+          borderRight: '1px solid #1E293B',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'auto',
+        }}
+      >
+        {sidebarContent}
+      </Box>
+    );
+  }
+
+  return (
+    <Drawer
+      variant="temporary"
+      open={openMobile}
+      onClose={onCloseMobile}
+      sx={{
+        width: drawerWidth,
+        flexShrink: 0,
+        '& .MuiDrawer-paper': {
+          width: drawerWidth,
+          boxSizing: 'border-box',
+          bgcolor: '#0f172a',
+          borderRight: '1px solid #1E293B',
+        },
+      }}
+    >
+      {sidebarContent}
     </Drawer>
   );
 }

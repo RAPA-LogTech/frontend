@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Box, Container, IconButton, useTheme, useMediaQuery } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
+import { Box, useTheme, useMediaQuery } from '@mui/material';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import GlobalFilterBar from './GlobalFilterBar';
@@ -15,6 +14,8 @@ interface AppLayoutProps {
 }
 
 const drawerWidth = 280;
+const topBarHeight = 48;
+const aiDrawerWidth = 400;
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const theme = useTheme();
@@ -28,47 +29,72 @@ export default function AppLayout({ children }: AppLayoutProps) {
   };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#0a0f1a' }}>
-      {/* Top App Bar - Fixed at top */}
+    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden', bgcolor: '#0a0f1a', width: '100vw' }}>
+      {/* Top AppBar */}
       <TopBar 
         onMenuClick={handleDrawerToggle}
         showMenuButton={isMobile}
       />
 
-      {/* Sidebar - Permanent on desktop */}
-      <Sidebar 
-        onOpenAiChat={() => setAiChatOpen(true)} 
-        variant={isMobile ? 'temporary' : 'permanent'}
-        openMobile={mobileDrawerOpen}
-        onCloseMobile={() => setMobileDrawerOpen(false)}
-      />
+      {/* Desktop Sidebar */}
+      {!isMobile && (
+        <Box sx={{ width: drawerWidth, flexShrink: 0, display: 'flex', flexDirection: 'column', mt: `${topBarHeight}px` }}>
+          <Sidebar onOpenAiChat={() => setAiChatOpen(true)} variant="permanent" />
+        </Box>
+      )}
 
-      {/* Main Content Area */}
+      {/* Mobile Drawer */}
+      {isMobile && (
+        <Sidebar 
+          onOpenAiChat={() => setAiChatOpen(true)} 
+          variant="temporary"
+          openMobile={mobileDrawerOpen}
+          onCloseMobile={() => setMobileDrawerOpen(false)}
+        />
+      )}
+
+      {/* Main Content Area - flexGrow takes remaining space */}
       <Box
-        component="main"
         sx={{
+          display: 'flex',
+          flexDirection: 'column',
           flexGrow: 1,
-          mt: '64px',
-          ml: { xs: 0, md: `${drawerWidth}px` },
-          minHeight: '100vh',
+          mt: `${topBarHeight}px`,
+          minWidth: 0,
+          overflow: 'hidden',
         }}
       >
-        {/* Global Filter Bar */}
+        {/* GlobalFilterBar - fixed height, flexible width */}
         <GlobalFilterBar value={filters} onChange={setFilters} />
 
-        {/* Scrollable Content Area */}
-        <Container
-          maxWidth="lg"
+        {/* Scrollable Content - flexGrow fills remaining height */}
+        <Box
           sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            flexGrow: 1,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            px: { xs: 1.5, sm: 2, md: 3, lg: 4 },
             py: 3,
-            px: { xs: 2, sm: 3, md: 4 },
           }}
         >
-          {children}
-        </Container>
+          {/* Content wrapper - max width + centered */}
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              maxWidth: '1400px',
+              mx: 'auto',
+              width: '100%',
+            }}
+          >
+            {children}
+          </Box>
+        </Box>
       </Box>
 
-      {/* AI Chat Drawer */}
+      {/* AI Chat Drawer - fixed width */}
       <AiChatDrawer open={aiChatOpen} onClose={() => setAiChatOpen(false)} filters={filters} />
     </Box>
   );

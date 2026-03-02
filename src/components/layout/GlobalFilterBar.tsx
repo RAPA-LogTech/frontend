@@ -72,24 +72,28 @@ export const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
   };
 
   return (
-    <Box
-      sx={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        bgcolor: '#0f172a',
-        borderBottom: '1px solid #1E293B',
-        px: { xs: 1.5, sm: 2, md: 3 },
-        py: 2,
-        mb: 2,
-      }}
-    >
+    <>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+          minHeight: '56px',
+          bgcolor: '#0f172a',
+          borderBottom: '1px solid #1E293B',
+          px: { xs: 1.5, sm: 2, md: 3 },
+          flexShrink: 0,
+          overflow: 'hidden',
+        }}
+      >
+      {/* Compact Grid - no flex grow */}
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
-          gap: 1.5,
-          mb: 2,
+          gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)' },
+          gap: 1,
+          flex: 1,
+          minWidth: 0,
         }}
       >
         {/* Time Range */}
@@ -220,13 +224,12 @@ export const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
         </FormControl>
       </Box>
 
-      {/* Advanced / Reset Buttons */}
+      {/* Buttons - no flex grow AFTER filter inputs done */}
       <Stack
         direction="row"
         gap={1}
         sx={{
-          justifyContent: 'flex-start',
-          flexWrap: 'wrap',
+          flexShrink: 0,
         }}
       >
         <Button
@@ -268,9 +271,18 @@ export const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
           Reset
         </Button>
       </Stack>
+    </Box>
 
-      {/* Advanced Filters (expandable) */}
-      <Collapse in={showAdvanced}>
+    {/* Advanced Filters - Separate section below if needed */}
+    {showAdvanced && (
+      <Box
+        sx={{
+          bgcolor: '#0f172a',
+          px: { xs: 1.5, sm: 2, md: 3 },
+          pb: 2,
+          borderBottom: '1px solid #1E293B',
+        }}
+      >
         <Alert
           severity="info"
           variant="outlined"
@@ -286,9 +298,10 @@ export const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
           <br />- Date range picker
           <br />- Saved filter presets
         </Alert>
-      </Collapse>
-    </Box>
+      </Box>
+    )}
+    </>
   );
-};
+}
 
 export default GlobalFilterBar;

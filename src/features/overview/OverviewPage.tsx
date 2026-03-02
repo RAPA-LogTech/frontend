@@ -42,7 +42,7 @@ export default function OverviewPage() {
   const degradedServices = mockServices.filter((s) => s.status === 'degraded').length;
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2, md: 3 } }}>
       {/* Header */}
       <Box>
         <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
@@ -54,7 +54,7 @@ export default function OverviewPage() {
       </Box>
 
       {/* KPI Cards Section */}
-      <Grid container spacing={2}>
+      <Grid container spacing={{ xs: 1.5, sm: 2, md: 2 }}>
         {/* Error Rate */}
         <Grid item xs={12} sm={6} md={3}>
           <KPICard
@@ -116,7 +116,7 @@ export default function OverviewPage() {
       </Grid>
 
       {/* Main Content Grid */}
-      <Grid container spacing={2}>
+      <Grid container spacing={{ xs: 1.5, sm: 2, md: 2 }}>
         {/* Top Services Table */}
         <Grid item xs={12} md={8}>
           <Card sx={{ bgcolor: '#0f172a', border: '1px solid #1E293B' }}>

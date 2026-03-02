@@ -17,9 +17,12 @@ import {
   Notifications as NotificationsIcon,
   AccountCircle as AccountCircleIcon,
   Menu as MenuIcon,
+  Brightness4 as Brightness4Icon,
 } from '@mui/icons-material';
+import { useColorMode } from '@/app/providers';
 
 const drawerWidth = 280;
+const topBarHeight = 48;
 
 interface TopBarProps {
   onMenuClick?: () => void;
@@ -27,6 +30,7 @@ interface TopBarProps {
 }
 
 export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarProps) {
+  const { mode, toggleMode } = useColorMode();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -44,6 +48,7 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
     <AppBar
       position="fixed"
       sx={{
+        height: `${topBarHeight}px`,
         width: '100%',
         bgcolor: '#0f172a',
         borderBottom: '1px solid #1E293B',
@@ -53,6 +58,8 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
     >
       <Toolbar
         sx={{
+          minHeight: `${topBarHeight}px !important`,
+          height: `${topBarHeight}px`,
           display: 'flex',
           justifyContent: 'space-between',
           py: 1,
@@ -96,6 +103,22 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
 
         {/* Right */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.25, sm: 0.5 } }}>
+          {/* Theme Toggle */}
+          <Tooltip title={`Switch to ${mode === 'dark' ? 'light' : 'dark'} mode`}>
+            <IconButton
+              onClick={toggleMode}
+              size="small"
+              sx={{
+                color: '#64748b',
+                '&:hover': {
+                  color: '#cbd5e1',
+                },
+              }}
+            >
+              <Brightness4Icon />
+            </IconButton>
+          </Tooltip>
+
           {/* Notifications */}
           <Tooltip title="Notifications">
             <IconButton

@@ -28,6 +28,8 @@ interface AiChatDrawerProps {
   filters: GlobalFilterState;
 }
 
+const aiDrawerWidth = 400;
+
 export const AiChatDrawer: React.FC<AiChatDrawerProps> = ({
   open,
   onClose,
@@ -107,7 +109,7 @@ export const AiChatDrawer: React.FC<AiChatDrawerProps> = ({
         onClose={onClose}
         PaperProps={{
           sx: {
-            width: 384,
+            width: aiDrawerWidth,
             bgcolor: '#0f172a',
             borderLeft: '1px solid #1E293B',
             display: 'flex',

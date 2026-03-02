@@ -28,7 +28,7 @@ export default function SlackIntegrationPage() {
   });
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2, md: 3 } }}>
       <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
         Slack Integration
       </Typography>
