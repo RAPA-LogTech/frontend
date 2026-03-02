@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { ArrowRight as ArrowRightIcon } from '@mui/icons-material';
 import KPICard from '@/components/KPICard';
+import { formatTimestamp } from '@/lib/formatters';
 import {
   mockMetrics,
   mockLogs,
@@ -48,7 +49,7 @@ export default function OverviewPage() {
         <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
           Dashboard Overview
         </Typography>
-        <Typography variant="body2" sx={{ color: '#64748b' }}>
+        <Typography variant="body2" sx={{ color: (theme) => theme.palette.text.secondary }}>
           Real-time health and performance metrics of your services
         </Typography>
       </Box>
@@ -119,7 +120,11 @@ export default function OverviewPage() {
       <Grid container spacing={{ xs: 1.5, sm: 2, md: 2 }}>
         {/* Top Services Table */}
         <Grid item xs={12} md={8}>
-          <Card sx={{ bgcolor: '#0f172a', border: '1px solid #1E293B' }}>
+          <Card sx={{ 
+            bgcolor: (theme) => theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff',
+            border: '1px solid',
+            borderColor: (theme) => theme.palette.divider,
+          }}>
             <CardContent>
               <Box
                 sx={{
@@ -136,11 +141,11 @@ export default function OverviewPage() {
                   size="small"
                   endIcon={<ArrowRightIcon />}
                   sx={{
-                    color: '#c084fc',
+                    color: (theme) => theme.palette.primary.light,
                     textTransform: 'none',
                     fontSize: '0.875rem',
                     '&:hover': {
-                      color: '#a78bfa',
+                      color: (theme) => theme.palette.primary.main,
                     },
                   }}
                   onClick={() => {
@@ -152,44 +157,52 @@ export default function OverviewPage() {
               </Box>
 
               <Box sx={{ overflowX: 'auto' }}>
-                <Table size="small">
+                <Table size="small" sx={{ minWidth: 500 }}>
                   <TableHead>
-                    <TableRow sx={{ borderBottom: '1px solid #1E293B' }}>
+                    <TableRow sx={{ borderBottom: '1px solid', borderColor: (theme) => theme.palette.divider }}>
                       <TableCell
                         sx={{
-                          color: '#cbd5e1',
-                          fontWeight: 600,
-                          fontSize: '0.75rem',
+                          color: (theme) => theme.palette.text.primary,
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          padding: '10px 12px',
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         Service
                       </TableCell>
                       <TableCell
-                        align="right"
+                        align="center"
                         sx={{
-                          color: '#cbd5e1',
-                          fontWeight: 600,
-                          fontSize: '0.75rem',
+                          color: (theme) => theme.palette.text.primary,
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          padding: '10px 12px',
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         Status
                       </TableCell>
                       <TableCell
-                        align="right"
+                        align="center"
                         sx={{
-                          color: '#cbd5e1',
-                          fontWeight: 600,
-                          fontSize: '0.75rem',
+                          color: (theme) => theme.palette.text.primary,
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          padding: '10px 12px',
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         Instances
                       </TableCell>
                       <TableCell
-                        align="right"
+                        align="center"
                         sx={{
-                          color: '#cbd5e1',
-                          fontWeight: 600,
-                          fontSize: '0.75rem',
+                          color: (theme) => theme.palette.text.primary,
+                          fontWeight: 700,
+                          fontSize: '0.8rem',
+                          padding: '10px 12px',
+                          whiteSpace: 'nowrap',
                         }}
                       >
                         Error Rate
@@ -225,23 +238,26 @@ export default function OverviewPage() {
                             window.location.href = `/logs?service=${service.name}`;
                           }}
                           sx={{
-                            borderBottom: '1px solid #1E293B',
+                            borderBottom: '1px solid',
+                            borderColor: (theme) => theme.palette.divider,
                             cursor: 'pointer',
                             '&:hover': {
-                              bgcolor: '#1e293b',
+                              bgcolor: (theme) => theme.palette.mode === 'dark' ? '#1e293b' : '#f5f9fc',
                             },
                           }}
                         >
                           <TableCell
                             sx={{
-                              color: '#cbd5e1',
+                              color: (theme) => theme.palette.text.primary,
                               fontSize: '0.875rem',
-                              fontWeight: 500,
+                              fontWeight: 600,
+                              padding: '12px',
+                              whiteSpace: 'nowrap',
                             }}
                           >
                             {service.name}
                           </TableCell>
-                          <TableCell align="right">
+                          <TableCell align="center" sx={{ padding: '12px' }}>
                             <Chip
                               label={service.status}
                               size="small"
@@ -254,21 +270,25 @@ export default function OverviewPage() {
                             />
                           </TableCell>
                           <TableCell
-                            align="right"
+                            align="center"
                             sx={{
-                              color: '#cbd5e1',
+                              color: (theme) => theme.palette.text.primary,
                               fontSize: '0.875rem',
                               fontFamily: 'monospace',
+                              padding: '12px',
+                              fontWeight: 500,
                             }}
                           >
                             {service.instances}
                           </TableCell>
                           <TableCell
-                            align="right"
+                            align="center"
                             sx={{
-                              color: '#cbd5e1',
+                              color: (theme) => theme.palette.text.primary,
                               fontSize: '0.875rem',
                               fontFamily: 'monospace',
+                              padding: '12px',
+                              fontWeight: 500,
                             }}
                           >
                             {(Math.random() * 5).toFixed(1)}%
@@ -285,7 +305,11 @@ export default function OverviewPage() {
 
         {/* Recent Alerts */}
         <Grid item xs={12} md={4}>
-          <Card sx={{ bgcolor: '#0f172a', border: '1px solid #1E293B' }}>
+          <Card sx={{ 
+            bgcolor: (theme) => theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff',
+            border: '1px solid',
+            borderColor: (theme) => theme.palette.divider,
+          }}>
             <CardContent>
               <Box
                 sx={{
@@ -302,11 +326,11 @@ export default function OverviewPage() {
                   size="small"
                   endIcon={<ArrowRightIcon />}
                   sx={{
-                    color: '#c084fc',
+                    color: (theme) => theme.palette.primary.light,
                     textTransform: 'none',
                     fontSize: '0.875rem',
                     '&:hover': {
-                      color: '#a78bfa',
+                      color: (theme) => theme.palette.primary.main,
                     },
                   }}
                 >
@@ -314,8 +338,8 @@ export default function OverviewPage() {
                 </Button>
               </Box>
 
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {mockAlertEvents.slice(0, 5).map((event) => {
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                {mockAlertEvents.slice(0, 4).map((event) => {
                   const severityColors: Record<
                     string,
                     { bg: string; text: string; borderColor: string }
@@ -348,7 +372,7 @@ export default function OverviewPage() {
                       key={event.id}
                       variant="outlined"
                       sx={{
-                        bgcolor: '#1e293b',
+                        bgcolor: (theme) => theme.palette.mode === 'dark' ? '#1e293b' : '#f8fafc',
                         borderLeft: `4px solid ${color.borderColor}`,
                         borderTop: 'none',
                         borderRight: 'none',
@@ -357,7 +381,7 @@ export default function OverviewPage() {
                         cursor: 'pointer',
                         transition: 'all 0.2s',
                         '&:hover': {
-                          bgcolor: '#334155',
+                          bgcolor: (theme) => theme.palette.mode === 'dark' ? '#334155' : '#eef2f7',
                         },
                       }}
                     >
@@ -373,8 +397,9 @@ export default function OverviewPage() {
                           <Typography
                             variant="caption"
                             sx={{
-                              fontWeight: 600,
-                              color: '#e2e8f0',
+                              fontWeight: 700,
+                              color: (theme) => theme.palette.text.primary,
+                              fontSize: '0.8rem',
                             }}
                           >
                             {event.alertName}
@@ -393,9 +418,11 @@ export default function OverviewPage() {
                         <Typography
                           variant="caption"
                           sx={{
-                            color: '#64748b',
+                            color: (theme) => theme.palette.text.secondary,
                             display: 'block',
                             mb: 0.5,
+                            fontSize: '0.75rem',
+                            lineHeight: 1.4,
                           }}
                         >
                           {event.message}
@@ -403,12 +430,12 @@ export default function OverviewPage() {
                         <Typography
                           variant="caption"
                           sx={{
-                            color: '#475569',
+                            color: (theme) => theme.palette.text.secondary,
                             fontFamily: 'monospace',
                             fontSize: '0.65rem',
                           }}
                         >
-                          {new Date(event.timestamp).toLocaleString()}
+                          {formatTimestamp(event.timestamp)}
                         </Typography>
                       </CardContent>
                     </Card>
@@ -421,7 +448,11 @@ export default function OverviewPage() {
       </Grid>
 
       {/* Recent Logs */}
-      <Card sx={{ bgcolor: '#0f172a', border: '1px solid #1E293B' }}>
+      <Card sx={{ 
+        bgcolor: (theme) => theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff',
+        border: '1px solid',
+        borderColor: (theme) => theme.palette.divider,
+      }}>
         <CardContent>
           <Box
             sx={{
@@ -438,11 +469,11 @@ export default function OverviewPage() {
               size="small"
               endIcon={<ArrowRightIcon />}
               sx={{
-                color: '#c084fc',
+                color: (theme) => theme.palette.primary.light,
                 textTransform: 'none',
                 fontSize: '0.875rem',
                 '&:hover': {
-                  color: '#a78bfa',
+                  color: (theme) => theme.palette.primary.main,
                 },
               }}
               onClick={() => {
@@ -456,39 +487,47 @@ export default function OverviewPage() {
           <Box sx={{ overflowX: 'auto' }}>
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ borderBottom: '1px solid #1E293B' }}>
+                <TableRow sx={{ borderBottom: '1px solid', borderColor: (theme) => theme.palette.divider }}>
                   <TableCell
                     sx={{
-                      color: '#cbd5e1',
-                      fontWeight: 600,
-                      fontSize: '0.75rem',
+                      color: (theme) => theme.palette.text.primary,
+                      fontWeight: 700,
+                      fontSize: '0.8rem',
+                      padding: '10px 12px',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     Timestamp
                   </TableCell>
                   <TableCell
                     sx={{
-                      color: '#cbd5e1',
-                      fontWeight: 600,
-                      fontSize: '0.75rem',
+                      color: (theme) => theme.palette.text.primary,
+                      fontWeight: 700,
+                      fontSize: '0.8rem',
+                      padding: '10px 12px',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     Service
                   </TableCell>
                   <TableCell
                     sx={{
-                      color: '#cbd5e1',
-                      fontWeight: 600,
-                      fontSize: '0.75rem',
+                      color: (theme) => theme.palette.text.primary,
+                      fontWeight: 700,
+                      fontSize: '0.8rem',
+                      padding: '10px 12px',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     Level
                   </TableCell>
                   <TableCell
                     sx={{
-                      color: '#cbd5e1',
-                      fontWeight: 600,
-                      fontSize: '0.75rem',
+                      color: (theme) => theme.palette.text.primary,
+                      fontWeight: 700,
+                      fontSize: '0.8rem',
+                      padding: '10px 12px',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     Message
@@ -524,32 +563,36 @@ export default function OverviewPage() {
                         window.location.href = `/logs?service=${log.service}`;
                       }}
                       sx={{
-                        borderBottom: '1px solid #1E293B',
+                        borderBottom: '1px solid',
+                        borderColor: (theme) => theme.palette.divider,
                         cursor: 'pointer',
                         '&:hover': {
-                          bgcolor: '#1e293b',
+                          bgcolor: (theme) => theme.palette.mode === 'dark' ? '#1e293b' : '#f5f9fc',
                         },
                       }}
                     >
                       <TableCell
                         sx={{
-                          color: '#cbd5e1',
-                          fontSize: '0.75rem',
+                          color: (theme) => theme.palette.text.primary,
+                          fontSize: '0.8rem',
                           fontFamily: 'monospace',
+                          fontWeight: 500,
+                          padding: '10px 12px',
                         }}
                       >
-                        {new Date(log.timestamp).toLocaleTimeString()}
+                        {formatTimestamp(log.timestamp)}
                       </TableCell>
                       <TableCell
                         sx={{
-                          color: '#cbd5e1',
+                          color: (theme) => theme.palette.text.primary,
                           fontSize: '0.875rem',
-                          fontWeight: 500,
+                          fontWeight: 600,
+                          padding: '10px 12px',
                         }}
                       >
                         {log.service}
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ padding: '10px 12px' }}>
                         <Chip
                           label={log.level}
                           size="small"
@@ -563,12 +606,13 @@ export default function OverviewPage() {
                       </TableCell>
                       <TableCell
                         sx={{
-                          color: '#cbd5e1',
-                          fontSize: '0.875rem',
-                          maxWidth: 300,
+                          color: (theme) => theme.palette.text.primary,
+                          fontSize: '0.8rem',
+                          maxWidth: 280,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
+                          padding: '10px 12px',
                         }}
                       >
                         {log.message}

@@ -26,20 +26,21 @@ export default function SettingsPage() {
         Settings
       </Typography>
 
-      <Card sx={{ bgcolor: '#0f172a', border: '1px solid #1E293B' }}>
+      <Card sx={{ bgcolor: (theme) => theme.palette.background.paper, border: '1px solid', borderColor: (theme) => theme.palette.divider }}>
         <CardContent>
           <Tabs
             value={tab}
             onChange={(e, newValue) => setTab(newValue)}
             sx={{
-              borderBottom: '1px solid #1E293B',
+              borderBottom: '1px solid',
+              borderColor: (theme) => theme.palette.divider,
               mb: 2,
               '& .MuiTab-root': {
                 textTransform: 'none',
-                color: '#64748b',
+                color: (theme) => theme.palette.text.secondary,
                 '&.Mui-selected': {
-                  color: '#c084fc',
-                  borderBottom: '2px solid #c084fc',
+                  color: (theme) => theme.palette.primary.main,
+                  borderBottom: (theme) => `2px solid ${theme.palette.primary.main}`,
                 },
               },
             }}
@@ -61,17 +62,16 @@ export default function SettingsPage() {
                   defaultValue="LogTech"
                   size="small"
                   sx={{
-                    bgcolor: '#1e293b',
                     '& .MuiOutlinedInput-root': {
-                      color: '#cbd5e1',
+                      color: (theme) => theme.palette.text.primary,
                       '& fieldset': {
-                        borderColor: '#334155',
+                        borderColor: (theme) => theme.palette.divider,
                       },
                       '&:hover fieldset': {
-                        borderColor: '#475569',
+                        borderColor: (theme) => theme.palette.divider,
                       },
                       '&.Mui-focused fieldset': {
-                        borderColor: '#c084fc',
+                        borderColor: (theme) => theme.palette.primary.main,
                       },
                     },
                   }}
@@ -86,17 +86,16 @@ export default function SettingsPage() {
                   defaultValue="Asia/Seoul"
                   size="small"
                   sx={{
-                    bgcolor: '#1e293b',
                     '& .MuiOutlinedInput-root': {
-                      color: '#cbd5e1',
+                      color: (theme) => theme.palette.text.primary,
                       '& fieldset': {
-                        borderColor: '#334155',
+                        borderColor: (theme) => theme.palette.divider,
                       },
                       '&:hover fieldset': {
-                        borderColor: '#475569',
+                        borderColor: (theme) => theme.palette.divider,
                       },
                       '&.Mui-focused fieldset': {
-                        borderColor: '#c084fc',
+                        borderColor: (theme) => theme.palette.primary.main,
                       },
                     },
                   }}
@@ -105,11 +104,11 @@ export default function SettingsPage() {
               <Button
                 variant="contained"
                 sx={{
-                  bgcolor: '#9333ea',
+                  bgcolor: (theme) => theme.palette.primary.main,
                   textTransform: 'none',
                   width: 'fit-content',
                   '&:hover': {
-                    bgcolor: '#7e22ce',
+                    bgcolor: (theme) => theme.palette.primary.dark,
                   },
                 }}
               >
@@ -123,10 +122,10 @@ export default function SettingsPage() {
             <Box sx={{ overflowX: 'auto' }}>
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ borderBottom: '1px solid #1E293B' }}>
+                  <TableRow sx={{ borderBottom: '1px solid', borderColor: (theme) => theme.palette.divider }}>
                     <TableCell
                       sx={{
-                        color: '#cbd5e1',
+                        color: (theme) => theme.palette.text.primary,
                         fontWeight: 600,
                         fontSize: '0.875rem',
                       }}
@@ -135,7 +134,7 @@ export default function SettingsPage() {
                     </TableCell>
                     <TableCell
                       sx={{
-                        color: '#cbd5e1',
+                        color: (theme) => theme.palette.text.primary,
                         fontWeight: 600,
                         fontSize: '0.875rem',
                       }}
@@ -144,7 +143,7 @@ export default function SettingsPage() {
                     </TableCell>
                     <TableCell
                       sx={{
-                        color: '#cbd5e1',
+                        color: (theme) => theme.palette.text.primary,
                         fontWeight: 600,
                         fontSize: '0.875rem',
                       }}
@@ -156,37 +155,39 @@ export default function SettingsPage() {
                 <TableBody>
                   <TableRow
                     sx={{
-                      borderBottom: '1px solid #1E293B',
+                      borderBottom: '1px solid',
+                      borderColor: (theme) => theme.palette.divider,
                       '&:hover': {
-                        bgcolor: '#1e293b',
+                        bgcolor: (theme) => theme.palette.action.hover,
                       },
                     }}
                   >
-                    <TableCell sx={{ color: '#cbd5e1', fontSize: '0.875rem' }}>
+                    <TableCell sx={{ color: (theme) => theme.palette.text.primary, fontSize: '0.875rem' }}>
                       Kim SRE
                     </TableCell>
-                    <TableCell sx={{ color: '#cbd5e1', fontSize: '0.875rem' }}>
+                    <TableCell sx={{ color: (theme) => theme.palette.text.primary, fontSize: '0.875rem' }}>
                       Admin
                     </TableCell>
-                    <TableCell sx={{ color: '#cbd5e1', fontSize: '0.875rem' }}>
+                    <TableCell sx={{ color: (theme) => theme.palette.text.primary, fontSize: '0.875rem' }}>
                       kim@logtech.io
                     </TableCell>
                   </TableRow>
                   <TableRow
                     sx={{
-                      borderBottom: '1px solid #1E293B',
+                      borderBottom: '1px solid',
+                      borderColor: (theme) => theme.palette.divider,
                       '&:hover': {
-                        bgcolor: '#1e293b',
+                        bgcolor: (theme) => theme.palette.action.hover,
                       },
                     }}
                   >
-                    <TableCell sx={{ color: '#cbd5e1', fontSize: '0.875rem' }}>
+                    <TableCell sx={{ color: (theme) => theme.palette.text.primary, fontSize: '0.875rem' }}>
                       Park Dev
                     </TableCell>
-                    <TableCell sx={{ color: '#cbd5e1', fontSize: '0.875rem' }}>
+                    <TableCell sx={{ color: (theme) => theme.palette.text.primary, fontSize: '0.875rem' }}>
                       Member
                     </TableCell>
-                    <TableCell sx={{ color: '#cbd5e1', fontSize: '0.875rem' }}>
+                    <TableCell sx={{ color: (theme) => theme.palette.text.primary, fontSize: '0.875rem' }}>
                       park@logtech.io
                     </TableCell>
                   </TableRow>
@@ -201,10 +202,10 @@ export default function SettingsPage() {
               <Box sx={{ overflowX: 'auto' }}>
                 <Table size="small">
                   <TableHead>
-                    <TableRow sx={{ borderBottom: '1px solid #1E293B' }}>
+                    <TableRow sx={{ borderBottom: '1px solid', borderColor: (theme) => theme.palette.divider }}>
                       <TableCell
                         sx={{
-                          color: '#cbd5e1',
+                          color: (theme) => theme.palette.text.primary,
                           fontWeight: 600,
                           fontSize: '0.875rem',
                         }}
@@ -213,7 +214,7 @@ export default function SettingsPage() {
                       </TableCell>
                       <TableCell
                         sx={{
-                          color: '#cbd5e1',
+                          color: (theme) => theme.palette.text.primary,
                           fontWeight: 600,
                           fontSize: '0.875rem',
                         }}
@@ -222,7 +223,7 @@ export default function SettingsPage() {
                       </TableCell>
                       <TableCell
                         sx={{
-                          color: '#cbd5e1',
+                          color: (theme) => theme.palette.text.primary,
                           fontWeight: 600,
                           fontSize: '0.875rem',
                         }}
@@ -234,19 +235,20 @@ export default function SettingsPage() {
                   <TableBody>
                     <TableRow
                       sx={{
-                        borderBottom: '1px solid #1E293B',
+                        borderBottom: '1px solid',
+                        borderColor: (theme) => theme.palette.divider,
                         '&:hover': {
-                          bgcolor: '#1e293b',
+                          bgcolor: (theme) => theme.palette.action.hover,
                         },
                       }}
                     >
-                      <TableCell sx={{ color: '#cbd5e1', fontSize: '0.875rem' }}>
+                      <TableCell sx={{ color: (theme) => theme.palette.text.primary, fontSize: '0.875rem' }}>
                         gateway-readonly
                       </TableCell>
-                      <TableCell sx={{ color: '#cbd5e1', fontSize: '0.875rem' }}>
+                      <TableCell sx={{ color: (theme) => theme.palette.text.primary, fontSize: '0.875rem' }}>
                         2026-02-01
                       </TableCell>
-                      <TableCell sx={{ color: '#cbd5e1', fontSize: '0.875rem' }}>
+                      <TableCell sx={{ color: (theme) => theme.palette.text.primary, fontSize: '0.875rem' }}>
                         2026-03-01
                       </TableCell>
                     </TableRow>
@@ -256,13 +258,13 @@ export default function SettingsPage() {
               <Button
                 variant="outlined"
                 sx={{
-                  color: '#cbd5e1',
-                  borderColor: '#475569',
+                  color: (theme) => theme.palette.text.secondary,
+                  borderColor: (theme) => theme.palette.divider,
                   textTransform: 'none',
                   width: 'fit-content',
                   '&:hover': {
-                    bgcolor: '#1e293b',
-                    borderColor: '#64748b',
+                    bgcolor: (theme) => theme.palette.action.hover,
+                    borderColor: (theme) => theme.palette.primary.main,
                   },
                 }}
               >

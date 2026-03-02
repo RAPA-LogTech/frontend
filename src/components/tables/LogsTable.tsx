@@ -11,6 +11,7 @@ import {
   Paper,
 } from '@mui/material';
 import { LogEntry } from '@/lib/types';
+import { formatTimestamp } from '@/lib/formatters';
 
 export default function LogsTable({ logs, onSelect }: { logs: LogEntry[]; onSelect: (log: LogEntry) => void }) {
   const getLevelColor = (level: string) => {
@@ -30,54 +31,65 @@ export default function LogsTable({ logs, onSelect }: { logs: LogEntry[]; onSele
     <TableContainer
       component={Paper}
       sx={{
-        bgcolor: '#0f172a',
-        border: '1px solid #1E293B',
+        bgcolor: (theme) => theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff',
+        border: '1px solid',
+        borderColor: (theme) => theme.palette.divider,
       }}
     >
       <Table sx={{ minWidth: 650 }}>
-        <TableHead sx={{ bgcolor: '#0f172a' }}>
-          <TableRow sx={{ borderBottom: '1px solid #1E293B' }}>
+        <TableHead sx={{ bgcolor: (theme) => theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff' }}>
+          <TableRow sx={{ borderBottom: '1px solid', borderColor: (theme) => theme.palette.divider }}>
             <TableCell
               sx={{
-                color: '#cbd5e1',
-                fontWeight: 600,
-                fontSize: '0.875rem',
+                color: (theme) => theme.palette.text.primary,
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                padding: '10px 12px',
+                whiteSpace: 'nowrap',
               }}
             >
               Timestamp
             </TableCell>
             <TableCell
               sx={{
-                color: '#cbd5e1',
-                fontWeight: 600,
-                fontSize: '0.875rem',
+                color: (theme) => theme.palette.text.primary,
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                padding: '10px 12px',
+                whiteSpace: 'nowrap',
               }}
             >
               Service
             </TableCell>
             <TableCell
               sx={{
-                color: '#cbd5e1',
-                fontWeight: 600,
-                fontSize: '0.875rem',
+                color: (theme) => theme.palette.text.primary,
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                padding: '10px 12px',
+                whiteSpace: 'nowrap',
               }}
             >
               Env
             </TableCell>
             <TableCell
               sx={{
-                color: '#cbd5e1',
-                fontWeight: 600,
-                fontSize: '0.875rem',
+                color: (theme) => theme.palette.text.primary,
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                padding: '10px 12px',
+                whiteSpace: 'nowrap',
               }}
             >
               Level
             </TableCell>
             <TableCell
               sx={{
-                color: '#cbd5e1',
-                fontWeight: 600,
-                fontSize: '0.875rem',
+                color: (theme) => theme.palette.text.primary,
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                padding: '10px 12px',
+                whiteSpace: 'nowrap',
               }}
             >
               Message
@@ -90,23 +102,24 @@ export default function LogsTable({ logs, onSelect }: { logs: LogEntry[]; onSele
               key={row.id}
               onClick={() => onSelect(row)}
               sx={{
-                borderBottom: '1px solid #1E293B',
+                borderBottom: '1px solid',
+                borderColor: (theme) => theme.palette.divider,
                 cursor: 'pointer',
                 '&:hover': {
-                  bgcolor: '#1e293b',
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? '#1e293b' : '#f1f5f9',
                 },
               }}
             >
-              <TableCell sx={{ color: '#64748b', fontSize: '0.875rem' }}>
-                {row.timestamp}
+              <TableCell sx={{ color: (theme) => theme.palette.text.secondary, fontSize: '0.85rem', fontWeight: 500, padding: '10px 12px', fontFamily: 'monospace' }}>
+                {formatTimestamp(row.timestamp)}
               </TableCell>
-              <TableCell sx={{ color: '#cbd5e1', fontSize: '0.875rem' }}>
+              <TableCell sx={{ color: (theme) => theme.palette.text.primary, fontSize: '0.875rem', fontWeight: 500, padding: '10px 12px' }}>
                 {row.service}
               </TableCell>
-              <TableCell sx={{ color: '#cbd5e1', fontSize: '0.875rem' }}>
+              <TableCell sx={{ color: (theme) => theme.palette.text.primary, fontSize: '0.875rem', fontWeight: 500, padding: '10px 12px' }}>
                 {row.env}
               </TableCell>
-              <TableCell sx={{ fontSize: '0.875rem' }}>
+              <TableCell sx={{ fontSize: '0.875rem', padding: '10px 12px' }}>
                 {(() => {
                   const color = getLevelColor(row.level);
                   return (
@@ -125,12 +138,13 @@ export default function LogsTable({ logs, onSelect }: { logs: LogEntry[]; onSele
               </TableCell>
               <TableCell
                 sx={{
-                  color: '#cbd5e1',
-                  fontSize: '0.875rem',
-                  maxWidth: 300,
+                  color: (theme) => theme.palette.text.primary,
+                  fontSize: '0.85rem',
+                  maxWidth: 280,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
+                  padding: '10px 12px',
                 }}
               >
                 {row.message}

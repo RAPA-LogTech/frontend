@@ -37,17 +37,16 @@ export default function MetricsPage() {
         }
         size="small"
         sx={{
-          bgcolor: '#0f172a',
           '& .MuiOutlinedInput-root': {
-            color: '#cbd5e1',
+            color: (theme) => theme.palette.text.primary,
             '& fieldset': {
-              borderColor: '#334155',
+              borderColor: (theme) => theme.palette.divider,
             },
             '&:hover fieldset': {
-              borderColor: '#475569',
+              borderColor: (theme) => theme.palette.divider,
             },
             '&.Mui-focused fieldset': {
-              borderColor: '#c084fc',
+              borderColor: (theme) => theme.palette.primary.main,
             },
           },
         }}
@@ -56,14 +55,14 @@ export default function MetricsPage() {
       <Grid container spacing={2}>
         {kpis.map((kpi) => (
           <Grid item xs={12} md={4} key={kpi.label}>
-            <Card sx={{ bgcolor: '#0f172a', border: '1px solid #1E293B' }}>
+            <Card sx={{ bgcolor: (theme) => theme.palette.background.paper, border: '1px solid', borderColor: (theme) => theme.palette.divider }}>
               <CardContent>
                 <Typography
                   variant="caption"
                   sx={{
                     fontWeight: 600,
                     textTransform: 'uppercase',
-                    color: '#64748b',
+                    color: (theme) => theme.palette.text.secondary,
                     display: 'block',
                   }}
                 >
@@ -73,7 +72,7 @@ export default function MetricsPage() {
                   variant="h5"
                   sx={{
                     fontWeight: 'bold',
-                    color: '#e2e8f0',
+                    color: (theme) => theme.palette.text.primary,
                     mt: 1,
                   }}
                 >
@@ -85,7 +84,7 @@ export default function MetricsPage() {
         ))}
       </Grid>
 
-      <Card sx={{ bgcolor: '#0f172a', border: '1px solid #1E293B' }}>
+      <Card sx={{ bgcolor: (theme) => theme.palette.background.paper, border: '1px solid', borderColor: (theme) => theme.palette.divider }}>
         <CardContent>
           <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
             Chart Placeholder
@@ -93,16 +92,17 @@ export default function MetricsPage() {
           <Box
             sx={{
               height: 280,
-              border: '2px dashed #334155',
+              border: '2px dashed',
+              borderColor: (theme) => theme.palette.divider,
               borderRadius: 1,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              bgcolor: '#1e293b',
+              bgcolor: (theme) => theme.palette.action.hover,
               p: 2,
             }}
           >
-            <Typography variant="body2" sx={{ color: '#64748b' }}>
+            <Typography variant="body2" sx={{ color: (theme) => theme.palette.text.secondary }}>
               {metrics.map((m) => m.name).join(', ')} series ready for chart
               integration.
             </Typography>

@@ -33,18 +33,18 @@ export default function SlackIntegrationPage() {
         Slack Integration
       </Typography>
 
-      <Card sx={{ bgcolor: '#0f172a', border: '1px solid #1E293B' }}>
+      <Card sx={{ bgcolor: (theme) => theme.palette.background.paper, border: '1px solid', borderColor: (theme) => theme.palette.divider }}>
         <CardContent>
           <Stack spacing={2}>
             <Alert
               severity="info"
               variant="outlined"
               sx={{
-                bgcolor: '#0f172a',
-                color: '#3b82f6',
-                borderColor: '#1e40af',
+                bgcolor: (theme) => theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff',
+                color: (theme) => theme.palette.info.main,
+                borderColor: (theme) => theme.palette.info.dark,
                 '& .MuiAlert-icon': {
-                  color: '#3b82f6',
+                  color: (theme) => theme.palette.info.main,
                 },
               }}
             >
@@ -55,10 +55,10 @@ export default function SlackIntegrationPage() {
               <Button
                 variant="contained"
                 sx={{
-                  bgcolor: '#9333ea',
+                  bgcolor: (theme) => theme.palette.primary.main,
                   textTransform: 'none',
                   '&:hover': {
-                    bgcolor: '#7e22ce',
+                    bgcolor: (theme) => theme.palette.primary.dark,
                   },
                 }}
               >
@@ -69,12 +69,12 @@ export default function SlackIntegrationPage() {
                 onClick={() => mutation.mutate(channel)}
                 disabled={mutation.isPending}
                 sx={{
-                  color: '#cbd5e1',
-                  borderColor: '#475569',
+                  color: (theme) => theme.palette.text.secondary,
+                  borderColor: (theme) => theme.palette.divider,
                   textTransform: 'none',
                   '&:hover': {
-                    bgcolor: '#1e293b',
-                    borderColor: '#64748b',
+                    bgcolor: (theme) => theme.palette.action.hover,
+                    borderColor: (theme) => theme.palette.primary.main,
                   },
                   '&.Mui-disabled': {
                     opacity: 0.5,
@@ -94,16 +94,15 @@ export default function SlackIntegrationPage() {
                   value={channel}
                   onChange={(e) => setChannel(e.target.value)}
                   sx={{
-                    bgcolor: '#1e293b',
-                    color: '#cbd5e1',
+                    color: (theme) => theme.palette.text.primary,
                     '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#334155',
+                      borderColor: (theme) => theme.palette.divider,
                     },
                     '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#475569',
+                      borderColor: (theme) => theme.palette.divider,
                     },
                     '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#c084fc',
+                      borderColor: (theme) => theme.palette.primary.main,
                     },
                   }}
                 >
@@ -119,11 +118,11 @@ export default function SlackIntegrationPage() {
                 severity="success"
                 variant="outlined"
                 sx={{
-                  bgcolor: '#0f172a',
-                  color: '#10b981',
-                  borderColor: '#047857',
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff',
+                  color: (theme) => theme.palette.success.main,
+                  borderColor: (theme) => theme.palette.success.dark,
                   '& .MuiAlert-icon': {
-                    color: '#10b981',
+                    color: (theme) => theme.palette.success.main,
                   },
                 }}
               >

@@ -28,8 +28,9 @@ export default function GlobalFilters() {
   return (
     <Card
       sx={{
-        bgcolor: '#0f172a',
-        border: '1px solid #1E293B',
+        bgcolor: (theme) => theme.palette.background.paper,
+        border: '1px solid',
+        borderColor: (theme) => theme.palette.divider,
         mb: 2,
       }}
     >
@@ -37,7 +38,7 @@ export default function GlobalFilters() {
         <Grid container spacing={2} sx={{ mb: 2 }}>
           {/* Time Range */}
           <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, mb: 1, display: 'block' }}>
+            <Typography variant="caption" sx={{ color: (theme) => theme.palette.text.secondary, fontWeight: 600, mb: 1, display: 'block' }}>
               Time Range
             </Typography>
             <FormControl fullWidth size="small">
@@ -45,17 +46,16 @@ export default function GlobalFilters() {
                 value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value)}
                 sx={{
-                  bgcolor: '#1e293b',
-                  color: '#cbd5e1',
+                  color: (theme) => theme.palette.text.primary,
                   fontSize: '0.875rem',
                   '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#334155',
+                    borderColor: (theme) => theme.palette.divider,
                   },
                   '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#475569',
+                    borderColor: (theme) => theme.palette.divider,
                   },
                   '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#c084fc',
+                    borderColor: (theme) => theme.palette.primary.main,
                   },
                 }}
               >
@@ -70,7 +70,7 @@ export default function GlobalFilters() {
 
           {/* Service */}
           <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, mb: 1, display: 'block' }}>
+            <Typography variant="caption" sx={{ color: (theme) => theme.palette.text.secondary, fontWeight: 600, mb: 1, display: 'block' }}>
               Service
             </Typography>
             <FormControl fullWidth size="small">
@@ -78,17 +78,16 @@ export default function GlobalFilters() {
                 value={service}
                 onChange={(e) => setService(e.target.value)}
                 sx={{
-                  bgcolor: '#1e293b',
-                  color: '#cbd5e1',
+                  color: (theme) => theme.palette.text.primary,
                   fontSize: '0.875rem',
                   '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#334155',
+                    borderColor: (theme) => theme.palette.divider,
                   },
                   '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#475569',
+                    borderColor: (theme) => theme.palette.divider,
                   },
                   '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#c084fc',
+                    borderColor: (theme) => theme.palette.primary.main,
                   },
                 }}
               >
@@ -103,7 +102,7 @@ export default function GlobalFilters() {
 
           {/* Environment */}
           <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, mb: 1, display: 'block' }}>
+            <Typography variant="caption" sx={{ color: (theme) => theme.palette.text.secondary, fontWeight: 600, mb: 1, display: 'block' }}>
               Env
             </Typography>
             <FormControl fullWidth size="small">
@@ -111,17 +110,16 @@ export default function GlobalFilters() {
                 value={env}
                 onChange={(e) => setEnv(e.target.value)}
                 sx={{
-                  bgcolor: '#1e293b',
-                  color: '#cbd5e1',
+                  color: (theme) => theme.palette.text.primary,
                   fontSize: '0.875rem',
                   '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#334155',
+                    borderColor: (theme) => theme.palette.divider,
                   },
                   '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#475569',
+                    borderColor: (theme) => theme.palette.divider,
                   },
                   '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#c084fc',
+                    borderColor: (theme) => theme.palette.primary.main,
                   },
                 }}
               >
@@ -136,7 +134,7 @@ export default function GlobalFilters() {
 
           {/* Cluster */}
           <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, mb: 1, display: 'block' }}>
+            <Typography variant="caption" sx={{ color: (theme) => theme.palette.text.secondary, fontWeight: 600, mb: 1, display: 'block' }}>
               Cluster
             </Typography>
             <FormControl fullWidth size="small">
@@ -144,17 +142,16 @@ export default function GlobalFilters() {
                 value={cluster}
                 onChange={(e) => setCluster(e.target.value)}
                 sx={{
-                  bgcolor: '#1e293b',
-                  color: '#cbd5e1',
+                  color: (theme) => theme.palette.text.primary,
                   fontSize: '0.875rem',
                   '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#334155',
+                    borderColor: (theme) => theme.palette.divider,
                   },
                   '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#475569',
+                    borderColor: (theme) => theme.palette.divider,
                   },
                   '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: '#c084fc',
+                    borderColor: (theme) => theme.palette.primary.main,
                   },
                 }}
               >
@@ -168,7 +165,7 @@ export default function GlobalFilters() {
           </Grid>
         </Grid>
 
-        <Typography variant="caption" sx={{ color: '#64748b' }}>
+        <Typography variant="caption" sx={{ color: (theme) => theme.palette.text.secondary }}>
           Global filters are shared across pages.
         </Typography>
       </CardContent>

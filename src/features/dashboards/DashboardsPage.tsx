@@ -39,10 +39,10 @@ export default function DashboardsPage() {
           variant="contained"
           startIcon={<AddIcon />}
           sx={{
-            bgcolor: '#9333ea',
+            bgcolor: (theme) => theme.palette.primary.main,
             textTransform: 'none',
             '&:hover': {
-              bgcolor: '#7e22ce',
+              bgcolor: (theme) => theme.palette.primary.dark,
             },
           }}
         >
@@ -53,23 +53,24 @@ export default function DashboardsPage() {
       <Grid container spacing={2}>
         {Array.from({ length: 6 }).map((_, index) => (
           <Grid item xs={12} md={4} key={index}>
-            <Card sx={{ bgcolor: '#0f172a', border: '1px solid #1E293B' }}>
+            <Card sx={{ bgcolor: (theme) => theme.palette.background.paper, border: '1px solid', borderColor: (theme) => theme.palette.divider }}>
               <CardContent>
-                <Typography variant="body2" sx={{ color: '#64748b', mb: 2 }}>
+                <Typography variant="body2" sx={{ color: (theme) => theme.palette.text.secondary, mb: 2 }}>
                   Widget #{index + 1}
                 </Typography>
                 <Box
                   sx={{
                     height: 120,
-                    border: '2px dashed #334155',
+                    border: '2px dashed',
+                    borderColor: (theme) => theme.palette.divider,
                     borderRadius: 1,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    bgcolor: '#1e293b',
+                    bgcolor: (theme) => theme.palette.action.hover,
                   }}
                 >
-                  <Typography variant="body2" sx={{ color: '#64748b' }}>
+                  <Typography variant="body2" sx={{ color: (theme) => theme.palette.text.secondary }}>
                     Chart Placeholder
                   </Typography>
                 </Box>
@@ -79,7 +80,7 @@ export default function DashboardsPage() {
         ))}
       </Grid>
 
-      <Card sx={{ bgcolor: '#0f172a', border: '1px solid #1E293B' }}>
+      <Card sx={{ bgcolor: (theme) => theme.palette.background.paper, border: '1px solid', borderColor: (theme) => theme.palette.divider }}>
         <CardContent>
           <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
             Dashboard List
@@ -87,10 +88,10 @@ export default function DashboardsPage() {
           <Box sx={{ overflowX: 'auto' }}>
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ borderBottom: '1px solid #1E293B' }}>
+                <TableRow sx={{ borderBottom: '1px solid', borderColor: (theme) => theme.palette.divider }}>
                   <TableCell
                     sx={{
-                      color: '#cbd5e1',
+                      color: (theme) => theme.palette.text.primary,
                       fontWeight: 600,
                       fontSize: '0.875rem',
                     }}
@@ -99,7 +100,7 @@ export default function DashboardsPage() {
                   </TableCell>
                   <TableCell
                     sx={{
-                      color: '#cbd5e1',
+                      color: (theme) => theme.palette.text.primary,
                       fontWeight: 600,
                       fontSize: '0.875rem',
                     }}
@@ -108,7 +109,7 @@ export default function DashboardsPage() {
                   </TableCell>
                   <TableCell
                     sx={{
-                      color: '#cbd5e1',
+                      color: (theme) => theme.palette.text.primary,
                       fontWeight: 600,
                       fontSize: '0.875rem',
                     }}
@@ -117,7 +118,7 @@ export default function DashboardsPage() {
                   </TableCell>
                   <TableCell
                     sx={{
-                      color: '#cbd5e1',
+                      color: (theme) => theme.palette.text.primary,
                       fontWeight: 600,
                       fontSize: '0.875rem',
                     }}
@@ -131,22 +132,23 @@ export default function DashboardsPage() {
                   <TableRow
                     key={dashboard.id}
                     sx={{
-                      borderBottom: '1px solid #1E293B',
+                      borderBottom: '1px solid',
+                      borderColor: (theme) => theme.palette.divider,
                       '&:hover': {
-                        bgcolor: '#1e293b',
+                        bgcolor: (theme) => theme.palette.action.hover,
                       },
                     }}
                   >
-                    <TableCell sx={{ color: '#cbd5e1', fontSize: '0.875rem' }}>
+                    <TableCell sx={{ color: (theme) => theme.palette.text.primary, fontSize: '0.875rem' }}>
                       {dashboard.name}
                     </TableCell>
-                    <TableCell sx={{ color: '#cbd5e1', fontSize: '0.875rem' }}>
+                    <TableCell sx={{ color: (theme) => theme.palette.text.primary, fontSize: '0.875rem' }}>
                       {dashboard.owner}
                     </TableCell>
-                    <TableCell sx={{ color: '#cbd5e1', fontSize: '0.875rem' }}>
+                    <TableCell sx={{ color: (theme) => theme.palette.text.primary, fontSize: '0.875rem' }}>
                       {dashboard.updatedAt}
                     </TableCell>
-                    <TableCell sx={{ color: '#cbd5e1', fontSize: '0.875rem' }}>
+                    <TableCell sx={{ color: (theme) => theme.palette.text.primary, fontSize: '0.875rem' }}>
                       {dashboard.widgets.length} widgets
                     </TableCell>
                   </TableRow>

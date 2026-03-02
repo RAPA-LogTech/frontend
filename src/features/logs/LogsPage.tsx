@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 import { apiClient } from '@/lib/apiClient';
+import { formatTimestamp } from '@/lib/formatters';
 import LogsTable from '@/components/tables/LogsTable';
 import { LogEntry } from '@/lib/types';
 
@@ -37,7 +38,7 @@ export default function LogsPage() {
         Logs
       </Typography>
 
-      <Card sx={{ bgcolor: '#0f172a', border: '1px solid #1E293B' }}>
+      <Card sx={{ bgcolor: (theme) => theme.palette.background.paper, border: '1px solid', borderColor: (theme) => theme.palette.divider }}>
         <CardContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
@@ -47,17 +48,16 @@ export default function LogsPage() {
               onChange={(e) => setQuery(e.target.value)}
               size="small"
               sx={{
-                bgcolor: '#1e293b',
                 '& .MuiOutlinedInput-root': {
-                  color: '#cbd5e1',
+                  color: (theme) => theme.palette.text.primary,
                   '& fieldset': {
-                    borderColor: '#334155',
+                    borderColor: (theme) => theme.palette.divider,
                   },
                   '&:hover fieldset': {
-                    borderColor: '#475569',
+                    borderColor: (theme) => theme.palette.divider,
                   },
                   '&.Mui-focused fieldset': {
-                    borderColor: '#c084fc',
+                    borderColor: (theme) => theme.palette.primary.main,
                   },
                 },
               }}
@@ -81,8 +81,9 @@ export default function LogsPage() {
         PaperProps={{
           sx: {
             width: 384,
-            bgcolor: '#0f172a',
-            borderLeft: '1px solid #1E293B',
+            bgcolor: (theme) => theme.palette.background.paper,
+            borderLeft: '1px solid',
+            borderColor: (theme) => theme.palette.divider,
           },
         }}
       >
@@ -101,25 +102,25 @@ export default function LogsPage() {
               <IconButton
                 onClick={() => setSelectedLog(null)}
                 size="small"
-                sx={{ color: '#64748b' }}
+                sx={{ color: (theme) => theme.palette.text.secondary }}
               >
                 <CloseIcon />
               </IconButton>
             </Box>
 
-            <Typography variant="body2" sx={{ color: '#64748b' }}>
+            <Typography variant="body2" sx={{ color: (theme) => theme.palette.text.secondary }}>
               ID: {selectedLog.id}
             </Typography>
-            <Typography variant="body2" sx={{ color: '#64748b' }}>
-              Timestamp: {selectedLog.timestamp}
+            <Typography variant="body2" sx={{ color: (theme) => theme.palette.text.secondary }}>
+              Timestamp: {formatTimestamp(selectedLog.timestamp)}
             </Typography>
-            <Typography variant="body2" sx={{ color: '#64748b' }}>
+            <Typography variant="body2" sx={{ color: (theme) => theme.palette.text.secondary }}>
               Service: {selectedLog.service}
             </Typography>
-            <Typography variant="body2" sx={{ color: '#64748b' }}>
+            <Typography variant="body2" sx={{ color: (theme) => theme.palette.text.secondary }}>
               Level: {selectedLog.level}
             </Typography>
-            <Typography variant="body2" sx={{ color: '#64748b' }}>
+            <Typography variant="body2" sx={{ color: (theme) => theme.palette.text.secondary }}>
               Message: {selectedLog.message}
             </Typography>
           </Box>

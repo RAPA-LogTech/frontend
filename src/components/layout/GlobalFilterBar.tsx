@@ -79,8 +79,9 @@ export const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
           alignItems: 'center',
           gap: 1.5,
           minHeight: '56px',
-          bgcolor: '#0f172a',
-          borderBottom: '1px solid #1E293B',
+          bgcolor: (theme) => theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff',
+          borderBottom: '1px solid',
+          borderColor: (theme) => theme.palette.divider,
           px: { xs: 1.5, sm: 2, md: 3 },
           flexShrink: 0,
           overflow: 'hidden',
@@ -102,17 +103,10 @@ export const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
             value={value.timeRange}
             onChange={(e) => handleTimeRangeChange(e.target.value)}
             sx={{
-              bgcolor: '#1e293b',
-              color: '#cbd5e1',
+              color: (theme) => theme.palette.text.primary,
               fontSize: '0.875rem',
               '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#334155',
-              },
-              '&:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#475569',
-              },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#c084fc',
+                borderColor: (theme) => theme.palette.divider,
               },
             }}
           >
@@ -132,17 +126,10 @@ export const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
             onChange={(e) => handleServiceChange(e.target.value)}
             displayEmpty
             sx={{
-              bgcolor: '#1e293b',
-              color: '#cbd5e1',
+              color: (theme) => theme.palette.text.primary,
               fontSize: '0.875rem',
               '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#334155',
-              },
-              '&:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#475569',
-              },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#c084fc',
+                borderColor: (theme) => theme.palette.divider,
               },
             }}
           >
@@ -165,17 +152,10 @@ export const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
             onChange={(e) => handleEnvChange(e.target.value)}
             displayEmpty
             sx={{
-              bgcolor: '#1e293b',
-              color: '#cbd5e1',
+              color: (theme) => theme.palette.text.primary,
               fontSize: '0.875rem',
               '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#334155',
-              },
-              '&:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#475569',
-              },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#c084fc',
+                borderColor: (theme) => theme.palette.divider,
               },
             }}
           >
@@ -198,17 +178,10 @@ export const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
             onChange={(e) => handleClusterChange(e.target.value)}
             displayEmpty
             sx={{
-              bgcolor: '#1e293b',
-              color: '#cbd5e1',
+              color: (theme) => theme.palette.text.primary,
               fontSize: '0.875rem',
               '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#334155',
-              },
-              '&:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#475569',
-              },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#c084fc',
+                borderColor: (theme) => theme.palette.divider,
               },
             }}
           >
@@ -238,13 +211,13 @@ export const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
           startIcon={<SettingsIcon />}
           onClick={() => setShowAdvanced(!showAdvanced)}
           sx={{
-            bgcolor: showAdvanced ? '#9333ea' : 'transparent',
-            color: showAdvanced ? '#fff' : '#cbd5e1',
-            borderColor: '#475569',
+            bgcolor: (theme) => showAdvanced ? theme.palette.primary.main : 'transparent',
+            color: (theme) => showAdvanced ? '#fff' : theme.palette.text.secondary,
+            borderColor: (theme) => theme.palette.divider,
             textTransform: 'none',
             '&:hover': {
-              bgcolor: showAdvanced ? '#7e22ce' : '#1e293b',
-              borderColor: '#64748b',
+              bgcolor: (theme) => showAdvanced ? theme.palette.primary.dark : theme.palette.action.hover,
+              borderColor: (theme) => theme.palette.primary.main,
             },
           }}
           title="Advanced filters"
@@ -258,12 +231,12 @@ export const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
           startIcon={<RefreshIcon />}
           onClick={handleReset}
           sx={{
-            color: '#cbd5e1',
-            borderColor: '#475569',
+            color: (theme) => theme.palette.text.secondary,
+            borderColor: (theme) => theme.palette.divider,
             textTransform: 'none',
             '&:hover': {
-              bgcolor: '#1e293b',
-              borderColor: '#64748b',
+              bgcolor: (theme) => theme.palette.action.hover,
+              borderColor: (theme) => theme.palette.primary.main,
             },
           }}
           title="Reset all filters"
@@ -277,19 +250,20 @@ export const GlobalFilterBar: React.FC<GlobalFilterBarProps> = ({
     {showAdvanced && (
       <Box
         sx={{
-          bgcolor: '#0f172a',
+          bgcolor: (theme) => theme.palette.background.paper,
           px: { xs: 1.5, sm: 2, md: 3 },
           pb: 2,
-          borderBottom: '1px solid #1E293B',
+          borderBottom: '1px solid',
+          borderColor: (theme) => theme.palette.divider,
         }}
       >
         <Alert
           severity="info"
           variant="outlined"
           sx={{
-            bgcolor: '#1e293b',
-            color: '#94a3b8',
-            borderColor: '#334155',
+            bgcolor: (theme) => theme.palette.action.hover,
+            color: (theme) => theme.palette.text.secondary,
+            borderColor: (theme) => theme.palette.divider,
             fontSize: '0.875rem',
           }}
         >

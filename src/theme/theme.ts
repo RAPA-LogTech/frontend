@@ -156,6 +156,12 @@ export const getAppTheme = (mode: PaletteMode) => {
               light: '#6ee7b7',
               dark: '#059669',
             },
+            action: {
+              active: '#9333ea',
+              hover: '#1e293b',
+              selected: '#0f172a',
+              disabled: '#64748b',
+            },
           }
         : {
             primary: {
@@ -173,8 +179,8 @@ export const getAppTheme = (mode: PaletteMode) => {
               paper: '#ffffff',
             },
             text: {
-              primary: '#0f172a',
-              secondary: '#334155',
+              primary: '#000000',
+              secondary: '#64748b',
             },
             divider: '#e2e8f0',
             error: {
@@ -197,10 +203,84 @@ export const getAppTheme = (mode: PaletteMode) => {
               light: '#6ee7b7',
               dark: '#065f46',
             },
+            action: {
+              active: '#9333ea',
+              hover: '#f1f5f9',
+              selected: '#f8fafc',
+              disabled: '#94a3b8',
+            },
           }),
     },
+    components: {
+      MuiCard: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            backgroundColor: theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff',
+          }),
+        },
+      },
+      MuiOutlinedInput: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            backgroundColor: theme.palette.mode === 'dark' ? '#1e293b' : '#f1f5f9',
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: theme.palette.mode === 'dark' ? '#475569' : '#cbd5e1',
+            },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderColor: theme.palette.primary.main,
+            },
+          }),
+        },
+      },
+      MuiListItemButton: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            color: theme.palette.text.primary,
+            '&:hover': {
+              backgroundColor: theme.palette.mode === 'dark' ? '#1e293b' : '#f1f5f9',
+              color: theme.palette.text.primary,
+            },
+          }),
+        },
+      },
+      MuiDivider: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            borderColor: theme.palette.divider,
+          }),
+        },
+      },
+      MuiTableCell: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            borderColor: theme.palette.divider,
+            color: theme.palette.text.primary,
+          }),
+          head: ({ theme }) => ({
+            backgroundColor: theme.palette.mode === 'dark' ? '#1e293b' : '#f1f5f9',
+            color: theme.palette.text.primary,
+            fontWeight: 700,
+          }),
+        },
+      },
+      MuiButton: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            color: theme.palette.text.primary,
+          }),
+          outlined: ({ theme }) => ({
+            borderColor: theme.palette.divider,
+            color: theme.palette.text.secondary,
+            '&:hover': {
+              backgroundColor: theme.palette.mode === 'dark' ? '#1e293b' : '#f1f5f9',
+              borderColor: theme.palette.primary.main,
+            },
+          }),
+        },
+      },
+    },
     typography: {
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif',
+      fontFamily: '"Inter", "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif',
       h1: { fontSize: '2rem', fontWeight: 600 },
       h2: { fontSize: '1.5rem', fontWeight: 600 },
       h3: { fontSize: '1.25rem', fontWeight: 600 },

@@ -29,7 +29,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
   };
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden', bgcolor: '#0a0f1a', width: '100vw' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      height: '100vh', 
+      overflow: 'hidden', 
+      bgcolor: 'background.default',  // ← dynamic (dark: #0a0f1a, light: #f8fafc)
+      width: '100vw' 
+    }}>
       {/* Top AppBar */}
       <TopBar 
         onMenuClick={handleDrawerToggle}

@@ -64,22 +64,7 @@ export default function Sidebar({
 
   const sidebarContent = (
     <>
-      {/* Logo */}
-      <Box sx={{ p: 3, borderBottom: '1px solid #1E293B' }}>
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: 'bold',
-            color: '#c084fc',
-            mb: 0.5,
-          }}
-        >
-          LogTech
-        </Typography>
-        <Typography variant="caption" sx={{ color: '#64748b' }}>
-          v0.1.0
-        </Typography>
-      </Box>
+
 
       {/* Navigation */}
       <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
@@ -90,7 +75,7 @@ export default function Sidebar({
                 fontSize: '0.75rem',
                 fontWeight: 600,
                 textTransform: 'uppercase',
-                color: '#64748b',
+                color: (theme) => theme.palette.text.secondary,
                 px: 2,
                 mb: 1,
               }}
@@ -111,11 +96,11 @@ export default function Sidebar({
                       sx={{
                         borderRadius: 1,
                         mb: 0.5,
-                        bgcolor: isActive ? '#9333ea' : 'transparent',
-                        color: isActive ? '#fff' : '#cbd5e1',
+                        bgcolor: isActive ? (theme) => theme.palette.primary.main : 'transparent',
+                        color: isActive ? '#fff' : (theme) => theme.palette.text.secondary,
                         '&:hover': {
-                          bgcolor: isActive ? '#9333ea' : '#1e293b',
-                          color: isActive ? '#fff' : '#e2e8f0',
+                          bgcolor: isActive ? (theme) => theme.palette.primary.dark : (theme) => theme.palette.action.hover,
+                          color: isActive ? '#fff' : (theme) => theme.palette.text.primary,
                         },
                       }}
                     >
@@ -141,7 +126,7 @@ export default function Sidebar({
       </Box>
 
       {/* AI Chat Button */}
-      <Box sx={{ p: 2, borderTop: '1px solid #1E293B' }}>
+      <Box sx={{ p: 2, borderTop: '1px solid', borderColor: (theme) => theme.palette.divider }}>
         <Button
           fullWidth
           variant="contained"
@@ -168,8 +153,9 @@ export default function Sidebar({
         sx={{
           width: drawerWidth,
           height: '100%',
-          bgcolor: '#0f172a',
-          borderRight: '1px solid #1E293B',
+          bgcolor: (theme) => theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff',
+          borderRight: '1px solid',
+          borderColor: (theme) => theme.palette.divider,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'auto',
@@ -191,8 +177,9 @@ export default function Sidebar({
         '& .MuiDrawer-paper': {
           width: drawerWidth,
           boxSizing: 'border-box',
-          bgcolor: '#0f172a',
-          borderRight: '1px solid #1E293B',
+          bgcolor: (theme) => theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff',
+          borderRight: '1px solid',
+          borderColor: (theme) => theme.palette.divider,
         },
       }}
     >

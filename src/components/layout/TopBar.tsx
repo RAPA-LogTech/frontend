@@ -50,8 +50,10 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
       sx={{
         height: `${topBarHeight}px`,
         width: '100%',
-        bgcolor: '#0f172a',
-        borderBottom: '1px solid #1E293B',
+        bgcolor: (theme) => theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff',
+        color: (theme) => theme.palette.text.primary,
+        borderBottom: '1px solid',
+        borderColor: (theme) => theme.palette.divider,
         boxShadow: 'none',
         zIndex: (theme) => theme.zIndex.drawer + 1,
       }}
@@ -73,9 +75,9 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
               onClick={onMenuClick}
               size="small"
               sx={{
-                color: '#64748b',
+                color: (theme) => theme.palette.text.secondary,
                 '&:hover': {
-                  color: '#cbd5e1',
+                  color: (theme) => theme.palette.text.primary,
                 },
                 mr: 1,
               }}
@@ -87,15 +89,33 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
 
         {/* Left */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#e2e8f0' }}>
-            Observability Console
-          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center' }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                fontWeight: 700, 
+                color: (theme) => theme.palette.text.primary,
+                lineHeight: 1,
+              }}
+            >
+              LogTech
+            </Typography>
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: (theme) => theme.palette.text.secondary,
+                lineHeight: 1,
+              }}
+            >
+              v0.1.0
+            </Typography>
+          </Box>
           <Chip
             label="Live"
             size="small"
             sx={{
-              bgcolor: '#10b98150',
-              color: '#10b981',
+              bgcolor: (theme) => theme.palette.success.main,
+              color: '#ffffff',
               fontWeight: 'bold',
             }}
           />
@@ -109,9 +129,9 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
               onClick={toggleMode}
               size="small"
               sx={{
-                color: '#64748b',
+                color: (theme) => theme.palette.text.secondary,
                 '&:hover': {
-                  color: '#cbd5e1',
+                  color: (theme) => theme.palette.text.primary,
                 },
               }}
             >
@@ -124,9 +144,9 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
             <IconButton
               size="small"
               sx={{
-                color: '#64748b',
+                color: (theme) => theme.palette.text.secondary,
                 '&:hover': {
-                  color: '#cbd5e1',
+                  color: (theme) => theme.palette.text.primary,
                 },
               }}
             >
@@ -142,9 +162,9 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
               size="small"
               onClick={handleMenuOpen}
               sx={{
-                color: '#64748b',
+                color: (theme) => theme.palette.text.secondary,
                 '&:hover': {
-                  color: '#cbd5e1',
+                  color: (theme) => theme.palette.text.primary,
                 },
               }}
             >
@@ -158,8 +178,8 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
             onClose={handleMenuClose}
             PaperProps={{
               sx: {
-                bgcolor: '#1e293b',
-                color: '#e2e8f0',
+                bgcolor: (theme) => theme.palette.background.paper,
+                color: (theme) => theme.palette.text.primary,
                 mt: 1,
               },
             }}
@@ -168,7 +188,7 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
               disabled
               sx={{
                 fontSize: '0.75rem',
-                color: '#64748b',
+                color: (theme) => theme.palette.text.secondary,
               }}
             >
               sre@company.com
