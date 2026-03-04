@@ -1,10 +1,12 @@
 'use client';
 
-import { UIEvent, useEffect, useMemo, useState } from 'react';
+import { memo, UIEvent, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Box,
   Button,
+  Card,
+  CardContent,
   Chip,
   Divider,
   FormControl,
@@ -20,22 +22,208 @@ import {
   ToggleButtonGroup,
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
+import { Bar, BarChart, CartesianGrid, Cell, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { apiClient } from '@/lib/apiClient';
 import { formatTimestamp } from '@/lib/formatters';
 import LogsTable from '@/components/tables/LogsTable';
 import { LogEntry } from '@/lib/types';
 
+type HistogramDataItem = {
+  key: number;
+  tsLabel: string;
+  count: number;
+  debug: number;
+  info: number;
+  warn: number;
+  error: number;
+};
+
+type HistogramTooltipItem = {
+  tsLabel?: string;
+  debug?: number;
+  info?: number;
+  warn?: number;
+  error?: number;
+  count?: number;
+};
+
+const HistogramTooltip = memo(function HistogramTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload?: HistogramTooltipItem }>;
+}) {
+  const item = payload?.[0]?.payload;
+  if (!active || !item) return null;
+
+  return (
+    <Box
+      sx={{
+        px: 1,
+        py: 0.5,
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 1,
+        bgcolor: 'background.paper',
+      }}
+    >
+      <Typography variant="caption" sx={{ display: 'block', fontWeight: 700 }}>
+        {item.tsLabel} · {(item.count ?? 0).toLocaleString()} hits
+      </Typography>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+        D {(item.debug ?? 0).toLocaleString()} · I {(item.info ?? 0).toLocaleString()} · W {(item.warn ?? 0).toLocaleString()} · E {(item.error ?? 0).toLocaleString()}
+      </Typography>
+    </Box>
+  );
+});
+
+const LogsHistogram = memo(function LogsHistogram({
+  histogramData,
+  maxBucket,
+  selectedBucketKey,
+  onSelectBucket,
+}: {
+  histogramData: HistogramDataItem[];
+  maxBucket: number;
+  selectedBucketKey: number | null;
+  onSelectBucket: (bucketKey: number) => void;
+}) {
+  const getBucketOpacity = (bucketKey: number) => {
+    const baseDimOpacity = 0.35;
+
+    if (selectedBucketKey !== null) {
+      return selectedBucketKey === bucketKey ? 1 : 0.22;
+    }
+
+    return baseDimOpacity;
+  };
+
+  return (
+    <Card
+      variant="outlined"
+      sx={{
+        p: 1,
+        borderColor: 'divider',
+        bgcolor: 'background.default',
+        mb: 1.5,
+      }}
+    >
+      <CardContent sx={{ p: '8px !important' }}>
+        <Box sx={{ height: 220 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={histogramData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="tsLabel"
+                minTickGap={28}
+                tick={{ fontSize: 11 }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                allowDecimals={false}
+                domain={[0, Math.max(maxBucket, 1)]}
+                tick={{ fontSize: 11 }}
+                tickLine={false}
+                axisLine={false}
+                width={32}
+              />
+              <Tooltip
+                cursor={false}
+                isAnimationActive={false}
+                content={<HistogramTooltip />}
+              />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+
+              <Bar dataKey="debug" stackId="levels" fill="#64748b" activeBar={{ fill: '#64748b', fillOpacity: 1, stroke: '#cbd5e1', strokeWidth: 1.2 }} onClick={(_, index) => {
+                const bucket = histogramData[index];
+                if (!bucket) return;
+                onSelectBucket(bucket.key);
+              }} isAnimationActive={false}>
+                {histogramData.map((bucket) => (
+                  <Cell
+                    key={`bucket-debug-${bucket.key}`}
+                    fill="#64748b"
+                    fillOpacity={getBucketOpacity(bucket.key)}
+                    stroke={selectedBucketKey === bucket.key ? '#ffffff' : 'none'}
+                    strokeWidth={selectedBucketKey === bucket.key ? 1 : 0}
+                    style={{ cursor: 'pointer' }}
+                  />
+                ))}
+              </Bar>
+
+              <Bar dataKey="info" stackId="levels" fill="#3b82f6" activeBar={{ fill: '#3b82f6', fillOpacity: 1, stroke: '#93c5fd', strokeWidth: 1.2 }} onClick={(_, index) => {
+                const bucket = histogramData[index];
+                if (!bucket) return;
+                onSelectBucket(bucket.key);
+              }} isAnimationActive={false}>
+                {histogramData.map((bucket) => (
+                  <Cell
+                    key={`bucket-info-${bucket.key}`}
+                    fill="#3b82f6"
+                    fillOpacity={getBucketOpacity(bucket.key)}
+                    stroke={selectedBucketKey === bucket.key ? '#ffffff' : 'none'}
+                    strokeWidth={selectedBucketKey === bucket.key ? 1 : 0}
+                    style={{ cursor: 'pointer' }}
+                  />
+                ))}
+              </Bar>
+
+              <Bar dataKey="warn" stackId="levels" fill="#f59e0b" activeBar={{ fill: '#f59e0b', fillOpacity: 1, stroke: '#fcd34d', strokeWidth: 1.2 }} onClick={(_, index) => {
+                const bucket = histogramData[index];
+                if (!bucket) return;
+                onSelectBucket(bucket.key);
+              }} isAnimationActive={false}>
+                {histogramData.map((bucket) => (
+                  <Cell
+                    key={`bucket-warn-${bucket.key}`}
+                    fill="#f59e0b"
+                    fillOpacity={getBucketOpacity(bucket.key)}
+                    stroke={selectedBucketKey === bucket.key ? '#ffffff' : 'none'}
+                    strokeWidth={selectedBucketKey === bucket.key ? 1 : 0}
+                    style={{ cursor: 'pointer' }}
+                  />
+                ))}
+              </Bar>
+
+              <Bar dataKey="error" stackId="levels" fill="#ef4444" activeBar={{ fill: '#ef4444', fillOpacity: 1, stroke: '#fca5a5', strokeWidth: 1.2 }} radius={[3, 3, 0, 0]} onClick={(_, index) => {
+                const bucket = histogramData[index];
+                if (!bucket) return;
+                onSelectBucket(bucket.key);
+              }} isAnimationActive={false}>
+                {histogramData.map((bucket) => (
+                  <Cell
+                    key={`bucket-error-${bucket.key}`}
+                    fill="#ef4444"
+                    fillOpacity={getBucketOpacity(bucket.key)}
+                    stroke={selectedBucketKey === bucket.key ? '#ffffff' : 'none'}
+                    strokeWidth={selectedBucketKey === bucket.key ? 1.2 : 0}
+                    style={{ cursor: 'pointer' }}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </Box>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block', textAlign: 'center' }}>
+          @timestamp per auto interval
+        </Typography>
+      </CardContent>
+    </Card>
+  );
+});
+
 export default function LogsPage() {
   const PAGE_SIZE = 60;
   const { data: logs = [], refetch } = useQuery({ queryKey: ['logs'], queryFn: apiClient.getLogs });
-  const [query, setQuery] = useState('error');
+  const [query, setQuery] = useState('');
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
   const [activeTab, setActiveTab] = useState<'logs' | 'patterns' | 'exceptions'>('logs');
   const [isLuceneMode, setIsLuceneMode] = useState(true);
   const [timeRange, setTimeRange] = useState<'15m' | '1h' | '6h' | '24h' | 'all'>('15m');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [fieldSearch, setFieldSearch] = useState('');
-  const [hoveredBucketKey, setHoveredBucketKey] = useState<number | null>(null);
   const [selectedBucketKey, setSelectedBucketKey] = useState<number | null>(null);
 
   const getFieldValue = (log: LogEntry, field: string) => {
@@ -142,6 +330,10 @@ export default function LogsPage() {
       key: idx,
       label: new Date(start + idx * interval),
       count: 0,
+      debug: 0,
+      info: 0,
+      warn: 0,
+      error: 0,
       start,
       end,
       interval,
@@ -152,7 +344,17 @@ export default function LogsPage() {
         Math.floor((new Date(item.timestamp).getTime() - start) / interval),
         bucketCount - 1
       );
-      buckets[idx].count += 1;
+      const bucket = buckets[idx];
+      bucket.count += 1;
+      if (item.level === 'ERROR') {
+        bucket.error += 1;
+      } else if (item.level === 'WARN') {
+        bucket.warn += 1;
+      } else if (item.level === 'DEBUG') {
+        bucket.debug += 1;
+      } else {
+        bucket.info += 1;
+      }
     }
 
     return buckets;
@@ -190,34 +392,15 @@ export default function LogsPage() {
   };
 
   const maxBucket = Math.max(...histogram.map((bucket) => bucket.count), 1);
-  const hoveredBucket = hoveredBucketKey !== null
-    ? histogram.find((bucket) => bucket.key === hoveredBucketKey) ?? null
-    : null;
-  const hoveredBucketMeta = useMemo(() => {
-    if (!hoveredBucket || histogram.length === 0) {
-      return null;
-    }
 
-    const index = histogram.findIndex((bucket) => bucket.key === hoveredBucket.key);
-    if (index < 0) {
-      return null;
-    }
-
-    const xPct = histogram.length === 1 ? 50 : (index / (histogram.length - 1)) * 100;
-    const heightPct = Math.max((hoveredBucket.count / maxBucket) * 100, 2);
-    const yPct = 100 - heightPct;
-
-    return { xPct, yPct };
-  }, [hoveredBucket, histogram, maxBucket]);
-
-  const yAxisTicks = [1, 0.75, 0.5, 0.25, 0].map((ratio) => ({
-    ratio,
-    value: Math.round(maxBucket * ratio),
-  }));
-
-  const xAxisTicks = histogram.length > 0
-    ? [histogram[0], histogram[Math.floor(histogram.length / 2)], histogram[histogram.length - 1]]
-    : [];
+  const histogramData = useMemo(
+    () =>
+      histogram.map((bucket) => ({
+        ...bucket,
+        tsLabel: bucket.label.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      })),
+    [histogram],
+  );
 
   const fieldCandidates = useMemo(() => {
     const baseFields = ['@timestamp', 'service', 'level', 'message', 'env', 'traceId', 'requestId'];
@@ -228,7 +411,10 @@ export default function LogsPage() {
       Object.keys(item.tags ?? {}).forEach((field) => dynamicFields.add(`tag.${field}`));
     }
 
-    return [...baseFields, ...Array.from(dynamicFields)].slice(0, 20);
+    const merged = [...baseFields, ...Array.from(dynamicFields)];
+    const uniqueOrdered = Array.from(new Set(merged));
+
+    return uniqueOrdered.slice(0, 20);
   }, [logs]);
 
   const filteredFields = useMemo(() => {
@@ -356,122 +542,14 @@ export default function LogsPage() {
               </Stack>
             )}
 
-            <Paper
-              variant="outlined"
-              sx={{
-                p: 1,
-                borderColor: 'divider',
-                bgcolor: 'background.default',
-                mb: 1.5,
-              }}
-            >
-              <Box sx={{ position: 'relative', pl: 4.5, pr: 1, pt: 0.5, pb: 3 }}>
-                <Box sx={{ position: 'relative', height: 180 }}>
-                  {hoveredBucket && hoveredBucketMeta && (
-                    <Paper
-                      elevation={3}
-                      sx={{
-                        position: 'absolute',
-                        left: `${hoveredBucketMeta.xPct}%`,
-                        top: `clamp(4px, calc(${hoveredBucketMeta.yPct}% - 42px), 150px)`,
-                        transform: 'translateX(-50%)',
-                        zIndex: 3,
-                        px: 1,
-                        py: 0.75,
-                        borderRadius: 1,
-                        bgcolor: 'background.paper',
-                        pointerEvents: 'none',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      <Typography variant="caption" sx={{ display: 'block', fontWeight: 700 }}>
-                        {hoveredBucket.count.toLocaleString()} hits
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {hoveredBucket.label.toLocaleTimeString()}
-                      </Typography>
-                    </Paper>
-                  )}
-
-                  {yAxisTicks.map((tick) => (
-                    <Box
-                      key={`y-${tick.ratio}`}
-                      sx={{
-                        position: 'absolute',
-                        left: 0,
-                        right: 0,
-                        top: `${(1 - tick.ratio) * 100}%`,
-                        borderTop: '1px dashed',
-                        borderColor: 'divider',
-                        opacity: tick.ratio === 0 ? 0.8 : 0.5,
-                      }}
-                    >
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{
-                          position: 'absolute',
-                          left: -32,
-                          top: -8,
-                          fontSize: '0.65rem',
-                        }}
-                      >
-                        {tick.value}
-                      </Typography>
-                    </Box>
-                  ))}
-
-                  <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.5, height: '100%', position: 'relative', zIndex: 1 }}>
-                    {histogram.map((bucket) => (
-                      <Box
-                        key={bucket.key}
-                        onMouseEnter={() => setHoveredBucketKey(bucket.key)}
-                        onMouseLeave={() => setHoveredBucketKey(null)}
-                        onClick={() =>
-                          setSelectedBucketKey((prev) => (prev === bucket.key ? null : bucket.key))
-                        }
-                        sx={{
-                          flex: 1,
-                          minWidth: 6,
-                          height: `${Math.max((bucket.count / maxBucket) * 100, 2)}%`,
-                          bgcolor: (theme) =>
-                            query.trim()
-                              ? theme.palette.mode === 'dark'
-                                ? '#5fb8a8'
-                                : '#59ad9b'
-                              : theme.palette.primary.main,
-                          borderRadius: '2px 2px 0 0',
-                          opacity:
-                            selectedBucketKey !== null
-                              ? selectedBucketKey === bucket.key
-                                ? 1
-                                : 0.35
-                              : hoveredBucketKey === null || hoveredBucketKey === bucket.key
-                                ? 1
-                                : 0.5,
-                          outline:
-                            selectedBucketKey === bucket.key
-                              ? '2px solid rgba(255,255,255,0.7)'
-                              : 'none',
-                          cursor: 'pointer',
-                        }}
-                      />
-                    ))}
-                  </Box>
-                </Box>
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.75, ml: 0.5 }}>
-                  {xAxisTicks.map((tick, index) => (
-                    <Typography key={`x-${tick.key}-${index}`} variant="caption" color="text.secondary">
-                      {tick.label.toLocaleTimeString()}
-                    </Typography>
-                  ))}
-                </Box>
-              </Box>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', textAlign: 'center' }}>
-                @timestamp per auto interval
-              </Typography>
-            </Paper>
+            <LogsHistogram
+              histogramData={histogramData}
+              maxBucket={maxBucket}
+              selectedBucketKey={selectedBucketKey}
+              onSelectBucket={(bucketKey) =>
+                setSelectedBucketKey((prev) => (prev === bucketKey ? null : bucketKey))
+              }
+            />
 
             <ToggleButtonGroup
               exclusive
