@@ -35,26 +35,110 @@ import {
 } from 'recharts';
 import { apiClient } from '@/lib/apiClient';
 import { formatTimestamp } from '@/lib/formatters';
+import type { Trace } from '@/lib/types';
 
 type SortKey = 'recent' | 'duration';
+
+type TraceStreamPayload = {
+  ts: number;
+  trace: Trace;
+};
 
 export default function TracesPage() {
   const PAGE_SIZE = 30;
   const theme = useTheme();
   const { data: traces = [] } = useQuery({ queryKey: ['traces'], queryFn: apiClient.getTraces });
+  const [liveTraces, setLiveTraces] = useState<Trace[]>([]);
+  const [streamStatus, setStreamStatus] = useState<'connecting' | 'live' | 'reconnecting' | 'offline'>('connecting');
   const [sortKey, setSortKey] = useState<SortKey>('recent');
   const [hoveredTraceId, setHoveredTraceId] = useState<string | null>(null);
   const [selectedTraceId, setSelectedTraceId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [showDependencyGraph, setShowDependencyGraph] = useState(false);
+  const [scatterDomain, setScatterDomain] = useState<{
+    xMin: number;
+    xMax: number;
+    yMin: number;
+    yMax: number;
+  } | null>(null);
+
+  useEffect(() => {
+    setLiveTraces(traces);
+    if (traces.length > 0) {
+      setStreamStatus('connecting');
+    }
+  }, [traces]);
+
+  useEffect(() => {
+    if (traces.length === 0) {
+      setStreamStatus('offline');
+      return;
+    }
+
+    const MAX_TRACES = 240;
+    let eventSource: EventSource | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let isUnmounted = false;
+    let retryAttempt = 0;
+
+    const connect = () => {
+      if (isUnmounted) return;
+
+      setStreamStatus(retryAttempt === 0 ? 'connecting' : 'reconnecting');
+      eventSource = new EventSource('/api/traces/stream');
+
+      eventSource.onopen = () => {
+        retryAttempt = 0;
+        setStreamStatus('live');
+      };
+
+      eventSource.addEventListener('trace', (event) => {
+        try {
+          const payload = JSON.parse((event as MessageEvent<string>).data) as TraceStreamPayload;
+          if (!payload?.trace) return;
+
+          setLiveTraces((prev) => {
+            const deduped = prev.filter((item) => item.id !== payload.trace.id);
+            return [payload.trace, ...deduped].slice(0, MAX_TRACES);
+          });
+        } catch {
+          // ignore malformed trace event
+        }
+      });
+
+      eventSource.onerror = () => {
+        eventSource?.close();
+        eventSource = null;
+
+        if (isUnmounted) return;
+        setStreamStatus('reconnecting');
+        retryAttempt += 1;
+        const delay = Math.min(5000, 1000 * 2 ** Math.min(retryAttempt, 3));
+        reconnectTimer = setTimeout(connect, delay);
+      };
+    };
+
+    connect();
+
+    return () => {
+      isUnmounted = true;
+      setStreamStatus('offline');
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+      eventSource?.close();
+    };
+  }, [traces.length]);
+
+  const traceSeries = useMemo(() => (liveTraces.length > 0 ? liveTraces : traces), [liveTraces, traces]);
 
   const sortedTraces = useMemo(() => {
-    const cloned = [...traces];
+    const cloned = [...traceSeries];
     if (sortKey === 'duration') {
       return cloned.sort((a, b) => b.duration - a.duration);
     }
     return cloned.sort((a, b) => b.startTime - a.startTime);
-  }, [traces, sortKey]);
+  }, [traceSeries, sortKey]);
   const hasTraces = sortedTraces.length > 0;
 
   const minStart = useMemo(
@@ -73,6 +157,44 @@ export default function TracesPage() {
     () => (hasTraces ? Math.max(...sortedTraces.map((trace) => trace.duration)) : 0),
     [hasTraces, sortedTraces],
   );
+
+  useEffect(() => {
+    if (!hasTraces) return;
+
+    const observedXMin = minStart;
+    const observedXMax = maxStart;
+    const observedYMin = Math.max(0, minDuration * 0.9);
+    const observedYMax = maxDuration * 1.05;
+
+    setScatterDomain((prev) => {
+      if (!prev) {
+        return {
+          xMin: observedXMin,
+          xMax: observedXMax,
+          yMin: observedYMin,
+          yMax: observedYMax,
+        };
+      }
+
+      const next = {
+        xMin: Math.min(prev.xMin, observedXMin),
+        xMax: Math.max(prev.xMax, observedXMax),
+        yMin: Math.min(prev.yMin, observedYMin),
+        yMax: Math.max(prev.yMax, observedYMax),
+      };
+
+      if (
+        next.xMin === prev.xMin
+        && next.xMax === prev.xMax
+        && next.yMin === prev.yMin
+        && next.yMax === prev.yMax
+      ) {
+        return prev;
+      }
+
+      return next;
+    });
+  }, [hasTraces, minStart, maxStart, minDuration, maxDuration]);
 
   const handleSortChange = (event: SelectChangeEvent<SortKey>) => {
     setSortKey(event.target.value as SortKey);
@@ -247,6 +369,13 @@ export default function TracesPage() {
     [durationRange, getStatusColor, minDuration, sortedTraces],
   );
 
+  const xDomain: [number, number] = scatterDomain
+    ? [scatterDomain.xMin, scatterDomain.xMax]
+    : [minStart, maxStart];
+  const yDomain: [number, number] = scatterDomain
+    ? [scatterDomain.yMin, scatterDomain.yMax]
+    : [Math.max(0, minDuration * 0.9), maxDuration * 1.05];
+
   if (!hasTraces) {
     return (
       <Box>
@@ -262,9 +391,14 @@ export default function TracesPage() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2, md: 3 } }}>
-      <Typography variant="h4" sx={{ fontWeight: 700 }}>
-        Traces
-      </Typography>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1.5}>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+          Traces
+        </Typography>
+        <Typography variant="caption" sx={{ color: streamStatus === 'live' ? 'success.main' : 'text.secondary', fontWeight: 700 }}>
+          SSE {streamStatus.toUpperCase()}
+        </Typography>
+      </Stack>
 
       <Paper
         variant="outlined"
@@ -286,7 +420,7 @@ export default function TracesPage() {
                   type="number"
                   dataKey="startTime"
                   name="Time"
-                  domain={[minStart, maxStart]}
+                  domain={xDomain}
                   tickFormatter={(value: number) => formatTimeUnit(value)}
                   tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
                   tickLine={false}
@@ -297,7 +431,7 @@ export default function TracesPage() {
                   type="number"
                   dataKey="duration"
                   name="Duration"
-                  domain={[Math.max(0, minDuration * 0.9), maxDuration * 1.05]}
+                  domain={yDomain}
                   tickFormatter={(value: number) => formatDurationUnit(value)}
                   tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
                   tickLine={false}
@@ -367,6 +501,7 @@ export default function TracesPage() {
                 />
                 <Scatter
                   data={chartData}
+                  isAnimationActive={false}
                   onMouseEnter={(point: { id?: string }) => setHoveredTraceId(point?.id ?? null)}
                   onClick={(point: { id?: string }) => {
                     const pointId = point?.id;

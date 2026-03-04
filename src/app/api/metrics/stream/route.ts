@@ -49,13 +49,13 @@ const buildInitialState = (): MutableSeriesState[] =>
 
 export async function GET(request: Request) {
   const state = buildInitialState();
-  let metricTicker: ReturnType<typeof setInterval> | null = null;
+  let metricTimer: ReturnType<typeof setTimeout> | null = null;
   let heartbeatTicker: ReturnType<typeof setInterval> | null = null;
 
   const cleanup = () => {
-    if (metricTicker) {
-      clearInterval(metricTicker);
-      metricTicker = null;
+    if (metricTimer) {
+      clearTimeout(metricTimer);
+      metricTimer = null;
     }
     if (heartbeatTicker) {
       clearInterval(heartbeatTicker);
@@ -90,11 +90,12 @@ export async function GET(request: Request) {
           ts,
           points,
         });
+
+        const nextDelayMs = 4500 + Math.floor(Math.random() * 5500);
+        metricTimer = setTimeout(emitPoints, nextDelayMs);
       };
 
       emitPoints();
-
-      metricTicker = setInterval(emitPoints, 2000);
       heartbeatTicker = setInterval(() => {
         controller.enqueue(encoder.encode(`: ping ${Date.now()}\n\n`));
       }, 15000);
