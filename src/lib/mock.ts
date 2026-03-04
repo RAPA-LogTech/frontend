@@ -242,7 +242,7 @@ const createTraceSpan = (
   logs,
 });
 
-export const mockTraces: Trace[] = [
+const baseMockTraces: Trace[] = [
   {
     id: 'trace-001-001',
     service: 'checkout',
@@ -346,6 +346,106 @@ export const mockTraces: Trace[] = [
     ],
   },
 ];
+
+const syntheticTraceServices = [
+  'checkout',
+  'payments',
+  'search',
+  'gateway',
+  'notifications',
+  'auth',
+  'api-server',
+];
+
+const syntheticTraceOperations = [
+  'POST /api/checkout',
+  'POST /api/refund',
+  'GET /api/search',
+  'POST /api/login',
+  'GET /api/orders',
+  'POST /api/notify',
+  'PUT /api/profile',
+];
+
+const pseudoNoise = (index: number, salt: number) => {
+  const raw = Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453;
+  return raw - Math.floor(raw);
+};
+
+const buildSyntheticTrace = (index: number): Trace => {
+  const traceId = `trace-auto-${index.toString().padStart(3, '0')}`;
+  const service = syntheticTraceServices[index % syntheticTraceServices.length];
+  const operation = syntheticTraceOperations[index % syntheticTraceOperations.length];
+  const jitterA = pseudoNoise(index, 1);
+  const jitterB = pseudoNoise(index, 2);
+  const jitterC = pseudoNoise(index, 3);
+  const spikeBonus = jitterB > 0.84 ? 700 + Math.floor(jitterC * 1800) : 0;
+  const duration = 80 + Math.floor(jitterA * 980) + spikeBonus;
+  const lookbackMs =
+    90 * 1000 +
+    index * (18 * 1000 + Math.floor(jitterA * 52 * 1000)) +
+    Math.floor(jitterB * 75 * 1000);
+  const startTime = Date.now() - lookbackMs;
+  const status = jitterC > 0.9 ? 'error' : jitterA > 0.62 ? 'slow' : 'ok';
+  const statusCode = status === 'error' ? 500 : status === 'slow' ? 302 : 200;
+
+  const rootSpanId = `${traceId}-span-root`;
+  const appSpanId = `${traceId}-span-app`;
+  const dbSpanId = `${traceId}-span-db`;
+  const extSpanId = `${traceId}-span-ext`;
+
+  const rawSpans: TraceSpan[] = [
+    createTraceSpan(rootSpanId, 'http-request', 'api-gateway', duration, startTime, undefined, status),
+    createTraceSpan(
+      appSpanId,
+      'app-handler',
+      service,
+      Math.max(30, Math.floor(duration * (0.28 + jitterA * 0.36))),
+      startTime + 6 + Math.floor(jitterA * 18),
+      rootSpanId,
+      status === 'error' && jitterB > 0.6 ? 'error' : 'ok'
+    ),
+    createTraceSpan(
+      dbSpanId,
+      'db-query',
+      'postgres',
+      Math.max(12, Math.floor(duration * (0.12 + jitterB * 0.32))),
+      startTime + 18 + Math.floor(jitterB * 34),
+      appSpanId,
+      status === 'slow' && jitterA > 0.58 ? 'slow' : 'ok'
+    ),
+    createTraceSpan(
+      extSpanId,
+      'external-call',
+      'redis',
+      Math.max(10, Math.floor(duration * (0.1 + jitterC * 0.3))),
+      startTime + 22 + Math.floor(jitterC * 44),
+      appSpanId,
+      status === 'error' ? 'error' : jitterB > 0.78 ? 'slow' : 'ok'
+    ),
+  ];
+
+  const spans = rawSpans.map((span) => ({ ...span, traceId }));
+
+  return {
+    id: traceId,
+    service,
+    operation,
+    startTime,
+    duration,
+    status,
+    status_code: statusCode,
+    spans,
+    tags: {
+      environment: index % 6 === 0 ? 'staging' : 'prod',
+      region: ['ap-northeast-2', 'us-west-2', 'eu-west-1'][index % 3],
+    },
+  };
+};
+
+const syntheticMockTraces: Trace[] = Array.from({ length: 97 }, (_, idx) => buildSyntheticTrace(idx + 4));
+
+export const mockTraces: Trace[] = [...baseMockTraces, ...syntheticMockTraces];
 
 // ============ Alerts ============
 
