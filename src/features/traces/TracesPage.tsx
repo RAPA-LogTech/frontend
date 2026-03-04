@@ -8,6 +8,9 @@ import {
   Button,
   Checkbox,
   Chip,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   FormControl,
   MenuItem,
   Paper,
@@ -30,6 +33,7 @@ export default function TracesPage() {
   const [hoveredTraceId, setHoveredTraceId] = useState<string | null>(null);
   const [selectedTraceId, setSelectedTraceId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [showDependencyGraph, setShowDependencyGraph] = useState(false);
 
   const sortedTraces = useMemo(() => {
     const cloned = [...traces];
@@ -79,6 +83,41 @@ export default function TracesPage() {
     ? sortedTraces.filter((trace) => trace.id === selectedTraceId)
     : sortedTraces;
 
+  const dependencyGraph = useMemo(() => {
+    const edgeMap = new Map<string, { source: string; target: string; count: number }>();
+    const services = new Set<string>();
+
+    for (const trace of displayedTraces) {
+      const spanById = new Map(trace.spans.map((span) => [span.id, span]));
+
+      for (const span of trace.spans) {
+        services.add(span.service);
+        if (!span.parentSpanId) continue;
+
+        const parent = spanById.get(span.parentSpanId);
+        if (!parent) continue;
+        services.add(parent.service);
+
+        const source = parent.service;
+        const target = span.service;
+        if (source === target) continue;
+
+        const key = `${source}->${target}`;
+        const existing = edgeMap.get(key);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          edgeMap.set(key, { source, target, count: 1 });
+        }
+      }
+    }
+
+    return {
+      nodes: Array.from(services).sort(),
+      edges: Array.from(edgeMap.values()).sort((a, b) => b.count - a.count),
+    };
+  }, [displayedTraces]);
+
   const visibleTraces = useMemo(() => displayedTraces.slice(0, visibleCount), [displayedTraces, visibleCount]);
   const hasMoreTraces = visibleCount < displayedTraces.length;
 
@@ -94,6 +133,72 @@ export default function TracesPage() {
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
   }, [sortKey, selectedTraceId]);
+
+  const handleDownloadResults = () => {
+    const escapeCsv = (value: string | number | null | undefined) => {
+      const text = String(value ?? '');
+      const escaped = text.replace(/"/g, '""');
+      return `"${escaped}"`;
+    };
+
+    const header = [
+      'traceId',
+      'service',
+      'operation',
+      'status',
+      'statusCode',
+      'durationMs',
+      'startTime',
+      'spanCount',
+      'errorSpanCount',
+      'topServices',
+    ];
+
+    const rows = displayedTraces.map((trace) => {
+      const serviceCounts = trace.spans.reduce<Record<string, number>>((accumulator, span) => {
+        accumulator[span.service] = (accumulator[span.service] ?? 0) + 1;
+        return accumulator;
+      }, {});
+
+      const topServices = Object.entries(serviceCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([service, count]) => `${service}(${count})`)
+        .join(', ');
+
+      const errorSpanCount = trace.spans.filter((span) => span.status === 'error').length;
+
+      return [
+        trace.id,
+        trace.service,
+        trace.operation,
+        trace.status,
+        trace.status_code ?? '',
+        trace.duration.toFixed(2),
+        new Date(trace.startTime).toISOString(),
+        trace.spans.length,
+        errorSpanCount,
+        topServices,
+      ];
+    });
+
+    const csvContent = [
+      header.map(escapeCsv).join(','),
+      ...rows.map((row) => row.map(escapeCsv).join(',')),
+    ].join('\n');
+
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+
+    anchor.href = url;
+    anchor.download = `traces-results-${timestamp}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  };
 
   const yAxisTicks = [1, 0.75, 0.5, 0.25, 0].map((ratio) => ({
     ratio,
@@ -291,10 +396,10 @@ export default function TracesPage() {
                 <MenuItem value="duration">Longest Duration</MenuItem>
               </Select>
             </FormControl>
-            <Button variant="outlined" size="small">
+            <Button variant="outlined" size="small" onClick={handleDownloadResults}>
               Download Results
             </Button>
-            <Button variant="outlined" size="small">
+            <Button variant="outlined" size="small" onClick={() => setShowDependencyGraph(true)}>
               Deep Dependency Graph
             </Button>
           </Stack>
@@ -387,6 +492,89 @@ export default function TracesPage() {
           </Typography>
         </Box>
       </Paper>
+
+      <Dialog
+        open={showDependencyGraph}
+        onClose={() => setShowDependencyGraph(false)}
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogTitle>Deep Dependency Graph</DialogTitle>
+        <DialogContent>
+          <Stack gap={1.5} sx={{ pt: 0.5 }}>
+            <Typography variant="body2" color="text.secondary">
+              Nodes: {dependencyGraph.nodes.length} · Edges: {dependencyGraph.edges.length}
+            </Typography>
+
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 1,
+                flexWrap: 'wrap',
+                p: 1,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+              }}
+            >
+              {dependencyGraph.nodes.map((node) => (
+                <Chip key={node} label={node} size="small" variant="outlined" />
+              ))}
+            </Box>
+
+            <Box
+              sx={{
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+                overflow: 'hidden',
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr 120px',
+                  px: 1.5,
+                  py: 1,
+                  bgcolor: 'action.hover',
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                }}
+              >
+                <Typography variant="caption" sx={{ fontWeight: 700 }}>Source</Typography>
+                <Typography variant="caption" sx={{ fontWeight: 700 }}>Target</Typography>
+                <Typography variant="caption" sx={{ fontWeight: 700 }}>Calls</Typography>
+              </Box>
+
+              <Box sx={{ maxHeight: 280, overflowY: 'auto' }}>
+                {dependencyGraph.edges.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary" sx={{ p: 1.5 }}>
+                    No cross-service dependencies found in current result set.
+                  </Typography>
+                ) : (
+                  dependencyGraph.edges.map((edge) => (
+                    <Box
+                      key={`${edge.source}-${edge.target}`}
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr 120px',
+                        px: 1.5,
+                        py: 1,
+                        borderBottom: '1px solid',
+                        borderColor: 'divider',
+                      }}
+                    >
+                      <Typography variant="body2">{edge.source}</Typography>
+                      <Typography variant="body2">{edge.target}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>{edge.count}</Typography>
+                    </Box>
+                  ))
+                )}
+              </Box>
+            </Box>
+          </Stack>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }
