@@ -735,29 +735,54 @@ export const getAlertsByService = (service: string) =>
   mockAlerts.filter((alert) => alert.condition.metric.includes(service));
 
 
+const makeMetricSeries = (
+  id: string,
+  name: string,
+  unit: string,
+  base: number,
+  amplitude: number,
+  slope: number,
+  spikeEvery: number,
+  spikeSize: number,
+  service?: string,
+): MetricSeries => {
+  const points: MetricPoint[] = [];
+  const totalPoints = 96;
+  const intervalMs = 5 * 60 * 1000;
+  const start = Date.now() - totalPoints * intervalMs;
+
+  for (let index = 0; index < totalPoints; index += 1) {
+    const waveA = Math.sin(index / 6) * amplitude;
+    const waveB = Math.cos(index / 11) * (amplitude * 0.4);
+    const trend = slope * index;
+    const spike = index % spikeEvery === 0 && index > 0 ? spikeSize : 0;
+    const jitter = ((index % 5) - 2) * (amplitude * 0.06);
+    const value = Math.max(0, base + waveA + waveB + trend + spike + jitter);
+
+    points.push({
+      ts: start + index * intervalMs,
+      value: Number(value.toFixed(unit === '%' ? 3 : 2)),
+    });
+  }
+
+  return {
+    id,
+    name,
+    unit,
+    service,
+    points,
+  };
+};
+
 export const mockMetricSeries: MetricSeries[] = [
-  {
-    id: 'm-1',
-    name: 'request_rate',
-    unit: 'req/s',
-    points: [
-      { ts: 1746087600000, value: 120 },
-      { ts: 1746087900000, value: 132 },
-      { ts: 1746088200000, value: 128 },
-      { ts: 1746088500000, value: 150 },
-    ],
-  },
-  {
-    id: 'm-2',
-    name: 'error_rate',
-    unit: '%',
-    points: [
-      { ts: 1746087600000, value: 0.4 },
-      { ts: 1746087900000, value: 0.8 },
-      { ts: 1746088200000, value: 0.6 },
-      { ts: 1746088500000, value: 1.1 },
-    ],
-  },
+  makeMetricSeries('m-req-checkout', 'request_rate_checkout', 'req/s', 980, 120, 0.9, 19, 140, 'checkout'),
+  makeMetricSeries('m-req-api', 'request_rate_api', 'req/s', 760, 95, 0.6, 23, 100, 'api-gateway'),
+  makeMetricSeries('m-err-checkout', 'error_rate_checkout', '%', 0.35, 0.18, 0.001, 17, 0.6, 'checkout'),
+  makeMetricSeries('m-err-api', 'error_rate_api', '%', 0.22, 0.14, 0.0008, 29, 0.45, 'api-gateway'),
+  makeMetricSeries('m-p95-checkout', 'latency_p95_checkout', 'ms', 280, 45, 0.2, 31, 65, 'checkout'),
+  makeMetricSeries('m-p95-api', 'latency_p95_api', 'ms', 190, 30, 0.12, 27, 40, 'api-gateway'),
+  makeMetricSeries('m-cpu-checkout', 'cpu_usage_checkout', '%', 48, 10, 0.05, 25, 11, 'checkout'),
+  makeMetricSeries('m-mem-checkout', 'memory_usage_checkout', '%', 61, 8, 0.04, 33, 8, 'checkout'),
 ];
 
 export const mockAiConversation: AiMessage[] = [
