@@ -52,6 +52,40 @@ const formatMetricValue = (value: number, unit: string) => {
   return value.toFixed(1);
 };
 
+const formatTimeLabel = (timestamp: number, withSeconds: boolean) => {
+  const date = new Date(timestamp);
+  const hh = String(date.getUTCHours()).padStart(2, '0');
+  const mm = String(date.getUTCMinutes()).padStart(2, '0');
+  const ss = String(date.getUTCSeconds()).padStart(2, '0');
+  return withSeconds ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`;
+};
+
+const getNiceAxisStep = (rawStep: number) => {
+  if (rawStep <= 0) return 1;
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const normalized = rawStep / magnitude;
+
+  if (normalized <= 1) return 1 * magnitude;
+  if (normalized <= 2) return 2 * magnitude;
+  if (normalized <= 5) return 5 * magnitude;
+  return 10 * magnitude;
+};
+
+const getNiceAxisDomain = (min: number, max: number) => {
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return [0, 1] as const;
+  if (min === max) {
+    const pad = Math.max(1, Math.abs(min) * 0.1);
+    const low = Math.max(0, min - pad);
+    const high = max + pad;
+    return [low, high] as const;
+  }
+
+  const step = getNiceAxisStep((max - min) / 6);
+  const domainMin = Math.max(0, Math.floor(min / step) * step);
+  const domainMax = Math.ceil(max / step) * step;
+  return [domainMin, domainMax] as const;
+};
+
 const getSeriesStats = (series: MetricSeries) => {
   const values = series.points.map((point) => point.value);
   const last = values[values.length - 1] ?? 0;
@@ -127,10 +161,14 @@ function TimeSeriesPanel({
   title,
   seriesList,
   chartType = 'line',
+  xAxisWithSeconds = false,
+  niceYAxis = false,
 }: {
   title: string;
   seriesList: MetricSeries[];
   chartType?: 'line' | 'area';
+  xAxisWithSeconds?: boolean;
+  niceYAxis?: boolean;
 }) {
   const theme = useTheme();
   const palette = [
@@ -160,7 +198,7 @@ function TimeSeriesPanel({
   const chartData = basePoints.map((point, index) => {
     const row: Record<string, number | string> = {
       ts: point.ts,
-      label: new Date(point.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      label: formatTimeLabel(point.ts, xAxisWithSeconds),
     };
 
     seriesList.forEach((series) => {
@@ -173,8 +211,11 @@ function TimeSeriesPanel({
   const min = Math.min(...allValues);
   const max = Math.max(...allValues);
   const padding = (max - min) * 0.08;
-  const domainMin = Math.max(0, min - padding);
-  const domainMax = max + padding;
+  const roughDomainMin = Math.max(0, min - padding);
+  const roughDomainMax = max + padding;
+  const [domainMin, domainMax] = niceYAxis
+    ? getNiceAxisDomain(roughDomainMin, roughDomainMax)
+    : [roughDomainMin, roughDomainMax];
 
   return (
     <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
@@ -550,7 +591,7 @@ export default function MetricsPage() {
 
       <Grid container spacing={2}>
         <Grid item xs={12} lg={8}>
-          <TimeSeriesPanel title="Request Rate by Service" seriesList={requestSeries} chartType="area" />
+          <TimeSeriesPanel title="Request Rate by Service" seriesList={requestSeries} chartType="area" xAxisWithSeconds niceYAxis />
         </Grid>
         <Grid item xs={12} lg={4}>
           <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
@@ -577,13 +618,13 @@ export default function MetricsPage() {
           </Card>
         </Grid>
         <Grid item xs={12} md={6}>
-          <TimeSeriesPanel title="Error Rate Trend" seriesList={errorSeries} />
+          <TimeSeriesPanel title="Error Rate Trend" seriesList={errorSeries} xAxisWithSeconds niceYAxis />
         </Grid>
         <Grid item xs={12} md={6}>
-          <TimeSeriesPanel title="Latency p95 (ms)" seriesList={latencySeries} />
+          <TimeSeriesPanel title="Latency p95 (ms)" seriesList={latencySeries} xAxisWithSeconds niceYAxis />
         </Grid>
         <Grid item xs={12}>
-          <TimeSeriesPanel title="Resource Usage (CPU/Memory)" seriesList={resourceSeries} />
+          <TimeSeriesPanel title="Resource Usage (CPU/Memory)" seriesList={resourceSeries} xAxisWithSeconds niceYAxis />
         </Grid>
       </Grid>
     </Box>
