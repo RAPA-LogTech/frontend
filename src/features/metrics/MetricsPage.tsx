@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Button,
@@ -28,6 +29,15 @@ import {
 } from 'recharts';
 import type { MetricSeries } from '@/lib/types';
 import { apiClient } from '@/lib/apiClient';
+
+type MetricStreamPayload = {
+  ts: number;
+  points: Array<{
+    id: string;
+    ts: number;
+    value: number;
+  }>;
+};
 
 const formatMetricValue = (value: number, unit: string) => {
   if (unit === 'req/s') {
@@ -302,10 +312,93 @@ export default function MetricsPage() {
     queryFn: apiClient.getMetrics,
   });
 
-  const requestSeries = metrics.filter((series) => series.name.includes('request_rate'));
-  const errorSeries = metrics.filter((series) => series.name.includes('error_rate'));
-  const latencySeries = metrics.filter((series) => series.name.includes('latency_p95'));
-  const resourceSeries = metrics.filter(
+  const [liveMetrics, setLiveMetrics] = useState<MetricSeries[]>([]);
+  const [streamStatus, setStreamStatus] = useState<'connecting' | 'live' | 'reconnecting' | 'offline'>('connecting');
+
+  useEffect(() => {
+    setLiveMetrics(metrics);
+    if (metrics.length > 0) {
+      setStreamStatus('connecting');
+    }
+  }, [metrics]);
+
+  useEffect(() => {
+    if (metrics.length === 0) {
+      setStreamStatus('offline');
+      return;
+    }
+
+    const MAX_POINTS = 120;
+    let eventSource: EventSource | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let isUnmounted = false;
+    let retryAttempt = 0;
+
+    const connect = () => {
+      if (isUnmounted) return;
+
+      setStreamStatus(retryAttempt === 0 ? 'connecting' : 'reconnecting');
+      eventSource = new EventSource('/api/metrics/stream');
+
+      eventSource.onopen = () => {
+        retryAttempt = 0;
+        setStreamStatus('live');
+      };
+
+      eventSource.addEventListener('metric', (event) => {
+        try {
+          const payload = JSON.parse((event as MessageEvent<string>).data) as MetricStreamPayload;
+          const updates = new Map(payload.points.map((point) => [point.id, point]));
+
+          setLiveMetrics((prev) =>
+            prev.map((series) => {
+              const nextPoint = updates.get(series.id);
+              if (!nextPoint) return series;
+
+              const points = [...series.points, { ts: nextPoint.ts, value: nextPoint.value }];
+              const trimmed = points.length > MAX_POINTS ? points.slice(points.length - MAX_POINTS) : points;
+
+              return {
+                ...series,
+                points: trimmed,
+              };
+            }),
+          );
+        } catch {
+          // ignore malformed stream event
+        }
+      });
+
+      eventSource.onerror = () => {
+        eventSource?.close();
+        eventSource = null;
+
+        if (isUnmounted) return;
+        setStreamStatus('reconnecting');
+        retryAttempt += 1;
+        const delay = Math.min(5000, 1000 * 2 ** Math.min(retryAttempt, 3));
+        reconnectTimer = setTimeout(connect, delay);
+      };
+    };
+
+    connect();
+
+    return () => {
+      isUnmounted = true;
+      setStreamStatus('offline');
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+      eventSource?.close();
+    };
+  }, [metrics.length]);
+
+  const metricSeries = useMemo(() => (liveMetrics.length > 0 ? liveMetrics : metrics), [liveMetrics, metrics]);
+
+  const requestSeries = metricSeries.filter((series) => series.name.includes('request_rate'));
+  const errorSeries = metricSeries.filter((series) => series.name.includes('error_rate'));
+  const latencySeries = metricSeries.filter((series) => series.name.includes('latency_p95'));
+  const resourceSeries = metricSeries.filter(
     (series) => series.name.includes('cpu_usage') || series.name.includes('memory_usage'),
   );
 
@@ -357,9 +450,12 @@ export default function MetricsPage() {
         <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
           Metrics
         </Typography>
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Typography variant="caption" sx={{ color: streamStatus === 'live' ? 'success.main' : 'text.secondary', fontWeight: 700 }}>
+            SSE {streamStatus.toUpperCase()}
+          </Typography>
           <Button size="small" variant="outlined">Last 8h</Button>
-          <Button size="small" variant="outlined">Refresh</Button>
+          <Button size="small" variant="outlined" onClick={() => setLiveMetrics(metrics)}>Reset</Button>
         </Stack>
       </Stack>
 
