@@ -55,13 +55,19 @@ type HistogramTooltipItem = {
   count?: number;
 };
 
-const formatAxisDateTime = (value: Date | number | string) => {
+const formatAxisDateTime = (value: Date | number | string, withSeconds = false) => {
   const date = value instanceof Date ? value : new Date(value);
   const month = String(date.getUTCMonth() + 1).padStart(2, '0');
   const dd = String(date.getUTCDate()).padStart(2, '0');
   const hh = String(date.getUTCHours()).padStart(2, '0');
   const minute = String(date.getUTCMinutes()).padStart(2, '0');
-  return `${month}-${dd} ${hh}:${minute}`;
+
+  if (!withSeconds) {
+    return `${month}-${dd} ${hh}:${minute}`;
+  }
+
+  const ss = String(date.getUTCSeconds()).padStart(2, '0');
+  return `${month}-${dd} ${hh}:${minute}:${ss}`;
 };
 
 const formatFullDateTime = (value: Date | number | string) => {
@@ -152,13 +158,7 @@ const LogsHistogram = memo(function LogsHistogram({
   selectedBucketKey: number | null;
   onSelectBucket: (bucketKey: number) => void;
 }) {
-  const [hoveredBucketKey, setHoveredBucketKey] = useState<number | null>(null);
-
   const getBucketOpacity = (bucketKey: number) => {
-    if (hoveredBucketKey !== null) {
-      return hoveredBucketKey === bucketKey ? 1 : 0.22;
-    }
-
     if (selectedBucketKey !== null) {
       return selectedBucketKey === bucketKey ? 1 : 0.22;
     }
@@ -179,20 +179,7 @@ const LogsHistogram = memo(function LogsHistogram({
       <CardContent sx={{ p: '8px !important' }}>
         <Box sx={{ height: 220 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={histogramData}
-              onMouseMove={(state) => {
-                const index = state?.activeTooltipIndex;
-                if (typeof index !== 'number') {
-                  setHoveredBucketKey(null);
-                  return;
-                }
-
-                const hoveredBucket = histogramData[index];
-                setHoveredBucketKey(hoveredBucket?.key ?? null);
-              }}
-              onMouseLeave={() => setHoveredBucketKey(null)}
-            >
+            <BarChart data={histogramData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="tsLabel"
@@ -296,7 +283,8 @@ const LogsHistogram = memo(function LogsHistogram({
 
 export default function LogsPage() {
   const PAGE_SIZE = 60;
-  const { data: queryLogs = [], refetch } = useQuery({ queryKey: ['logs'], queryFn: apiClient.getLogs });
+  const { data: queryLogsData, refetch } = useQuery({ queryKey: ['logs'], queryFn: apiClient.getLogs });
+  const queryLogs = queryLogsData ?? [];
   const [liveLogs, setLiveLogs] = useState<LogEntry[]>([]);
   const [isLiveEnabled, setIsLiveEnabled] = useState(true);
   const [streamStatus, setStreamStatus] = useState<'connecting' | 'live' | 'reconnecting' | 'offline'>('connecting');
@@ -311,12 +299,14 @@ export default function LogsPage() {
   const [selectedBucketKey, setSelectedBucketKey] = useState<number | null>(null);
 
   useEffect(() => {
+    if (!queryLogsData) return;
+
     setLiveLogs(queryLogs);
 
     if (queryLogs.length > 0) {
       setStreamStatus('connecting');
     }
-  }, [queryLogs]);
+  }, [queryLogsData]);
 
   useEffect(() => {
     if (!isLiveEnabled) {
@@ -513,33 +503,72 @@ export default function LogsPage() {
   const histogram = useMemo(() => {
     if (baseFiltered.length === 0) return [];
 
-    const sorted = [...baseFiltered].sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
-    const start = new Date(sorted[0].timestamp).getTime();
-    const end = new Date(sorted[sorted.length - 1].timestamp).getTime();
+    const timestamps = baseFiltered.map((item) => new Date(item.timestamp).getTime());
+    const latestTs = Math.max(...timestamps);
+    const earliestTs = Math.min(...timestamps);
     const bucketCount = 30;
-    const interval = Math.max(Math.floor((end - start) / bucketCount), 1000);
 
-    const buckets = Array.from({ length: bucketCount }, (_, idx) => ({
-      key: idx,
-      label: new Date(start + idx * interval),
-      count: 0,
-      debug: 0,
-      info: 0,
-      warn: 0,
-      error: 0,
-      start,
-      end,
-      interval,
-    }));
+    const fixedIntervalByRange: Record<typeof timeRange, number> = {
+      '15m': 30 * 1000,
+      '1h': 2 * 60 * 1000,
+      '6h': 12 * 60 * 1000,
+      '24h': 48 * 60 * 1000,
+      all: 0,
+    };
 
-    for (const item of sorted) {
-      const idx = Math.min(
-        Math.floor((new Date(item.timestamp).getTime() - start) / interval),
-        bucketCount - 1
-      );
-      const bucket = buckets[idx];
+    let interval = fixedIntervalByRange[timeRange];
+    if (timeRange === 'all') {
+      const rawInterval = Math.max(Math.ceil((latestTs - earliestTs) / bucketCount), 1000);
+      const niceSteps = [
+        1000,
+        5000,
+        10000,
+        30000,
+        60000,
+        5 * 60000,
+        10 * 60000,
+        30 * 60000,
+        60 * 60000,
+        2 * 60 * 60000,
+        6 * 60 * 60000,
+        12 * 60 * 60000,
+        24 * 60 * 60000,
+      ];
+      interval = niceSteps.find((step) => step >= rawInterval) ?? rawInterval;
+    }
+
+    const alignedLatest = Math.ceil(latestTs / interval) * interval;
+    const start = timeRange === 'all'
+      ? Math.floor(earliestTs / interval) * interval
+      : alignedLatest - bucketCount * interval;
+    const totalBuckets = timeRange === 'all'
+      ? Math.max(1, Math.ceil((alignedLatest - start) / interval))
+      : bucketCount;
+
+    const buckets = Array.from({ length: totalBuckets }, (_, idx) => {
+      const bucketStart = start + idx * interval;
+      return {
+        key: bucketStart,
+        label: new Date(bucketStart),
+        count: 0,
+        debug: 0,
+        info: 0,
+        warn: 0,
+        error: 0,
+        start,
+        end: alignedLatest,
+        interval,
+      };
+    });
+
+    const bucketMap = new Map(buckets.map((bucket) => [bucket.key, bucket]));
+
+    for (const item of baseFiltered) {
+      const ts = new Date(item.timestamp).getTime();
+      const bucketKey = Math.floor(ts / interval) * interval;
+      const bucket = bucketMap.get(bucketKey);
+      if (!bucket) continue;
+
       bucket.count += 1;
       if (item.level === 'ERROR') {
         bucket.error += 1;
@@ -566,11 +595,12 @@ export default function LogsPage() {
     }
 
     const bucketStart = bucket.start + bucket.key * bucket.interval;
-    const bucketEnd = bucketStart + bucket.interval;
+    const bucketStartFixed = bucket.key;
+    const bucketEnd = bucketStartFixed + bucket.interval;
 
     return baseFiltered.filter((log) => {
       const ts = new Date(log.timestamp).getTime();
-      return ts >= bucketStart && ts < bucketEnd;
+      return ts >= bucketStartFixed && ts < bucketEnd;
     });
   }, [baseFiltered, histogram, selectedBucketKey]);
 
@@ -592,7 +622,7 @@ export default function LogsPage() {
     () =>
       histogram.map((bucket) => ({
         ...bucket,
-        tsLabel: formatAxisDateTime(bucket.label),
+        tsLabel: formatAxisDateTime(bucket.label, bucket.interval < 60 * 1000),
         tsFullLabel: formatFullDateTime(bucket.label),
       })),
     [histogram],
