@@ -1,61 +1,18 @@
-import { mockMetricSeries } from '@/lib/mock';
+import { getLatestMetricTs, subscribeMetrics } from '@/lib/live/metricsLive';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-type StreamPoint = {
-  id: string;
-  ts: number;
-  value: number;
-};
-
-type MutableSeriesState = {
-  id: string;
-  unit: string;
-  value: number;
-};
-
 const encoder = new TextEncoder();
 
-const clampByUnit = (value: number, unit: string) => {
-  if (unit === '%') {
-    return Math.max(0, Math.min(100, value));
-  }
-  return Math.max(0, value);
-};
-
-const roundByUnit = (value: number, unit: string) => {
-  if (unit === '%') return Number(value.toFixed(3));
-  if (unit === 'ms') return Number(value.toFixed(0));
-  return Number(value.toFixed(2));
-};
-
-const nextDeltaByUnit = (unit: string) => {
-  if (unit === '%') {
-    return (Math.random() - 0.5) * 1.2;
-  }
-  if (unit === 'ms') {
-    return (Math.random() - 0.5) * 24;
-  }
-  return (Math.random() - 0.5) * 40;
-};
-
-const buildInitialState = (): MutableSeriesState[] =>
-  mockMetricSeries.map((series) => ({
-    id: series.id,
-    unit: series.unit,
-    value: series.points[series.points.length - 1]?.value ?? 0,
-  }));
-
 export async function GET(request: Request) {
-  const state = buildInitialState();
-  let metricTimer: ReturnType<typeof setTimeout> | null = null;
   let heartbeatTicker: ReturnType<typeof setInterval> | null = null;
+  let unsubscribe: (() => void) | null = null;
 
   const cleanup = () => {
-    if (metricTimer) {
-      clearTimeout(metricTimer);
-      metricTimer = null;
+    if (unsubscribe) {
+      unsubscribe();
+      unsubscribe = null;
     }
     if (heartbeatTicker) {
       clearInterval(heartbeatTicker);
@@ -72,30 +29,11 @@ export async function GET(request: Request) {
 
       controller.enqueue(encoder.encode('retry: 2000\n\n'));
 
-      const emitPoints = () => {
-        const ts = Date.now();
-        const points: StreamPoint[] = state.map((series) => {
-          const nextRaw = series.value + nextDeltaByUnit(series.unit);
-          const next = roundByUnit(clampByUnit(nextRaw, series.unit), series.unit);
-          series.value = next;
+      unsubscribe = subscribeMetrics((payload) => {
+        send('metric', payload);
+      });
 
-          return {
-            id: series.id,
-            ts,
-            value: next,
-          };
-        });
-
-        send('metric', {
-          ts,
-          points,
-        });
-
-        const nextDelayMs = 4500 + Math.floor(Math.random() * 5500);
-        metricTimer = setTimeout(emitPoints, nextDelayMs);
-      };
-
-      emitPoints();
+      controller.enqueue(encoder.encode(`: latest-ts ${getLatestMetricTs()}\n\n`));
       heartbeatTicker = setInterval(() => {
         controller.enqueue(encoder.encode(`: ping ${Date.now()}\n\n`));
       }, 15000);

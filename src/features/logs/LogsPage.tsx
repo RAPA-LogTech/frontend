@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, UIEvent, useEffect, useMemo, useState } from 'react';
+import { memo, UIEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Box,
@@ -297,7 +297,9 @@ export default function LogsPage() {
   const PAGE_SIZE = 60;
   const { data: queryLogs = [], refetch } = useQuery({ queryKey: ['logs'], queryFn: apiClient.getLogs });
   const [liveLogs, setLiveLogs] = useState<LogEntry[]>([]);
+  const [isLiveEnabled, setIsLiveEnabled] = useState(true);
   const [streamStatus, setStreamStatus] = useState<'connecting' | 'live' | 'reconnecting' | 'offline'>('connecting');
+  const lastLogTsRef = useRef(0);
   const [query, setQuery] = useState('');
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
   const [activeTab, setActiveTab] = useState<'logs' | 'patterns' | 'exceptions'>('logs');
@@ -309,22 +311,66 @@ export default function LogsPage() {
 
   useEffect(() => {
     setLiveLogs(queryLogs);
+    const latestFromQuery = queryLogs.reduce((maxTs, log) => {
+      const ts = new Date(log.timestamp).getTime();
+      return Number.isFinite(ts) ? Math.max(maxTs, ts) : maxTs;
+    }, 0);
+    lastLogTsRef.current = Math.max(lastLogTsRef.current, latestFromQuery);
+
     if (queryLogs.length > 0) {
       setStreamStatus('connecting');
     }
   }, [queryLogs]);
 
   useEffect(() => {
+    if (!isLiveEnabled) {
+      setStreamStatus('offline');
+      return;
+    }
+
     const MAX_LOGS = 6000;
     let eventSource: EventSource | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let isUnmounted = false;
     let retryAttempt = 0;
 
-    const connect = () => {
+    const applyLogPayload = (payload: LogStreamPayload) => {
+      if (!payload?.log) return;
+
+      setLiveLogs((prev) => {
+        const deduped = prev.filter((log) => log.id !== payload.log.id);
+        return [payload.log, ...deduped].slice(0, MAX_LOGS);
+      });
+
+      lastLogTsRef.current = Math.max(lastLogTsRef.current, payload.ts);
+    };
+
+    const fetchBacklog = async () => {
+      try {
+        const response = await fetch(`/api/logs/backlog?since=${lastLogTsRef.current}`);
+        if (!response.ok) return;
+
+        const data = (await response.json()) as {
+          events?: LogStreamPayload[];
+          latestTs?: number;
+        };
+
+        (data.events ?? []).forEach((event) => applyLogPayload(event));
+        if (typeof data.latestTs === 'number') {
+          lastLogTsRef.current = Math.max(lastLogTsRef.current, data.latestTs);
+        }
+      } catch {
+        // ignore backlog fetch failure and continue with live stream
+      }
+    };
+
+    const connect = async () => {
       if (isUnmounted) return;
 
       setStreamStatus(retryAttempt === 0 ? 'connecting' : 'reconnecting');
+      await fetchBacklog();
+      if (isUnmounted) return;
+
       eventSource = new EventSource('/api/logs/stream');
 
       eventSource.onopen = () => {
@@ -335,12 +381,7 @@ export default function LogsPage() {
       eventSource.addEventListener('log', (event) => {
         try {
           const payload = JSON.parse((event as MessageEvent<string>).data) as LogStreamPayload;
-          if (!payload?.log) return;
-
-          setLiveLogs((prev) => {
-            const deduped = prev.filter((log) => log.id !== payload.log.id);
-            return [payload.log, ...deduped].slice(0, MAX_LOGS);
-          });
+          applyLogPayload(payload);
         } catch {
           // ignore malformed stream event
         }
@@ -368,7 +409,7 @@ export default function LogsPage() {
       }
       eventSource?.close();
     };
-  }, []);
+  }, [isLiveEnabled]);
 
   const logs = useMemo(() => (liveLogs.length > 0 ? liveLogs : queryLogs), [liveLogs, queryLogs]);
 
@@ -623,9 +664,47 @@ export default function LogsPage() {
             <Button variant="contained" size="small" sx={{ whiteSpace: 'nowrap', px: 2 }} onClick={() => refetch()}>
               Refresh
             </Button>
-            <Typography variant="caption" sx={{ color: streamStatus === 'live' ? 'success.main' : 'text.secondary', fontWeight: 700, alignSelf: 'center' }}>
-              SSE {streamStatus.toUpperCase()}
-            </Typography>
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => setIsLiveEnabled((prev) => !prev)}
+              sx={{
+                minWidth: 72,
+                px: 1,
+                py: 0.25,
+                borderRadius: 999,
+                borderColor: isLiveEnabled ? 'success.main' : 'divider',
+                color: isLiveEnabled ? 'success.main' : 'text.secondary',
+                alignSelf: 'center',
+                '@keyframes neonPulse': {
+                  '0%, 100%': { opacity: 1, textShadow: '0 0 6px rgba(74, 222, 128, 0.75), 0 0 12px rgba(74, 222, 128, 0.45)' },
+                  '50%': { opacity: 0.42, textShadow: '0 0 1px rgba(74, 222, 128, 0.3)' },
+                },
+              }}
+            >
+              <Stack direction="row" spacing={0.6} alignItems="center">
+                <Box
+                  sx={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    bgcolor: isLiveEnabled ? 'success.main' : 'text.disabled',
+                    animation: isLiveEnabled && streamStatus === 'live' ? 'neonPulse 1.2s ease-in-out infinite' : 'none',
+                  }}
+                />
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 800,
+                    letterSpacing: 0.5,
+                    color: isLiveEnabled ? 'success.main' : 'text.secondary',
+                    animation: isLiveEnabled && streamStatus === 'live' ? 'neonPulse 1.2s ease-in-out infinite' : 'none',
+                  }}
+                >
+                  LIVE
+                </Typography>
+              </Stack>
+            </Button>
           </Stack>
         </Box>
 

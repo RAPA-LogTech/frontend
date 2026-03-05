@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { UIEvent, useEffect, useMemo, useState } from 'react';
+import { UIEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Box,
@@ -49,7 +49,9 @@ export default function TracesPage() {
   const theme = useTheme();
   const { data: traces = [] } = useQuery({ queryKey: ['traces'], queryFn: apiClient.getTraces });
   const [liveTraces, setLiveTraces] = useState<Trace[]>([]);
+  const [isLiveEnabled, setIsLiveEnabled] = useState(true);
   const [streamStatus, setStreamStatus] = useState<'connecting' | 'live' | 'reconnecting' | 'offline'>('connecting');
+  const lastTraceTsRef = useRef(0);
   const [sortKey, setSortKey] = useState<SortKey>('recent');
   const [hoveredTraceId, setHoveredTraceId] = useState<string | null>(null);
   const [selectedTraceId, setSelectedTraceId] = useState<string | null>(null);
@@ -64,12 +66,20 @@ export default function TracesPage() {
 
   useEffect(() => {
     setLiveTraces(traces);
+    const latestFromQuery = traces.reduce((maxTs, trace) => Math.max(maxTs, trace.startTime), 0);
+    lastTraceTsRef.current = Math.max(lastTraceTsRef.current, latestFromQuery);
+
     if (traces.length > 0) {
       setStreamStatus('connecting');
     }
   }, [traces]);
 
   useEffect(() => {
+    if (!isLiveEnabled) {
+      setStreamStatus('offline');
+      return;
+    }
+
     if (traces.length === 0) {
       setStreamStatus('offline');
       return;
@@ -81,10 +91,43 @@ export default function TracesPage() {
     let isUnmounted = false;
     let retryAttempt = 0;
 
-    const connect = () => {
+    const applyTracePayload = (payload: TraceStreamPayload) => {
+      if (!payload?.trace) return;
+
+      setLiveTraces((prev) => {
+        const deduped = prev.filter((item) => item.id !== payload.trace.id);
+        return [payload.trace, ...deduped].slice(0, MAX_TRACES);
+      });
+
+      lastTraceTsRef.current = Math.max(lastTraceTsRef.current, payload.ts);
+    };
+
+    const fetchBacklog = async () => {
+      try {
+        const response = await fetch(`/api/traces/backlog?since=${lastTraceTsRef.current}`);
+        if (!response.ok) return;
+
+        const data = (await response.json()) as {
+          events?: TraceStreamPayload[];
+          latestTs?: number;
+        };
+
+        (data.events ?? []).forEach((event) => applyTracePayload(event));
+        if (typeof data.latestTs === 'number') {
+          lastTraceTsRef.current = Math.max(lastTraceTsRef.current, data.latestTs);
+        }
+      } catch {
+        // ignore backlog fetch failure and continue with live stream
+      }
+    };
+
+    const connect = async () => {
       if (isUnmounted) return;
 
       setStreamStatus(retryAttempt === 0 ? 'connecting' : 'reconnecting');
+      await fetchBacklog();
+      if (isUnmounted) return;
+
       eventSource = new EventSource('/api/traces/stream');
 
       eventSource.onopen = () => {
@@ -95,12 +138,7 @@ export default function TracesPage() {
       eventSource.addEventListener('trace', (event) => {
         try {
           const payload = JSON.parse((event as MessageEvent<string>).data) as TraceStreamPayload;
-          if (!payload?.trace) return;
-
-          setLiveTraces((prev) => {
-            const deduped = prev.filter((item) => item.id !== payload.trace.id);
-            return [payload.trace, ...deduped].slice(0, MAX_TRACES);
-          });
+          applyTracePayload(payload);
         } catch {
           // ignore malformed trace event
         }
@@ -128,7 +166,7 @@ export default function TracesPage() {
       }
       eventSource?.close();
     };
-  }, [traces.length]);
+  }, [traces.length, isLiveEnabled]);
 
   const traceSeries = useMemo(() => (liveTraces.length > 0 ? liveTraces : traces), [liveTraces, traces]);
 
@@ -395,9 +433,46 @@ export default function TracesPage() {
         <Typography variant="h4" sx={{ fontWeight: 700 }}>
           Traces
         </Typography>
-        <Typography variant="caption" sx={{ color: streamStatus === 'live' ? 'success.main' : 'text.secondary', fontWeight: 700 }}>
-          SSE {streamStatus.toUpperCase()}
-        </Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => setIsLiveEnabled((prev) => !prev)}
+          sx={{
+            minWidth: 72,
+            px: 1,
+            py: 0.25,
+            borderRadius: 999,
+            borderColor: isLiveEnabled ? 'success.main' : 'divider',
+            color: isLiveEnabled ? 'success.main' : 'text.secondary',
+            '@keyframes neonPulse': {
+              '0%, 100%': { opacity: 1, textShadow: '0 0 6px rgba(74, 222, 128, 0.75), 0 0 12px rgba(74, 222, 128, 0.45)' },
+              '50%': { opacity: 0.42, textShadow: '0 0 1px rgba(74, 222, 128, 0.3)' },
+            },
+          }}
+        >
+          <Stack direction="row" spacing={0.6} alignItems="center">
+            <Box
+              sx={{
+                width: 7,
+                height: 7,
+                borderRadius: '50%',
+                bgcolor: isLiveEnabled ? 'success.main' : 'text.disabled',
+                animation: isLiveEnabled && streamStatus === 'live' ? 'neonPulse 1.2s ease-in-out infinite' : 'none',
+              }}
+            />
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 800,
+                letterSpacing: 0.5,
+                color: isLiveEnabled ? 'success.main' : 'text.secondary',
+                animation: isLiveEnabled && streamStatus === 'live' ? 'neonPulse 1.2s ease-in-out infinite' : 'none',
+              }}
+            >
+              LIVE
+            </Typography>
+          </Stack>
+        </Button>
       </Stack>
 
       <Paper

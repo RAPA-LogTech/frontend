@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Button,
@@ -360,16 +360,29 @@ export default function MetricsPage() {
   });
 
   const [liveMetrics, setLiveMetrics] = useState<MetricSeries[]>([]);
+  const [isLiveEnabled, setIsLiveEnabled] = useState(true);
   const [streamStatus, setStreamStatus] = useState<'connecting' | 'live' | 'reconnecting' | 'offline'>('connecting');
+  const lastMetricTsRef = useRef(0);
 
   useEffect(() => {
     setLiveMetrics(metrics);
+    const latestFromQuery = metrics.reduce((maxTs, series) => {
+      const seriesLast = series.points[series.points.length - 1]?.ts ?? 0;
+      return Math.max(maxTs, seriesLast);
+    }, 0);
+    lastMetricTsRef.current = Math.max(lastMetricTsRef.current, latestFromQuery);
+
     if (metrics.length > 0) {
       setStreamStatus('connecting');
     }
   }, [metrics]);
 
   useEffect(() => {
+    if (!isLiveEnabled) {
+      setStreamStatus('offline');
+      return;
+    }
+
     if (metrics.length === 0) {
       setStreamStatus('offline');
       return;
@@ -381,10 +394,53 @@ export default function MetricsPage() {
     let isUnmounted = false;
     let retryAttempt = 0;
 
-    const connect = () => {
+    const applyMetricPayload = (payload: MetricStreamPayload) => {
+      const updates = new Map(payload.points.map((point) => [point.id, point]));
+
+      setLiveMetrics((prev) =>
+        prev.map((series) => {
+          const nextPoint = updates.get(series.id);
+          if (!nextPoint) return series;
+
+          const points = [...series.points, { ts: nextPoint.ts, value: nextPoint.value }];
+          const trimmed = points.length > MAX_POINTS ? points.slice(points.length - MAX_POINTS) : points;
+
+          return {
+            ...series,
+            points: trimmed,
+          };
+        }),
+      );
+
+      lastMetricTsRef.current = Math.max(lastMetricTsRef.current, payload.ts);
+    };
+
+    const fetchBacklog = async () => {
+      try {
+        const response = await fetch(`/api/metrics/backlog?since=${lastMetricTsRef.current}`);
+        if (!response.ok) return;
+
+        const data = (await response.json()) as {
+          events?: MetricStreamPayload[];
+          latestTs?: number;
+        };
+
+        (data.events ?? []).forEach((event) => applyMetricPayload(event));
+        if (typeof data.latestTs === 'number') {
+          lastMetricTsRef.current = Math.max(lastMetricTsRef.current, data.latestTs);
+        }
+      } catch {
+        // ignore backlog fetch failure and continue with live stream
+      }
+    };
+
+    const connect = async () => {
       if (isUnmounted) return;
 
       setStreamStatus(retryAttempt === 0 ? 'connecting' : 'reconnecting');
+      await fetchBacklog();
+      if (isUnmounted) return;
+
       eventSource = new EventSource('/api/metrics/stream');
 
       eventSource.onopen = () => {
@@ -395,22 +451,7 @@ export default function MetricsPage() {
       eventSource.addEventListener('metric', (event) => {
         try {
           const payload = JSON.parse((event as MessageEvent<string>).data) as MetricStreamPayload;
-          const updates = new Map(payload.points.map((point) => [point.id, point]));
-
-          setLiveMetrics((prev) =>
-            prev.map((series) => {
-              const nextPoint = updates.get(series.id);
-              if (!nextPoint) return series;
-
-              const points = [...series.points, { ts: nextPoint.ts, value: nextPoint.value }];
-              const trimmed = points.length > MAX_POINTS ? points.slice(points.length - MAX_POINTS) : points;
-
-              return {
-                ...series,
-                points: trimmed,
-              };
-            }),
-          );
+          applyMetricPayload(payload);
         } catch {
           // ignore malformed stream event
         }
@@ -438,7 +479,7 @@ export default function MetricsPage() {
       }
       eventSource?.close();
     };
-  }, [metrics.length]);
+  }, [metrics.length, isLiveEnabled]);
 
   const metricSeries = useMemo(() => (liveMetrics.length > 0 ? liveMetrics : metrics), [liveMetrics, metrics]);
 
@@ -498,9 +539,46 @@ export default function MetricsPage() {
           Metrics
         </Typography>
         <Stack direction="row" spacing={1} alignItems="center">
-          <Typography variant="caption" sx={{ color: streamStatus === 'live' ? 'success.main' : 'text.secondary', fontWeight: 700 }}>
-            SSE {streamStatus.toUpperCase()}
-          </Typography>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => setIsLiveEnabled((prev) => !prev)}
+            sx={{
+              minWidth: 72,
+              px: 1,
+              py: 0.25,
+              borderRadius: 999,
+              borderColor: isLiveEnabled ? 'success.main' : 'divider',
+              color: isLiveEnabled ? 'success.main' : 'text.secondary',
+              '@keyframes neonPulse': {
+                '0%, 100%': { opacity: 1, textShadow: '0 0 6px rgba(74, 222, 128, 0.75), 0 0 12px rgba(74, 222, 128, 0.45)' },
+                '50%': { opacity: 0.42, textShadow: '0 0 1px rgba(74, 222, 128, 0.3)' },
+              },
+            }}
+          >
+            <Stack direction="row" spacing={0.6} alignItems="center">
+              <Box
+                sx={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: '50%',
+                  bgcolor: isLiveEnabled ? 'success.main' : 'text.disabled',
+                  animation: isLiveEnabled && streamStatus === 'live' ? 'neonPulse 1.2s ease-in-out infinite' : 'none',
+                }}
+              />
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 800,
+                  letterSpacing: 0.5,
+                  color: isLiveEnabled ? 'success.main' : 'text.secondary',
+                  animation: isLiveEnabled && streamStatus === 'live' ? 'neonPulse 1.2s ease-in-out infinite' : 'none',
+                }}
+              >
+                LIVE
+              </Typography>
+            </Stack>
+          </Button>
           <Button size="small" variant="outlined">Last 8h</Button>
           <Button size="small" variant="outlined" onClick={() => setLiveMetrics(metrics)}>Reset</Button>
         </Stack>
