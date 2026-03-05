@@ -23,6 +23,7 @@ import {
   ElectricBolt as IntegrationIcon,
   Settings as SettingsIcon,
   Chat as ChatIcon,
+  Notifications as NotificationsIcon,
 } from '@mui/icons-material';
 
 export const drawerWidth = 280;
@@ -41,6 +42,7 @@ const navGroups = [
     label: 'Configuration',
     items: [
       { label: 'Dashboards', href: '/dashboards', icon: GridIcon },
+      { label: 'Notifications', href: '/notifications', icon: NotificationsIcon },
       { label: 'Integrations', href: '/integrations/slack', icon: IntegrationIcon },
       { label: 'Settings', href: '/settings', icon: SettingsIcon },
     ],

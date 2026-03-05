@@ -15,7 +15,9 @@ import {
   Typography,
   Chip,
   Box,
-  ListItemText,
+  Divider,
+  Stack,
+  Button,
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
@@ -25,7 +27,7 @@ import {
 } from '@mui/icons-material';
 import { useColorMode } from '@/app/providers';
 import { apiClient } from '@/lib/apiClient';
-import { formatTimestamp } from '@/lib/formatters';
+import { formatDateTime } from '@/lib/formatters';
 
 const drawerWidth = 280;
 const topBarHeight = 48;
@@ -93,6 +95,20 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
     if (route) {
       router.push(route);
     }
+  };
+
+  const resolveNotificationRoute = (notification: { route?: string; source?: string }) => {
+    if (notification.route) {
+      return notification.route;
+    }
+
+    if (notification.source === 'metrics') return '/metrics';
+    if (notification.source === 'logs' || notification.source === 'alerts') return '/logs';
+    if (notification.source === 'traces') return '/traces';
+    if (notification.source === 'integrations') return '/integrations/slack';
+    if (notification.source === 'deploy') return '/dashboards';
+
+    return '/';
   };
 
   return (
@@ -213,57 +229,120 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
             anchorEl={notificationAnchorEl}
             open={Boolean(notificationAnchorEl)}
             onClose={handleNotificationMenuClose}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
             PaperProps={{
               sx: {
                 bgcolor: (theme) => theme.palette.background.paper,
                 color: (theme) => theme.palette.text.primary,
                 mt: 1,
-                width: 320,
-                maxHeight: 360,
+                width: 460,
+                maxWidth: 'calc(100vw - 24px)',
+                borderRadius: 1.5,
+                border: '1px solid',
+                borderColor: 'divider',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
               },
             }}
           >
-            {notifications.length === 0 ? (
-              <MenuItem disabled>No notifications</MenuItem>
-            ) : (
-              notifications.map((notification) => (
-                <MenuItem
-                  key={notification.id}
-                  onClick={() => handleNotificationItemClick(notification.id, notification.route)}
-                  sx={{
-                    alignItems: 'flex-start',
-                    py: 1,
-                    cursor: notification.route ? 'pointer' : 'default',
-                    borderLeft: '3px solid',
-                    borderLeftColor: (theme) => {
-                      if (notification.severity === 'critical' || notification.severity === 'error') {
-                        return theme.palette.error.main;
-                      }
-                      if (notification.severity === 'warning') {
-                        return theme.palette.warning.main;
-                      }
-                      return theme.palette.info.main;
-                    },
-                    bgcolor: (theme) =>
-                      notificationReadMap[notification.id] ? 'transparent' : theme.palette.action.hover,
-                  }}
+            <Box sx={{ p: 1.5, pb: 1 }}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                  알림
+                </Typography>
+                <Button
+                  size="small"
+                  variant="text"
+                  component={Link}
+                  href="/notifications"
+                  onClick={handleNotificationMenuClose}
+                  sx={{ textTransform: 'none', fontSize: '0.75rem', px: 0.5, minWidth: 'auto' }}
                 >
-                  <ListItemText
-                    primary={notification.title}
-                    secondary={`${notification.message} • ${formatTimestamp(notification.timestamp)}`}
-                    primaryTypographyProps={{
-                      fontSize: '0.85rem',
-                      fontWeight: notificationReadMap[notification.id] ? 500 : 700,
-                      color: 'text.primary',
-                    }}
-                    secondaryTypographyProps={{
-                      fontSize: '0.75rem',
-                      color: 'text.secondary',
-                    }}
-                  />
-                </MenuItem>
-              ))
-            )}
+                  전체 알림으로 보기
+                </Button>
+              </Stack>
+
+              <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                <Chip label={`전체 ${notifications.length}`} size="small" sx={{ fontWeight: 700 }} />
+                <Chip label={`미확인 ${unreadCount}`} size="small" variant="outlined" />
+              </Stack>
+            </Box>
+
+            <Divider />
+
+            <Box sx={{ maxHeight: 420, overflowY: 'auto', p: 1 }}>
+              {notifications.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" sx={{ p: 1.5 }}>
+                  알림이 없습니다.
+                </Typography>
+              ) : (
+                notifications.map((notification) => {
+                  const isUnread = !notificationReadMap[notification.id];
+                  const resolvedRoute = resolveNotificationRoute(notification);
+                  const accentColor = (theme: any) => {
+                    if (notification.severity === 'critical' || notification.severity === 'error') {
+                      return theme.palette.error.main;
+                    }
+                    if (notification.severity === 'warning') {
+                      return theme.palette.warning.main;
+                    }
+                    return theme.palette.info.main;
+                  };
+
+                  return (
+                    <Box
+                      key={notification.id}
+                      onClick={() => handleNotificationItemClick(notification.id, resolvedRoute)}
+                      sx={{
+                        p: 1.25,
+                        borderRadius: 1,
+                        mb: 0.75,
+                        cursor: 'pointer',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        bgcolor: isUnread ? 'transparent' : 'action.hover',
+                        '&:hover': {
+                          bgcolor: 'action.hover',
+                        },
+                      }}
+                    >
+                      <Stack direction="row" spacing={1} alignItems="flex-start">
+                        <Box
+                          sx={{
+                            mt: 0.4,
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            bgcolor: accentColor,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <Box sx={{ minWidth: 0, flex: 1 }}>
+                          <Stack direction="row" justifyContent="space-between" spacing={1}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: isUnread ? 600 : 700,
+                                lineHeight: 1.35,
+                                pr: 1,
+                              }}
+                            >
+                              {notification.title}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                              {formatDateTime(notification.timestamp)}
+                            </Typography>
+                          </Stack>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.35, lineHeight: 1.35 }}>
+                            {notification.message}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </Box>
+                  );
+                })
+              )}
+            </Box>
           </Menu>
 
           {/* User Menu */}
@@ -298,7 +377,7 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
               disabled
               sx={{
                 fontSize: '0.75rem',
-                color: (theme) => theme.palette.text.secondary,
+                color: 'text.secondary',
               }}
             >
               sre@company.com
