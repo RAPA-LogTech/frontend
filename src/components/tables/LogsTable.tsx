@@ -15,7 +15,7 @@ import {
   Typography,
 } from '@mui/material';
 import { LogEntry } from '@/lib/types';
-import { formatTimestamp } from '@/lib/formatters';
+import { formatDateTime } from '@/lib/formatters';
 
 type LogsTableProps = {
   logs: LogEntry[];
@@ -150,7 +150,7 @@ function LogsTableComponent({ logs, onSelect, query, compact = false }: LogsTabl
               }}
             >
               <TableCell sx={{ color: (theme) => theme.palette.text.secondary, fontSize: '0.85rem', fontWeight: 500, padding: '10px 12px', fontFamily: 'monospace' }}>
-                {formatTimestamp(row.timestamp)}
+                {formatDateTime(row.timestamp)}
               </TableCell>
               <TableCell sx={{ color: (theme) => theme.palette.text.primary, fontSize: '0.875rem', fontWeight: 500, padding: '10px 12px' }}>
                 {row.service}

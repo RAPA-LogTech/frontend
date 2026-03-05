@@ -24,13 +24,19 @@ import {
 import { Close as CloseIcon } from '@mui/icons-material';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { apiClient } from '@/lib/apiClient';
-import { formatTimestamp } from '@/lib/formatters';
+import { formatDateTime } from '@/lib/formatters';
 import LogsTable from '@/components/tables/LogsTable';
 import { LogEntry } from '@/lib/types';
+
+type LogStreamPayload = {
+  ts: number;
+  log: LogEntry;
+};
 
 type HistogramDataItem = {
   key: number;
   tsLabel: string;
+  tsFullLabel: string;
   count: number;
   debug: number;
   info: number;
@@ -40,11 +46,32 @@ type HistogramDataItem = {
 
 type HistogramTooltipItem = {
   tsLabel?: string;
+  tsFullLabel?: string;
   debug?: number;
   info?: number;
   warn?: number;
   error?: number;
   count?: number;
+};
+
+const formatAxisDateTime = (value: Date | number | string) => {
+  const date = value instanceof Date ? value : new Date(value);
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(date.getUTCDate()).padStart(2, '0');
+  const hh = String(date.getUTCHours()).padStart(2, '0');
+  const minute = String(date.getUTCMinutes()).padStart(2, '0');
+  return `${month}-${dd} ${hh}:${minute}`;
+};
+
+const formatFullDateTime = (value: Date | number | string) => {
+  const date = value instanceof Date ? value : new Date(value);
+  const yyyy = String(date.getUTCFullYear());
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const hh = String(date.getUTCHours()).padStart(2, '0');
+  const mm = String(date.getUTCMinutes()).padStart(2, '0');
+  const ss = String(date.getUTCSeconds()).padStart(2, '0');
+  return `${yyyy}-${month}-${day} ${hh}:${mm}:${ss}`;
 };
 
 const HistogramTooltip = memo(function HistogramTooltip({
@@ -57,23 +84,58 @@ const HistogramTooltip = memo(function HistogramTooltip({
   const item = payload?.[0]?.payload;
   if (!active || !item) return null;
 
+  const total = item.count ?? 0;
+  const levels = [
+    { key: 'DEBUG', value: item.debug ?? 0, color: '#34d399' },
+    { key: 'INFO', value: item.info ?? 0, color: '#60a5fa' },
+    { key: 'WARN', value: item.warn ?? 0, color: '#fbbf24' },
+    { key: 'ERROR', value: item.error ?? 0, color: '#f87171' },
+  ];
+
   return (
     <Box
       sx={{
-        px: 1,
-        py: 0.5,
+        px: 1.25,
+        py: 1,
         border: '1px solid',
         borderColor: 'divider',
         borderRadius: 1,
         bgcolor: 'background.paper',
+        minWidth: 220,
       }}
     >
-      <Typography variant="caption" sx={{ display: 'block', fontWeight: 700 }}>
-        {item.tsLabel} · {(item.count ?? 0).toLocaleString()} hits
+      <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, mb: 0.5 }}>
+        Datetime: {item.tsFullLabel ?? item.tsLabel}
       </Typography>
-      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-        D {(item.debug ?? 0).toLocaleString()} · I {(item.info ?? 0).toLocaleString()} · W {(item.warn ?? 0).toLocaleString()} · E {(item.error ?? 0).toLocaleString()}
+      <Typography variant="caption" sx={{ display: 'block', fontWeight: 600, mb: 0.75 }}>
+        Total Logs: {total.toLocaleString()}
       </Typography>
+
+      <Stack gap={0.4}>
+        {levels.map((level) => {
+          const ratio = total > 0 ? (level.value / total) * 100 : 0;
+          return (
+            <Stack key={level.key} direction="row" alignItems="center" justifyContent="space-between">
+              <Stack direction="row" spacing={0.6} alignItems="center">
+                <Box
+                  sx={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    bgcolor: level.color,
+                  }}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  {level.key}
+                </Typography>
+              </Stack>
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                {level.value.toLocaleString()} ({ratio.toFixed(1)}%)
+              </Typography>
+            </Stack>
+          );
+        })}
+      </Stack>
     </Box>
   );
 });
@@ -89,14 +151,18 @@ const LogsHistogram = memo(function LogsHistogram({
   selectedBucketKey: number | null;
   onSelectBucket: (bucketKey: number) => void;
 }) {
+  const [hoveredBucketKey, setHoveredBucketKey] = useState<number | null>(null);
+
   const getBucketOpacity = (bucketKey: number) => {
-    const baseDimOpacity = 0.35;
+    if (hoveredBucketKey !== null) {
+      return hoveredBucketKey === bucketKey ? 1 : 0.22;
+    }
 
     if (selectedBucketKey !== null) {
       return selectedBucketKey === bucketKey ? 1 : 0.22;
     }
 
-    return baseDimOpacity;
+    return 1;
   };
 
   return (
@@ -112,7 +178,20 @@ const LogsHistogram = memo(function LogsHistogram({
       <CardContent sx={{ p: '8px !important' }}>
         <Box sx={{ height: 220 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={histogramData}>
+            <BarChart
+              data={histogramData}
+              onMouseMove={(state) => {
+                const index = state?.activeTooltipIndex;
+                if (typeof index !== 'number') {
+                  setHoveredBucketKey(null);
+                  return;
+                }
+
+                const hoveredBucket = histogramData[index];
+                setHoveredBucketKey(hoveredBucket?.key ?? null);
+              }}
+              onMouseLeave={() => setHoveredBucketKey(null)}
+            >
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="tsLabel"
@@ -136,7 +215,7 @@ const LogsHistogram = memo(function LogsHistogram({
               />
               <Legend wrapperStyle={{ fontSize: 11 }} />
 
-              <Bar dataKey="debug" stackId="levels" fill="#64748b" activeBar={{ fill: '#64748b', fillOpacity: 1, stroke: '#cbd5e1', strokeWidth: 1.2 }} onClick={(_, index) => {
+              <Bar dataKey="debug" stackId="levels" fill="#34d399" activeBar={{ fill: '#34d399', fillOpacity: 1, stroke: '#86efc6', strokeWidth: 1.2 }} onClick={(_, index) => {
                 const bucket = histogramData[index];
                 if (!bucket) return;
                 onSelectBucket(bucket.key);
@@ -144,7 +223,7 @@ const LogsHistogram = memo(function LogsHistogram({
                 {histogramData.map((bucket) => (
                   <Cell
                     key={`bucket-debug-${bucket.key}`}
-                    fill="#64748b"
+                    fill="#34d399"
                     fillOpacity={getBucketOpacity(bucket.key)}
                     stroke={selectedBucketKey === bucket.key ? '#ffffff' : 'none'}
                     strokeWidth={selectedBucketKey === bucket.key ? 1 : 0}
@@ -153,7 +232,7 @@ const LogsHistogram = memo(function LogsHistogram({
                 ))}
               </Bar>
 
-              <Bar dataKey="info" stackId="levels" fill="#3b82f6" activeBar={{ fill: '#3b82f6', fillOpacity: 1, stroke: '#93c5fd', strokeWidth: 1.2 }} onClick={(_, index) => {
+              <Bar dataKey="info" stackId="levels" fill="#60a5fa" activeBar={{ fill: '#60a5fa', fillOpacity: 1, stroke: '#bfdbfe', strokeWidth: 1.2 }} onClick={(_, index) => {
                 const bucket = histogramData[index];
                 if (!bucket) return;
                 onSelectBucket(bucket.key);
@@ -161,7 +240,7 @@ const LogsHistogram = memo(function LogsHistogram({
                 {histogramData.map((bucket) => (
                   <Cell
                     key={`bucket-info-${bucket.key}`}
-                    fill="#3b82f6"
+                    fill="#60a5fa"
                     fillOpacity={getBucketOpacity(bucket.key)}
                     stroke={selectedBucketKey === bucket.key ? '#ffffff' : 'none'}
                     strokeWidth={selectedBucketKey === bucket.key ? 1 : 0}
@@ -170,7 +249,7 @@ const LogsHistogram = memo(function LogsHistogram({
                 ))}
               </Bar>
 
-              <Bar dataKey="warn" stackId="levels" fill="#f59e0b" activeBar={{ fill: '#f59e0b', fillOpacity: 1, stroke: '#fcd34d', strokeWidth: 1.2 }} onClick={(_, index) => {
+              <Bar dataKey="warn" stackId="levels" fill="#fbbf24" activeBar={{ fill: '#fbbf24', fillOpacity: 1, stroke: '#fde68a', strokeWidth: 1.2 }} onClick={(_, index) => {
                 const bucket = histogramData[index];
                 if (!bucket) return;
                 onSelectBucket(bucket.key);
@@ -178,7 +257,7 @@ const LogsHistogram = memo(function LogsHistogram({
                 {histogramData.map((bucket) => (
                   <Cell
                     key={`bucket-warn-${bucket.key}`}
-                    fill="#f59e0b"
+                    fill="#fbbf24"
                     fillOpacity={getBucketOpacity(bucket.key)}
                     stroke={selectedBucketKey === bucket.key ? '#ffffff' : 'none'}
                     strokeWidth={selectedBucketKey === bucket.key ? 1 : 0}
@@ -187,7 +266,7 @@ const LogsHistogram = memo(function LogsHistogram({
                 ))}
               </Bar>
 
-              <Bar dataKey="error" stackId="levels" fill="#ef4444" activeBar={{ fill: '#ef4444', fillOpacity: 1, stroke: '#fca5a5', strokeWidth: 1.2 }} radius={[3, 3, 0, 0]} onClick={(_, index) => {
+              <Bar dataKey="error" stackId="levels" fill="#f87171" activeBar={{ fill: '#f87171', fillOpacity: 1, stroke: '#fecaca', strokeWidth: 1.2 }} radius={[3, 3, 0, 0]} onClick={(_, index) => {
                 const bucket = histogramData[index];
                 if (!bucket) return;
                 onSelectBucket(bucket.key);
@@ -195,7 +274,7 @@ const LogsHistogram = memo(function LogsHistogram({
                 {histogramData.map((bucket) => (
                   <Cell
                     key={`bucket-error-${bucket.key}`}
-                    fill="#ef4444"
+                    fill="#f87171"
                     fillOpacity={getBucketOpacity(bucket.key)}
                     stroke={selectedBucketKey === bucket.key ? '#ffffff' : 'none'}
                     strokeWidth={selectedBucketKey === bucket.key ? 1.2 : 0}
@@ -216,7 +295,9 @@ const LogsHistogram = memo(function LogsHistogram({
 
 export default function LogsPage() {
   const PAGE_SIZE = 60;
-  const { data: logs = [], refetch } = useQuery({ queryKey: ['logs'], queryFn: apiClient.getLogs });
+  const { data: queryLogs = [], refetch } = useQuery({ queryKey: ['logs'], queryFn: apiClient.getLogs });
+  const [liveLogs, setLiveLogs] = useState<LogEntry[]>([]);
+  const [streamStatus, setStreamStatus] = useState<'connecting' | 'live' | 'reconnecting' | 'offline'>('connecting');
   const [query, setQuery] = useState('');
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
   const [activeTab, setActiveTab] = useState<'logs' | 'patterns' | 'exceptions'>('logs');
@@ -225,6 +306,71 @@ export default function LogsPage() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [fieldSearch, setFieldSearch] = useState('');
   const [selectedBucketKey, setSelectedBucketKey] = useState<number | null>(null);
+
+  useEffect(() => {
+    setLiveLogs(queryLogs);
+    if (queryLogs.length > 0) {
+      setStreamStatus('connecting');
+    }
+  }, [queryLogs]);
+
+  useEffect(() => {
+    const MAX_LOGS = 6000;
+    let eventSource: EventSource | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let isUnmounted = false;
+    let retryAttempt = 0;
+
+    const connect = () => {
+      if (isUnmounted) return;
+
+      setStreamStatus(retryAttempt === 0 ? 'connecting' : 'reconnecting');
+      eventSource = new EventSource('/api/logs/stream');
+
+      eventSource.onopen = () => {
+        retryAttempt = 0;
+        setStreamStatus('live');
+      };
+
+      eventSource.addEventListener('log', (event) => {
+        try {
+          const payload = JSON.parse((event as MessageEvent<string>).data) as LogStreamPayload;
+          if (!payload?.log) return;
+
+          setLiveLogs((prev) => {
+            const deduped = prev.filter((log) => log.id !== payload.log.id);
+            return [payload.log, ...deduped].slice(0, MAX_LOGS);
+          });
+        } catch {
+          // ignore malformed stream event
+        }
+      });
+
+      eventSource.onerror = () => {
+        eventSource?.close();
+        eventSource = null;
+
+        if (isUnmounted) return;
+        setStreamStatus('reconnecting');
+        retryAttempt += 1;
+        const delay = Math.min(5000, 1000 * 2 ** Math.min(retryAttempt, 3));
+        reconnectTimer = setTimeout(connect, delay);
+      };
+    };
+
+    connect();
+
+    return () => {
+      isUnmounted = true;
+      setStreamStatus('offline');
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+      eventSource?.close();
+    };
+  }, []);
+
+  const logs = useMemo(() => (liveLogs.length > 0 ? liveLogs : queryLogs), [liveLogs, queryLogs]);
 
   const getFieldValue = (log: LogEntry, field: string) => {
     const normalizedField = field.toLowerCase();
@@ -397,7 +543,8 @@ export default function LogsPage() {
     () =>
       histogram.map((bucket) => ({
         ...bucket,
-        tsLabel: bucket.label.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        tsLabel: formatAxisDateTime(bucket.label),
+        tsFullLabel: formatFullDateTime(bucket.label),
       })),
     [histogram],
   );
@@ -476,6 +623,9 @@ export default function LogsPage() {
             <Button variant="contained" size="small" sx={{ whiteSpace: 'nowrap', px: 2 }} onClick={() => refetch()}>
               Refresh
             </Button>
+            <Typography variant="caption" sx={{ color: streamStatus === 'live' ? 'success.main' : 'text.secondary', fontWeight: 700, alignSelf: 'center' }}>
+              SSE {streamStatus.toUpperCase()}
+            </Typography>
           </Stack>
         </Box>
 
@@ -619,7 +769,7 @@ export default function LogsPage() {
               ID: {selectedLog.id}
             </Typography>
             <Typography variant="body2" sx={{ color: (theme) => theme.palette.text.secondary }}>
-              Timestamp: {formatTimestamp(selectedLog.timestamp)}
+              Timestamp: {formatDateTime(selectedLog.timestamp)}
             </Typography>
             <Typography variant="body2" sx={{ color: (theme) => theme.palette.text.secondary }}>
               Service: {selectedLog.service}
