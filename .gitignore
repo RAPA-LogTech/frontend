@@ -11,6 +11,9 @@ node_modules/
 /out/
 /.vercel
 
+# ESLint
+.eslintcache
+
 # Build
 /build
 /dist
