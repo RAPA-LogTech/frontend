@@ -2,9 +2,6 @@ import {
   globalFilterOptions,
   mockAiConversation,
   mockDashboards,
-  mockLogs,
-  mockMetricSeries,
-  mockTraces,
 } from './mock';
 import {
   Dashboard,
@@ -39,28 +36,37 @@ export const apiClient = {
     return mockDashboards;
   },
   async getLogs(): Promise<LogEntry[]> {
-    await simulateLatency();
-
     try {
-      const response = await fetch('/data/logs-example.json');
-
-      if (!response.ok) {
-        return mockLogs;
-      }
-
+      // BFF → observability-service /v1/logs
+      const response = await fetch('/api/observability/logs');
+      if (!response.ok) return [];
       const data = (await response.json()) as { logs?: LogEntry[] };
-      return data.logs ?? mockLogs;
+      return Array.isArray(data.logs) ? data.logs : [];
     } catch {
-      return mockLogs;
+      return [];
     }
   },
   async getMetrics(): Promise<MetricSeries[]> {
-    await simulateLatency();
-    return mockMetricSeries;
+    try {
+      // BFF → observability-service /v1/metrics
+      const response = await fetch('/api/observability/metrics');
+      if (!response.ok) return [];
+      const data = (await response.json()) as MetricSeries[];
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
   },
   async getTraces(): Promise<Trace[]> {
-    await simulateLatency();
-    return mockTraces;
+    try {
+      // BFF → observability-service /v1/traces
+      const response = await fetch('/api/observability/traces');
+      if (!response.ok) return [];
+      const data = (await response.json()) as { traces?: Trace[] };
+      return Array.isArray(data.traces) ? data.traces : [];
+    } catch {
+      return [];
+    }
   },
   async getGlobalFilterOptions() {
     await simulateLatency();
@@ -72,35 +78,11 @@ export const apiClient = {
   },
   async getNotifications(): Promise<NotificationItem[]> {
     await simulateLatency();
-
-    try {
-      const response = await fetch('/data/notifications-example.json');
-
-      if (!response.ok) {
-        return [];
-      }
-
-      const data = (await response.json()) as NotificationItem[];
-      return data;
-    } catch {
-      return [];
-    }
+    return [];
   },
   async getRunbooks(): Promise<RunbookItem[]> {
     await simulateLatency();
-
-    try {
-      const response = await fetch('/data/runbooks-example.json');
-
-      if (!response.ok) {
-        return [];
-      }
-
-      const data = (await response.json()) as RunbookItem[];
-      return data;
-    } catch {
-      return [];
-    }
+    return [];
   },
   async sendSlackTestMessage(payload: { text: string }) {
     const response = await fetch('/api/integrations/slack/test', {
@@ -145,14 +127,7 @@ export const apiClient = {
 
   async getReports(): Promise<ReportItem[]> {
     await simulateLatency();
-
-    try {
-      const response = await fetch('/data/reports-example.json');
-      if (!response.ok) return [];
-      return (await response.json()) as ReportItem[];
-    } catch {
-      return [];
-    }
+    return [];
   },
 
   async createReport(payload: {

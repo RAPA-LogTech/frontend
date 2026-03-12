@@ -1,57 +1,39 @@
-import { getLatestLogCursor, subscribeLogs } from '@/lib/live/logsLive';
-
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const encoder = new TextEncoder();
+const BASE_URL = process.env.OBSERVABILITY_SERVICE_URL ?? '';
 
 export async function GET(request: Request) {
-  let unsubscribe: (() => void) | null = null;
-  let heartbeat: ReturnType<typeof setInterval> | null = null;
+  if (!BASE_URL) {
+    return Response.json({ message: 'OBSERVABILITY_SERVICE_URL is not configured' }, { status: 503 });
+  }
 
-  const cleanup = () => {
-    if (unsubscribe) {
-      unsubscribe();
-      unsubscribe = null;
+  const { searchParams } = new URL(request.url);
+  const upstream = `${BASE_URL}/v1/logs/stream?${searchParams.toString()}`;
+
+  try {
+    const upstreamResponse = await fetch(upstream, {
+      headers: {
+        Accept: 'text/event-stream',
+      },
+      cache: 'no-store',
+      signal: request.signal,
+    });
+
+    if (!upstreamResponse.ok || !upstreamResponse.body) {
+      return Response.json({ message: 'Failed to open upstream stream' }, { status: upstreamResponse.status || 502 });
     }
-    if (heartbeat) {
-      clearInterval(heartbeat);
-      heartbeat = null;
-    }
-  };
 
-  const stream = new ReadableStream<Uint8Array>({
-    start(controller) {
-      const send = (event: string, payload: unknown) => {
-        controller.enqueue(encoder.encode(`event: ${event}\n`));
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
-      };
-
-      controller.enqueue(encoder.encode('retry: 2000\n\n'));
-
-      unsubscribe = subscribeLogs((payload) => {
-        send('log', payload);
-      });
-
-      controller.enqueue(encoder.encode(`: latest-cursor ${getLatestLogCursor()}\n\n`));
-
-      heartbeat = setInterval(() => {
-        controller.enqueue(encoder.encode(`: ping ${Date.now()}\n\n`));
-      }, 15000);
-
-      request.signal.addEventListener('abort', cleanup, { once: true });
-    },
-    cancel() {
-      cleanup();
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream; charset=utf-8',
-      'Cache-Control': 'no-cache, no-transform',
-      Connection: 'keep-alive',
-      'X-Accel-Buffering': 'no',
-    },
-  });
+    return new Response(upstreamResponse.body, {
+      status: upstreamResponse.status,
+      headers: {
+        'Content-Type': upstreamResponse.headers.get('content-type') ?? 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no',
+      },
+    });
+  } catch {
+    return Response.json({ message: 'Failed to connect upstream stream' }, { status: 503 });
+  }
 }

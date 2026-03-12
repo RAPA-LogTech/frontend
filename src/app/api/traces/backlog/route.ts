@@ -1,21 +1,30 @@
-import { getTraceBacklogPage } from '@/lib/live/tracesLive';
-
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+const BASE_URL = process.env.OBSERVABILITY_SERVICE_URL ?? '';
+
 export async function GET(request: Request) {
+  if (!BASE_URL) {
+    return Response.json({ events: [], nextCursor: 0, hasMore: false, latestCursor: 0 }, { status: 503 });
+  }
+
   const { searchParams } = new URL(request.url);
-  const cursorParam = Number(searchParams.get('cursor') ?? '0');
-  const limitParam = Number(searchParams.get('limit') ?? '200');
-  const cursor = Number.isFinite(cursorParam) ? cursorParam : 0;
-  const limit = Number.isFinite(limitParam) ? limitParam : 200;
+  const upstream = `${BASE_URL}/v1/traces/backlog?${searchParams.toString()}`;
 
-  const page = getTraceBacklogPage(cursor, limit);
+  try {
+    const upstreamResponse = await fetch(upstream, {
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      signal: request.signal,
+    });
 
-  return Response.json({
-    events: page.events,
-    nextCursor: page.nextCursor,
-    hasMore: page.hasMore,
-    latestCursor: page.latestCursor,
-  });
+    if (!upstreamResponse.ok) {
+      return Response.json({ events: [], nextCursor: 0, hasMore: false, latestCursor: 0 }, { status: upstreamResponse.status });
+    }
+
+    const data = await upstreamResponse.json();
+    return Response.json(data);
+  } catch {
+    return Response.json({ events: [], nextCursor: 0, hasMore: false, latestCursor: 0 }, { status: 503 });
+  }
 }
