@@ -9,19 +9,27 @@ import {
   Card,
   CardContent,
   Divider,
+  Skeleton,
   Stack,
   Typography,
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/apiClient';
 import { formatDateTime } from '@/lib/formatters';
+import NoDataState from '@/components/common/NoDataState';
 
 export default function NotificationsPage() {
   const router = useRouter();
-  const { data: notifications = [] } = useQuery({
+  const notificationsQuery = useQuery({
     queryKey: ['notifications-page'],
     queryFn: apiClient.getNotifications,
   });
+  const integrationQuery = useQuery({
+    queryKey: ['notifications-slack-integration-status'],
+    queryFn: apiClient.getSlackIntegration,
+  });
+
+  const notifications = notificationsQuery.data ?? [];
   const [readMap, setReadMap] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
@@ -40,6 +48,19 @@ export default function NotificationsPage() {
     }
     return true;
   });
+
+  const isIntegrationConnected = integrationQuery.data?.connected ?? false;
+  const isLoading = notificationsQuery.isLoading || integrationQuery.isLoading;
+  const isBaseEmpty = notifications.length === 0;
+  const showIntegrationGuide =
+    !isLoading &&
+    filter === 'all' &&
+    !isIntegrationConnected;
+  const showNoDataEmpty =
+    !isLoading &&
+    filter === 'all' &&
+    isBaseEmpty &&
+    isIntegrationConnected;
 
   const getSeverityColor = (severity: string) => {
     if (severity === 'critical' || severity === 'error') return 'error.main';
@@ -110,101 +131,139 @@ export default function NotificationsPage() {
         }}
       >
         <CardContent sx={{ p: 0, overflowY: 'auto', flex: 1 }}>
-          {filteredNotifications.length === 0 ? (
-            <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
-              {filter === 'unread' ? '미확인 알림이 없습니다.' : '알림이 없습니다.'}
-            </Typography>
+          {isLoading ? (
+            <Stack spacing={1} sx={{ p: 2 }}>
+              <Skeleton variant="rounded" height={82} />
+              <Skeleton variant="rounded" height={82} />
+              <Skeleton variant="rounded" height={82} />
+            </Stack>
           ) : (
-            filteredNotifications.map((notification, index) => {
-              const isUnread = !effectiveReadMap[notification.id];
-              const resolvedRoute = resolveNotificationRoute(notification);
-
-              return (
-                <Box key={notification.id}>
-                  <Box
-                    component={Link}
-                    href={resolvedRoute}
-                    sx={{
-                      display: 'block',
-                      textDecoration: 'none',
-                      color: 'inherit',
-                      p: 2,
-                      bgcolor: isUnread ? 'transparent' : 'action.hover',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        bgcolor: 'action.hover',
-                      },
-                    }}
-                    onClick={() => {
-                      setReadMap((prev) => ({ ...prev, [notification.id]: true }));
-                    }}
+            <>
+              {showIntegrationGuide && (
+              <Box sx={{ p: 2 }}>
+                <NoDataState
+                  title="Slack 연동이 필요합니다"
+                  description="현재 알림 연동이 설정되지 않았습니다. Slack 연동 후 알림을 받을 수 있습니다."
+                />
+                <Stack direction="row" justifyContent="center" sx={{ mt: 1.5 }}>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={() => router.push('/integrations/slack')}
+                    sx={{ textTransform: 'none' }}
                   >
-                    <Stack direction="row" spacing={1.25} alignItems="flex-start">
+                    연동 설정으로 이동
+                  </Button>
+                </Stack>
+              </Box>
+              )}
+
+              {filteredNotifications.length === 0 ? (
+                showNoDataEmpty ? (
+                  <Box sx={{ p: 2 }}>
+                    <NoDataState
+                      title="알림 데이터가 없습니다"
+                      description="아직 수집된 알림이 없습니다. 알림 이벤트가 발생하면 여기에 표시됩니다."
+                    />
+                  </Box>
+                ) : filter === 'unread' ? (
+                  <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+                    미확인 알림이 없습니다.
+                  </Typography>
+                ) : null
+              ) : (
+                filteredNotifications.map((notification, index) => {
+                  const isUnread = !effectiveReadMap[notification.id];
+                  const resolvedRoute = resolveNotificationRoute(notification);
+
+                  return (
+                    <Box key={notification.id}>
                       <Box
+                        component={Link}
+                        href={resolvedRoute}
                         sx={{
-                          mt: 0.6,
-                          width: 9,
-                          height: 9,
-                          borderRadius: '50%',
-                          bgcolor: getSeverityColor(notification.severity),
-                          flexShrink: 0,
+                          display: 'block',
+                          textDecoration: 'none',
+                          color: 'inherit',
+                          p: 2,
+                          bgcolor: isUnread ? 'transparent' : 'action.hover',
+                          cursor: 'pointer',
+                          '&:hover': {
+                            bgcolor: 'action.hover',
+                          },
                         }}
-                      />
-
-                      <Box sx={{ flex: 1, minWidth: 0 }}>
-                        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={0.5}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: isUnread ? 700 : 800 }}>
-                            {notification.title}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {formatDateTime(notification.timestamp)}
-                          </Typography>
-                        </Stack>
-
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                          {notification.message}
-                        </Typography>
-
-                        <Stack direction="row" spacing={1} sx={{ mt: 1.25 }}>
-                          {notification.source ? (
-                            <Box
-                              sx={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                px: 1,
-                                py: 0.25,
-                                borderRadius: 999,
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                fontSize: '0.75rem',
-                                color: 'text.secondary',
-                                lineHeight: 1.4,
-                              }}
-                            >
-                              {notification.source}
-                            </Box>
-                          ) : null}
-                          <Button
-                            size="small"
-                            variant="text"
-                            sx={{ textTransform: 'none', px: 0.5, minWidth: 'auto' }}
-                            onClick={(event) => {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              setReadMap((prev) => ({ ...prev, [notification.id]: true }));
-                              router.push(resolvedRoute);
+                        onClick={() => {
+                          setReadMap((prev) => ({ ...prev, [notification.id]: true }));
+                        }}
+                      >
+                        <Stack direction="row" spacing={1.25} alignItems="flex-start">
+                          <Box
+                            sx={{
+                              mt: 0.6,
+                              width: 9,
+                              height: 9,
+                              borderRadius: '50%',
+                              bgcolor: getSeverityColor(notification.severity),
+                              flexShrink: 0,
                             }}
-                          >
-                            이동
-                          </Button>
+                          />
+
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={0.5}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: isUnread ? 700 : 800 }}>
+                                {notification.title}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {formatDateTime(notification.timestamp)}
+                              </Typography>
+                            </Stack>
+
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                              {notification.message}
+                            </Typography>
+
+                            <Stack direction="row" spacing={1} sx={{ mt: 1.25 }}>
+                              {notification.source ? (
+                                <Box
+                                  sx={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    px: 1,
+                                    py: 0.25,
+                                    borderRadius: 999,
+                                    border: '1px solid',
+                                    borderColor: 'divider',
+                                    fontSize: '0.75rem',
+                                    color: 'text.secondary',
+                                    lineHeight: 1.4,
+                                  }}
+                                >
+                                  {notification.source}
+                                </Box>
+                              ) : null}
+                              <Button
+                                size="small"
+                                variant="text"
+                                sx={{ textTransform: 'none', px: 0.5, minWidth: 'auto' }}
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  setReadMap((prev) => ({ ...prev, [notification.id]: true }));
+                                  router.push(resolvedRoute);
+                                }}
+                              >
+                                이동
+                              </Button>
+                            </Stack>
+                          </Box>
                         </Stack>
                       </Box>
-                    </Stack>
-                  </Box>
-                  {index < filteredNotifications.length - 1 ? <Divider /> : null}
-                </Box>
-              );
-            })
+                      {index < filteredNotifications.length - 1 ? <Divider /> : null}
+                    </Box>
+                  );
+                })
+              )}
+            </>
           )}
         </CardContent>
       </Card>
