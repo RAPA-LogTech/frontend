@@ -59,9 +59,9 @@ const formatMetricValue = (value: number, unit: string) => {
 
 const formatTimeLabel = (timestamp: number, withSeconds: boolean) => {
   const date = new Date(timestamp);
-  const hh = String(date.getUTCHours()).padStart(2, '0');
-  const mm = String(date.getUTCMinutes()).padStart(2, '0');
-  const ss = String(date.getUTCSeconds()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mm = String(date.getMinutes()).padStart(2, '0');
+  const ss = String(date.getSeconds()).padStart(2, '0');
   return withSeconds ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`;
 };
 

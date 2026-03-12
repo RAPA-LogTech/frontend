@@ -63,27 +63,27 @@ type HistogramTooltipItem = {
 
 const formatAxisDateTime = (value: Date | number | string, withSeconds = false) => {
   const date = value instanceof Date ? value : new Date(value);
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const dd = String(date.getUTCDate()).padStart(2, '0');
-  const hh = String(date.getUTCHours()).padStart(2, '0');
-  const minute = String(date.getUTCMinutes()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const minute = String(date.getMinutes()).padStart(2, '0');
 
   if (!withSeconds) {
     return `${month}-${dd} ${hh}:${minute}`;
   }
 
-  const ss = String(date.getUTCSeconds()).padStart(2, '0');
+  const ss = String(date.getSeconds()).padStart(2, '0');
   return `${month}-${dd} ${hh}:${minute}:${ss}`;
 };
 
 const formatFullDateTime = (value: Date | number | string) => {
   const date = value instanceof Date ? value : new Date(value);
-  const yyyy = String(date.getUTCFullYear());
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const hh = String(date.getUTCHours()).padStart(2, '0');
-  const mm = String(date.getUTCMinutes()).padStart(2, '0');
-  const ss = String(date.getUTCSeconds()).padStart(2, '0');
+  const yyyy = String(date.getFullYear());
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mm = String(date.getMinutes()).padStart(2, '0');
+  const ss = String(date.getSeconds()).padStart(2, '0');
   return `${yyyy}-${month}-${day} ${hh}:${mm}:${ss}`;
 };
 

@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   if (!BASE_URL) {
-    return Response.json({ traces: [], total: 0 }, { status: 503 });
+    return Response.json({ detail: 'OBSERVABILITY_SERVICE_URL is not configured' }, { status: 503 });
   }
 
   const { searchParams } = new URL(request.url);
@@ -19,11 +19,27 @@ export async function GET(request: Request) {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    if (!res.ok) return Response.json({ traces: [], total: 0 }, { status: res.status });
+    if (!res.ok) {
+      let errorBody: unknown = { detail: 'Upstream observability service request failed' };
+      try {
+        errorBody = await res.json();
+      } catch {
+        // Keep default message when upstream body is not JSON.
+      }
+      return Response.json(errorBody, { status: res.status });
+    }
 
     const data = await res.json();
     return Response.json(data);
-  } catch {
-    return Response.json({ traces: [], total: 0 }, { status: 503 });
+  } catch (error) {
+    return Response.json(
+      {
+        detail:
+          error instanceof Error
+            ? error.message
+            : 'Failed to connect observability service',
+      },
+      { status: 503 },
+    );
   }
 }
