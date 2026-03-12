@@ -38,7 +38,7 @@ export const apiClient = {
   async getLogs(): Promise<LogEntry[]> {
     try {
       // BFF → observability-service /v1/logs
-      const response = await fetch('/api/observability/logs');
+      const response = await fetch('/api/observability/logs?limit=1000');
       if (!response.ok) return [];
       const data = (await response.json()) as { logs?: LogEntry[] };
       return Array.isArray(data.logs) ? data.logs : [];

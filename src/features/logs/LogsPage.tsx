@@ -345,10 +345,10 @@ export default function LogsPage() {
 
     const fetchBacklog = async () => {
       let cursor = lastLogCursorRef.current;
-      const limit = 300;
+      const limit = 500;
 
       try {
-        for (let step = 0; step < 10; step += 1) {
+        for (let step = 0; step < 20; step += 1) {
           const response = await fetch(`/api/logs/backlog?cursor=${cursor}&limit=${limit}`);
           if (!response.ok) return;
 
@@ -470,7 +470,9 @@ export default function LogsPage() {
 
     if (sortedByTime.length === 0) return [];
 
-    const latestTs = new Date(sortedByTime[0].timestamp).getTime();
+    // Use wall-clock time for ranges like "Last 1h" so stale historical data
+    // does not shift the window and histogram captions unexpectedly.
+    const nowTs = Date.now();
     const rangeMsMap: Record<typeof timeRange, number> = {
       '15m': 15 * 60 * 1000,
       '1h': 60 * 60 * 1000,
@@ -479,7 +481,7 @@ export default function LogsPage() {
       all: Number.MAX_SAFE_INTEGER,
     };
 
-    const cutoff = latestTs - rangeMsMap[timeRange];
+    const cutoff = nowTs - rangeMsMap[timeRange];
 
     const byTime = sortedByTime.filter((log) => {
       if (timeRange === 'all') return true;
