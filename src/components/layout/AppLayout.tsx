@@ -21,7 +21,7 @@ const aiDrawerWidth = 400;
 export default function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [filters, setFilters] = useState<GlobalFilterState>(defaultGlobalFilter);
   const [aiChatOpen, setAiChatOpen] = useState(false);
@@ -41,7 +41,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       height: '100vh', 
       overflow: 'hidden', 
       bgcolor: 'background.default',  // ← dynamic (dark: #0a0f1a, light: #f8fafc)
-      width: '100vw' 
+      width: '100%' 
     }}>
       {/* Top AppBar */}
       <TopBar 
@@ -51,7 +51,18 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* Desktop Sidebar */}
       {!isMobile && (
-        <Box sx={{ width: drawerWidth, flexShrink: 0, display: 'flex', flexDirection: 'column', mt: `${topBarHeight}px` }}>
+        <Box
+          sx={{
+            width: drawerWidth,
+            minWidth: drawerWidth,
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            mt: `${topBarHeight}px`,
+            height: `calc(100vh - ${topBarHeight}px)`,
+            overflow: 'hidden',
+          }}
+        >
           <Sidebar onOpenAiChat={() => setAiChatOpen(true)} variant="permanent" />
         </Box>
       )}
@@ -73,6 +84,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           flexDirection: 'column',
           flexGrow: 1,
           mt: `${topBarHeight}px`,
+          height: `calc(100vh - ${topBarHeight}px)`,
           minWidth: 0,
           overflow: 'hidden',
         }}

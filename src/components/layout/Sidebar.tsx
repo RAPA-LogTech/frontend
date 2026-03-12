@@ -86,8 +86,12 @@ export default function Sidebar({
                 fontSize: '0.75rem',
                 fontWeight: 600,
                 textTransform: 'uppercase',
+                letterSpacing: 0.35,
                 color: (theme) => theme.palette.text.secondary,
+                bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(148,163,184,0.10)' : 'rgba(15,23,42,0.04)',
+                borderRadius: 1,
                 px: 2,
+                py: 0.6,
                 mb: 1,
               }}
             >
@@ -171,7 +175,8 @@ export default function Sidebar({
           borderColor: (theme) => theme.palette.divider,
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'auto',
+          overflowX: 'hidden',
+          overflowY: 'auto',
         }}
       >
         {sidebarContent}
