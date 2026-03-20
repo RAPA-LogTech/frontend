@@ -186,7 +186,7 @@ function LogsTableComponent({ logs, onSelect, query, compact = false }: LogsTabl
                 <Typography variant="body2" sx={{ fontFamily: compact ? 'monospace' : 'inherit', whiteSpace: compact ? 'normal' : 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {compact
                     ? highlightText(
-                        `{ "level": "${row.level.toLowerCase()}", "service": "${row.service}", "msg": "${row.message}", "traceId": "${row.metadata?.traceId ?? '-'}" }`,
+                        `{ "level": "${row.level.toLowerCase()}", "service": "${row.service}", "msg": "${row.message}", "traceId": "${row.metadata?.traceId ?? row.traceId ?? '-'}" }`,
                         query
                       )
                     : highlightText(row.message, query)}

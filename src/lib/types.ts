@@ -15,6 +15,7 @@ export type LogEntry = {
   env: Environment;
   level: LogLevel;
   message: string;
+  traceId?: string;
   metadata?: {
     userId?: string;
     requestId?: string;
