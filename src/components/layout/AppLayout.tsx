@@ -21,7 +21,7 @@ const aiDrawerWidth = 400;
 export default function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [filters, setFilters] = useState<GlobalFilterState>(defaultGlobalFilter);
   const [aiChatOpen, setAiChatOpen] = useState(false);
@@ -44,12 +44,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
       width: '100%' 
     }}>
       {/* Top AppBar */}
-      <TopBar 
+      <TopBar
         onMenuClick={handleDrawerToggle}
         showMenuButton={isMobile}
       />
 
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar - md 이상만 표시 */}
       {!isMobile && (
         <Box
           sx={{
@@ -58,8 +58,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             flexShrink: 0,
             display: 'flex',
             flexDirection: 'column',
-            mt: `${topBarHeight}px`,
-            height: `calc(100vh - ${topBarHeight}px)`,
+            height: '100vh',
             overflow: 'hidden',
           }}
         >
@@ -69,8 +68,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* Mobile Drawer */}
       {isMobile && (
-        <Sidebar 
-          onOpenAiChat={() => setAiChatOpen(true)} 
+        <Sidebar
+          onOpenAiChat={() => setAiChatOpen(true)}
           variant="temporary"
           openMobile={mobileDrawerOpen}
           onCloseMobile={() => setMobileDrawerOpen(false)}
@@ -84,6 +83,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           flexDirection: 'column',
           flexGrow: 1,
           mt: `${topBarHeight}px`,
+          ml: !isMobile ? `${drawerWidth}px` : 0,
           height: `calc(100vh - ${topBarHeight}px)`,
           minWidth: 0,
           overflow: 'hidden',
