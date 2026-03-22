@@ -72,6 +72,7 @@ export default function LogsPage() {
   const PAGE_SIZE = 60
   const [liveLogs, setLiveLogs] = useState<LogEntry[]>([])
   const [isLiveEnabled, setIsLiveEnabled] = useState(true)
+  const [isLiveStreaming, setIsLiveStreaming] = useState(false)
   const lastLogCursorRef = useRef(0)
   const [query, setQuery] = useState('')
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null)
@@ -150,7 +151,7 @@ export default function LogsPage() {
 
       eventSource.onopen = () => {
         retryAttempt = 0
-        // setStreamStatus('live');
+        setIsLiveStreaming(true)
       }
 
       eventSource.addEventListener('log', event => {
@@ -167,7 +168,7 @@ export default function LogsPage() {
         eventSource = null
 
         if (isUnmounted) return
-        // setStreamStatus('reconnecting');
+        setIsLiveStreaming(false)
         retryAttempt += 1
         const delay = Math.min(5000, 1000 * 2 ** Math.min(retryAttempt, 3))
         reconnectTimer = setTimeout(connect, delay)
@@ -178,7 +179,7 @@ export default function LogsPage() {
 
     return () => {
       isUnmounted = true
-      // setStreamStatus('offline');
+      setIsLiveStreaming(false)
       if (reconnectTimer) {
         clearTimeout(reconnectTimer)
       }
@@ -508,6 +509,7 @@ export default function LogsPage() {
             onRefresh={refetch}
             isLiveEnabled={isLiveEnabled}
             onLiveEnabledChange={setIsLiveEnabled}
+            isLiveStreaming={isLiveStreaming}
           />
         </Box>
 

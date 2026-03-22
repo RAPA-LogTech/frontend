@@ -1,27 +1,34 @@
 'use client'
 
-import { Box, BoxProps } from '@mui/material'
+import { Box, Typography, SxProps, Theme } from '@mui/material'
 import { FiberManualRecord as LiveIcon } from '@mui/icons-material'
 
-interface LiveButtonProps extends Omit<BoxProps, 'onClick' | 'value'> {
+interface LiveButtonProps {
   value: boolean
+  isStreaming?: boolean
   onChange: (value: boolean) => void
+  sx?: SxProps<Theme>
 }
 
-export default function LiveButton({ value, onChange, ...props }: LiveButtonProps) {
+export default function LiveButton({ value, isStreaming = false, onChange, sx }: LiveButtonProps) {
+  const isActive = value
+  const isPulsing = isActive && isStreaming
+
   return (
     <Box
-      size="small"
-      variant="outlined"
       onClick={() => onChange(!value)}
       sx={{
-        minWidth: 72,
-        px: 1,
+        px: 1.5,
         py: 0.25,
         borderRadius: 999,
-        borderColor: value ? 'success.main' : 'divider',
-        color: value ? 'success.main' : 'text.secondary',
+        border: 1,
+        borderColor: isActive ? 'success.main' : 'divider',
+        color: isActive ? 'success.main' : 'text.secondary',
         alignSelf: 'center',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 0.5,
+        cursor: 'pointer',
         '@keyframes neonPulse': {
           '0%, 100%': {
             opacity: 1,
@@ -29,25 +36,27 @@ export default function LiveButton({ value, onChange, ...props }: LiveButtonProp
           },
           '50%': { opacity: 0.42, textShadow: '0 0 1px rgba(74, 222, 128, 0.3)' },
         },
+        ...sx,
       }}
-      {...props}
     >
-      <Box
+      <LiveIcon
         sx={{
-          width: 7,
-          height: 7,
-          borderRadius: '50%',
-          bgcolor: value ? 'success.main' : 'text.disabled',
+          color: isActive ? 'success.main' : 'text.disabled',
+          animation: isPulsing ? 'neonPulse 1.2s ease-in-out infinite' : 'none',
+          fontSize: 12,
         }}
       />
-      <Box sx={{ pl: 0.5 }}>
-        <LiveIcon
-          sx={{
-            color: value ? 'success.main' : 'text.disabled',
-            animation: value ? 'neonPulse 1.2s ease-in-out infinite' : 'none',
-          }}
-        />
-      </Box>
+      <Typography
+        variant="body2"
+        sx={{
+          color: isActive ? 'success.main' : 'text.disabled',
+          fontWeight: 600,
+          fontSize: '0.75rem',
+          animation: isPulsing ? 'neonPulse 1.2s ease-in-out infinite' : 'none',
+        }}
+      >
+        LIVE
+      </Typography>
     </Box>
   )
 }

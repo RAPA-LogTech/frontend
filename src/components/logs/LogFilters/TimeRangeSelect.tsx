@@ -19,7 +19,7 @@ const timeRangeOptions = [
 
 export default function TimeRangeSelect({ value, onChange, ...props }: TimeRangeSelectProps) {
   return (
-    <FormControl size="small" sx={{ minWidth: 130 }}>
+    <FormControl size="small" sx={{ minWidth: 130, flexGrow: 1 }}>
       <Select value={value} onChange={e => onChange(e.target.value as TimeRange)} {...props}>
         {timeRangeOptions.map(option => (
           <MenuItem key={option.value} value={option.value}>
