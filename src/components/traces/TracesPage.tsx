@@ -194,10 +194,18 @@ export default function TracesPage() {
 
   const sortedTraces = useMemo(() => {
     const cloned = [...traceSeries]
-    if (sortKey === 'duration') {
-      return cloned.sort((a, b) => b.duration - a.duration)
+    // Remove duplicates by trace.id
+    const uniqueTraces = new Map<string, Trace>()
+    for (const trace of cloned) {
+      if (!uniqueTraces.has(trace.id)) {
+        uniqueTraces.set(trace.id, trace)
+      }
     }
-    return cloned.sort((a, b) => b.startTime - a.startTime)
+    const uniqueArray = Array.from(uniqueTraces.values())
+    if (sortKey === 'duration') {
+      return uniqueArray.sort((a, b) => b.duration - a.duration)
+    }
+    return uniqueArray.sort((a, b) => b.startTime - a.startTime)
   }, [traceSeries, sortKey])
   const hasTraces = sortedTraces.length > 0
 
