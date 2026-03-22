@@ -1,6 +1,6 @@
-'use client';
+'use client'
 
-import React from 'react';
+import React from 'react'
 import {
   Box,
   Card,
@@ -14,33 +14,25 @@ import {
   TableRow,
   Chip,
   Button,
-} from '@mui/material';
-import { ArrowRight as ArrowRightIcon } from '@mui/icons-material';
-import KPICard from '@/components/KPICard';
-import { formatTimestamp } from '@/lib/formatters';
-import {
-  mockMetrics,
-  mockLogs,
-  mockServices,
-  mockAlertEvents,
-} from '@/lib/mock';
+} from '@mui/material'
+import { ArrowRight as ArrowRightIcon } from '@mui/icons-material'
+import KPICard from '@/components/KPICard'
+import { formatTimestamp } from '@/lib/formatters'
+import { mockMetrics, mockLogs, mockServices, mockAlertEvents } from '@/lib/mock'
 
 export default function OverviewPage() {
   // Get latest metrics
-  const errorRateMetric = mockMetrics.find((m) => m.name === 'Error Rate');
-  const latencyMetric = mockMetrics.find((m) => m.name === 'Latency P95');
-  const throughputMetric = mockMetrics.find((m) => m.name === 'Throughput');
+  const errorRateMetric = mockMetrics.find(m => m.name === 'Error Rate')
+  const latencyMetric = mockMetrics.find(m => m.name === 'Latency P95')
+  const throughputMetric = mockMetrics.find(m => m.name === 'Throughput')
 
-  const latestErrorRate =
-    errorRateMetric?.points[errorRateMetric.points.length - 1]?.value || 0;
-  const latestLatency =
-    latencyMetric?.points[latencyMetric.points.length - 1]?.value || 0;
-  const latestThroughput =
-    throughputMetric?.points[throughputMetric.points.length - 1]?.value || 0;
+  const latestErrorRate = errorRateMetric?.points[errorRateMetric.points.length - 1]?.value || 0
+  const latestLatency = latencyMetric?.points[latencyMetric.points.length - 1]?.value || 0
+  const latestThroughput = throughputMetric?.points[throughputMetric.points.length - 1]?.value || 0
 
   // Service health
-  const healthyServices = mockServices.filter((s) => s.status === 'healthy').length;
-  const degradedServices = mockServices.filter((s) => s.status === 'degraded').length;
+  const healthyServices = mockServices.filter(s => s.status === 'healthy').length
+  const degradedServices = mockServices.filter(s => s.status === 'degraded').length
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2, md: 3 } }}>
@@ -49,7 +41,7 @@ export default function OverviewPage() {
         <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
           Dashboard Overview
         </Typography>
-        <Typography variant="body2" sx={{ color: (theme) => theme.palette.text.secondary }}>
+        <Typography variant="body2" sx={{ color: theme => theme.palette.text.secondary }}>
           Real-time health and performance metrics of your services
         </Typography>
       </Box>
@@ -70,7 +62,7 @@ export default function OverviewPage() {
             }}
             tooltip="Percentage of failed requests in last hour"
             onClick={() => {
-              window.location.href = '/logs?level=ERROR';
+              window.location.href = '/logs?level=ERROR'
             }}
           />
         </Grid>
@@ -110,7 +102,7 @@ export default function OverviewPage() {
             status={degradedServices > 0 ? 'warning' : 'healthy'}
             tooltip={`${healthyServices} healthy, ${degradedServices} degraded`}
             onClick={() => {
-              window.location.href = '/settings';
+              window.location.href = '/settings'
             }}
           />
         </Grid>
@@ -120,11 +112,13 @@ export default function OverviewPage() {
       <Grid container spacing={{ xs: 1.5, sm: 2, md: 2 }}>
         {/* Top Services Table */}
         <Grid item xs={12} md={12} lg={8}>
-          <Card sx={{ 
-            bgcolor: (theme) => theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff',
-            border: '1px solid',
-            borderColor: (theme) => theme.palette.divider,
-          }}>
+          <Card
+            sx={{
+              bgcolor: theme => (theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff'),
+              border: '1px solid',
+              borderColor: theme => theme.palette.divider,
+            }}
+          >
             <CardContent>
               <Box
                 sx={{
@@ -141,15 +135,15 @@ export default function OverviewPage() {
                   size="small"
                   endIcon={<ArrowRightIcon />}
                   sx={{
-                    color: (theme) => theme.palette.primary.light,
+                    color: theme => theme.palette.primary.light,
                     textTransform: 'none',
                     fontSize: '0.875rem',
                     '&:hover': {
-                      color: (theme) => theme.palette.primary.main,
+                      color: theme => theme.palette.primary.main,
                     },
                   }}
                   onClick={() => {
-                    window.location.href = '/logs';
+                    window.location.href = '/logs'
                   }}
                 >
                   View All
@@ -159,10 +153,15 @@ export default function OverviewPage() {
               <Box sx={{ overflowX: 'auto' }}>
                 <Table size="small" sx={{ minWidth: 500 }}>
                   <TableHead>
-                    <TableRow sx={{ borderBottom: '1px solid', borderColor: (theme) => theme.palette.divider }}>
+                    <TableRow
+                      sx={{
+                        borderBottom: '1px solid',
+                        borderColor: theme => theme.palette.divider,
+                      }}
+                    >
                       <TableCell
                         sx={{
-                          color: (theme) => theme.palette.text.primary,
+                          color: theme => theme.palette.text.primary,
                           fontWeight: 700,
                           fontSize: '0.8rem',
                           padding: '10px 12px',
@@ -174,7 +173,7 @@ export default function OverviewPage() {
                       <TableCell
                         align="center"
                         sx={{
-                          color: (theme) => theme.palette.text.primary,
+                          color: theme => theme.palette.text.primary,
                           fontWeight: 700,
                           fontSize: '0.8rem',
                           padding: '10px 12px',
@@ -186,7 +185,7 @@ export default function OverviewPage() {
                       <TableCell
                         align="center"
                         sx={{
-                          color: (theme) => theme.palette.text.primary,
+                          color: theme => theme.palette.text.primary,
                           fontWeight: 700,
                           fontSize: '0.8rem',
                           padding: '10px 12px',
@@ -198,7 +197,7 @@ export default function OverviewPage() {
                       <TableCell
                         align="center"
                         sx={{
-                          color: (theme) => theme.palette.text.primary,
+                          color: theme => theme.palette.text.primary,
                           fontWeight: 700,
                           fontSize: '0.8rem',
                           padding: '10px 12px',
@@ -210,11 +209,8 @@ export default function OverviewPage() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {mockServices.slice(0, 6).map((service) => {
-                      const statusColors: Record<
-                        string,
-                        { bg: string; text: string }
-                      > = {
+                    {mockServices.slice(0, 6).map(service => {
+                      const statusColors: Record<string, { bg: string; text: string }> = {
                         healthy: {
                           bg: 'rgba(16, 185, 129, 0.1)',
                           text: '#10b981',
@@ -228,27 +224,28 @@ export default function OverviewPage() {
                           bg: 'rgba(107, 114, 128, 0.1)',
                           text: '#6b7280',
                         },
-                      };
-                      const color = statusColors[service.status];
+                      }
+                      const color = statusColors[service.status]
 
                       return (
                         <TableRow
                           key={service.name}
                           onClick={() => {
-                            window.location.href = `/logs?service=${service.name}`;
+                            window.location.href = `/logs?service=${service.name}`
                           }}
                           sx={{
                             borderBottom: '1px solid',
-                            borderColor: (theme) => theme.palette.divider,
+                            borderColor: theme => theme.palette.divider,
                             cursor: 'pointer',
                             '&:hover': {
-                              bgcolor: (theme) => theme.palette.mode === 'dark' ? '#1e293b' : '#f5f9fc',
+                              bgcolor: theme =>
+                                theme.palette.mode === 'dark' ? '#1e293b' : '#f5f9fc',
                             },
                           }}
                         >
                           <TableCell
                             sx={{
-                              color: (theme) => theme.palette.text.primary,
+                              color: theme => theme.palette.text.primary,
                               fontSize: '0.875rem',
                               fontWeight: 600,
                               padding: '12px',
@@ -272,7 +269,7 @@ export default function OverviewPage() {
                           <TableCell
                             align="center"
                             sx={{
-                              color: (theme) => theme.palette.text.primary,
+                              color: theme => theme.palette.text.primary,
                               fontSize: '0.875rem',
                               fontFamily: 'monospace',
                               padding: '12px',
@@ -284,7 +281,7 @@ export default function OverviewPage() {
                           <TableCell
                             align="center"
                             sx={{
-                              color: (theme) => theme.palette.text.primary,
+                              color: theme => theme.palette.text.primary,
                               fontSize: '0.875rem',
                               fontFamily: 'monospace',
                               padding: '12px',
@@ -294,7 +291,7 @@ export default function OverviewPage() {
                             {(Math.random() * 5).toFixed(1)}%
                           </TableCell>
                         </TableRow>
-                      );
+                      )
                     })}
                   </TableBody>
                 </Table>
@@ -305,11 +302,13 @@ export default function OverviewPage() {
 
         {/* Recent Alerts */}
         <Grid item xs={12} md={12} lg={4}>
-          <Card sx={{ 
-            bgcolor: (theme) => theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff',
-            border: '1px solid',
-            borderColor: (theme) => theme.palette.divider,
-          }}>
+          <Card
+            sx={{
+              bgcolor: theme => (theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff'),
+              border: '1px solid',
+              borderColor: theme => theme.palette.divider,
+            }}
+          >
             <CardContent>
               <Box
                 sx={{
@@ -326,11 +325,11 @@ export default function OverviewPage() {
                   size="small"
                   endIcon={<ArrowRightIcon />}
                   sx={{
-                    color: (theme) => theme.palette.primary.light,
+                    color: theme => theme.palette.primary.light,
                     textTransform: 'none',
                     fontSize: '0.875rem',
                     '&:hover': {
-                      color: (theme) => theme.palette.primary.main,
+                      color: theme => theme.palette.primary.main,
                     },
                   }}
                 >
@@ -339,7 +338,7 @@ export default function OverviewPage() {
               </Box>
 
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                {mockAlertEvents.slice(0, 4).map((event) => {
+                {mockAlertEvents.slice(0, 4).map(event => {
                   const severityColors: Record<
                     string,
                     { bg: string; text: string; borderColor: string }
@@ -364,15 +363,15 @@ export default function OverviewPage() {
                       text: '#ef4444',
                       borderColor: '#991b1b',
                     },
-                  };
-                  const color = severityColors[event.severity];
+                  }
+                  const color = severityColors[event.severity]
 
                   return (
                     <Card
                       key={event.id}
                       variant="outlined"
                       sx={{
-                        bgcolor: (theme) => theme.palette.mode === 'dark' ? '#1e293b' : '#f8fafc',
+                        bgcolor: theme => (theme.palette.mode === 'dark' ? '#1e293b' : '#f8fafc'),
                         borderLeft: `4px solid ${color.borderColor}`,
                         borderTop: 'none',
                         borderRight: 'none',
@@ -381,7 +380,7 @@ export default function OverviewPage() {
                         cursor: 'pointer',
                         transition: 'all 0.2s',
                         '&:hover': {
-                          bgcolor: (theme) => theme.palette.mode === 'dark' ? '#334155' : '#eef2f7',
+                          bgcolor: theme => (theme.palette.mode === 'dark' ? '#334155' : '#eef2f7'),
                         },
                       }}
                     >
@@ -398,7 +397,7 @@ export default function OverviewPage() {
                             variant="caption"
                             sx={{
                               fontWeight: 700,
-                              color: (theme) => theme.palette.text.primary,
+                              color: theme => theme.palette.text.primary,
                               fontSize: '0.8rem',
                             }}
                           >
@@ -418,7 +417,7 @@ export default function OverviewPage() {
                         <Typography
                           variant="caption"
                           sx={{
-                            color: (theme) => theme.palette.text.secondary,
+                            color: theme => theme.palette.text.secondary,
                             display: 'block',
                             mb: 0.5,
                             fontSize: '0.75rem',
@@ -430,7 +429,7 @@ export default function OverviewPage() {
                         <Typography
                           variant="caption"
                           sx={{
-                            color: (theme) => theme.palette.text.secondary,
+                            color: theme => theme.palette.text.secondary,
                             fontFamily: 'monospace',
                             fontSize: '0.65rem',
                           }}
@@ -439,7 +438,7 @@ export default function OverviewPage() {
                         </Typography>
                       </CardContent>
                     </Card>
-                  );
+                  )
                 })}
               </Box>
             </CardContent>
@@ -448,11 +447,13 @@ export default function OverviewPage() {
       </Grid>
 
       {/* Recent Logs */}
-      <Card sx={{ 
-        bgcolor: (theme) => theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff',
-        border: '1px solid',
-        borderColor: (theme) => theme.palette.divider,
-      }}>
+      <Card
+        sx={{
+          bgcolor: theme => (theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff'),
+          border: '1px solid',
+          borderColor: theme => theme.palette.divider,
+        }}
+      >
         <CardContent>
           <Box
             sx={{
@@ -469,15 +470,15 @@ export default function OverviewPage() {
               size="small"
               endIcon={<ArrowRightIcon />}
               sx={{
-                color: (theme) => theme.palette.primary.light,
+                color: theme => theme.palette.primary.light,
                 textTransform: 'none',
                 fontSize: '0.875rem',
                 '&:hover': {
-                  color: (theme) => theme.palette.primary.main,
+                  color: theme => theme.palette.primary.main,
                 },
               }}
               onClick={() => {
-                window.location.href = '/logs';
+                window.location.href = '/logs'
               }}
             >
               View All Logs
@@ -487,10 +488,12 @@ export default function OverviewPage() {
           <Box sx={{ overflowX: 'auto' }}>
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ borderBottom: '1px solid', borderColor: (theme) => theme.palette.divider }}>
+                <TableRow
+                  sx={{ borderBottom: '1px solid', borderColor: theme => theme.palette.divider }}
+                >
                   <TableCell
                     sx={{
-                      color: (theme) => theme.palette.text.primary,
+                      color: theme => theme.palette.text.primary,
                       fontWeight: 700,
                       fontSize: '0.8rem',
                       padding: '10px 12px',
@@ -501,7 +504,7 @@ export default function OverviewPage() {
                   </TableCell>
                   <TableCell
                     sx={{
-                      color: (theme) => theme.palette.text.primary,
+                      color: theme => theme.palette.text.primary,
                       fontWeight: 700,
                       fontSize: '0.8rem',
                       padding: '10px 12px',
@@ -512,7 +515,7 @@ export default function OverviewPage() {
                   </TableCell>
                   <TableCell
                     sx={{
-                      color: (theme) => theme.palette.text.primary,
+                      color: theme => theme.palette.text.primary,
                       fontWeight: 700,
                       fontSize: '0.8rem',
                       padding: '10px 12px',
@@ -523,7 +526,7 @@ export default function OverviewPage() {
                   </TableCell>
                   <TableCell
                     sx={{
-                      color: (theme) => theme.palette.text.primary,
+                      color: theme => theme.palette.text.primary,
                       fontWeight: 700,
                       fontSize: '0.8rem',
                       padding: '10px 12px',
@@ -535,7 +538,7 @@ export default function OverviewPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {mockLogs.slice(0, 4).map((log) => {
+                {mockLogs.slice(0, 4).map(log => {
                   const levelColors: Record<string, { bg: string; text: string }> = {
                     ERROR: {
                       bg: 'rgba(239, 68, 68, 0.1)',
@@ -553,27 +556,27 @@ export default function OverviewPage() {
                       bg: 'rgba(107, 114, 128, 0.1)',
                       text: '#6b7280',
                     },
-                  };
-                  const color = levelColors[log.level];
+                  }
+                  const color = levelColors[log.level]
 
                   return (
                     <TableRow
                       key={log.id}
                       onClick={() => {
-                        window.location.href = `/logs?service=${log.service}`;
+                        window.location.href = `/logs?service=${log.service}`
                       }}
                       sx={{
                         borderBottom: '1px solid',
-                        borderColor: (theme) => theme.palette.divider,
+                        borderColor: theme => theme.palette.divider,
                         cursor: 'pointer',
                         '&:hover': {
-                          bgcolor: (theme) => theme.palette.mode === 'dark' ? '#1e293b' : '#f5f9fc',
+                          bgcolor: theme => (theme.palette.mode === 'dark' ? '#1e293b' : '#f5f9fc'),
                         },
                       }}
                     >
                       <TableCell
                         sx={{
-                          color: (theme) => theme.palette.text.primary,
+                          color: theme => theme.palette.text.primary,
                           fontSize: '0.8rem',
                           fontFamily: 'monospace',
                           fontWeight: 500,
@@ -584,7 +587,7 @@ export default function OverviewPage() {
                       </TableCell>
                       <TableCell
                         sx={{
-                          color: (theme) => theme.palette.text.primary,
+                          color: theme => theme.palette.text.primary,
                           fontSize: '0.875rem',
                           fontWeight: 600,
                           padding: '10px 12px',
@@ -606,7 +609,7 @@ export default function OverviewPage() {
                       </TableCell>
                       <TableCell
                         sx={{
-                          color: (theme) => theme.palette.text.primary,
+                          color: theme => theme.palette.text.primary,
                           fontSize: '0.8rem',
                           maxWidth: 280,
                           overflow: 'hidden',
@@ -618,7 +621,7 @@ export default function OverviewPage() {
                         {log.message}
                       </TableCell>
                     </TableRow>
-                  );
+                  )
                 })}
               </TableBody>
             </Table>
@@ -626,6 +629,5 @@ export default function OverviewPage() {
         </CardContent>
       </Card>
     </Box>
-  );
+  )
 }
-

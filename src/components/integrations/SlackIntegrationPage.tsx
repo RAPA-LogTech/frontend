@@ -1,9 +1,9 @@
-'use client';
+'use client'
 
-import { useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import Image from 'next/image';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Image from 'next/image'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   Box,
   Card,
@@ -17,66 +17,66 @@ import {
   DialogContent,
   DialogTitle,
   Chip,
-} from '@mui/material';
-import { apiClient } from '@/lib/apiClient';
+} from '@mui/material'
+import { apiClient } from '@/lib/apiClient'
 
 export default function SlackIntegrationPage() {
-  const searchParams = useSearchParams();
-  const [openSlackDialog, setOpenSlackDialog] = useState(false);
+  const searchParams = useSearchParams()
+  const [openSlackDialog, setOpenSlackDialog] = useState(false)
 
   const integrationQuery = useQuery({
     queryKey: ['slack-integration'],
     queryFn: () => apiClient.getSlackIntegration(),
-  });
+  })
 
   const disconnectMutation = useMutation({
     mutationFn: () => apiClient.disconnectSlackIntegration(),
     onSuccess: () => {
-      integrationQuery.refetch();
+      integrationQuery.refetch()
     },
-  });
+  })
 
   const testMutation = useMutation({
     mutationFn: () =>
       apiClient.sendSlackTestMessage({
         text: '[TEST] Observability alert pipeline health check',
       }),
-  });
+  })
 
-  const oauthStatus = searchParams.get('slack');
-  const oauthDetails = searchParams.get('details');
+  const oauthStatus = searchParams.get('slack')
+  const oauthDetails = searchParams.get('details')
 
   const oauthFeedback = useMemo(() => {
     if (!oauthStatus) {
-      return null;
+      return null
     }
 
     if (oauthStatus === 'connected') {
-      return { severity: 'success' as const, message: 'Slack 워크스페이스 연결이 완료되었습니다.' };
+      return { severity: 'success' as const, message: 'Slack 워크스페이스 연결이 완료되었습니다.' }
     }
 
     if (oauthStatus === 'cancelled') {
-      return { severity: 'warning' as const, message: 'Slack 권한 승인이 취소되었습니다.' };
+      return { severity: 'warning' as const, message: 'Slack 권한 승인이 취소되었습니다.' }
     }
 
     if (oauthStatus === 'not-configured') {
       return {
         severity: 'error' as const,
         message: '서버에 Slack OAuth 환경 변수가 설정되지 않았습니다.',
-      };
+      }
     }
 
     return {
       severity: 'error' as const,
       message: `Slack OAuth 처리 중 오류가 발생했습니다${oauthDetails ? `: ${oauthDetails}` : ''}`,
-    };
-  }, [oauthDetails, oauthStatus]);
+    }
+  }, [oauthDetails, oauthStatus])
 
-  const connected = integrationQuery.data?.connected ?? false;
-  const oauthConfigured = integrationQuery.data?.oauthConfigured ?? false;
-  const canTest = connected && !testMutation.isPending;
+  const connected = integrationQuery.data?.connected ?? false
+  const oauthConfigured = integrationQuery.data?.oauthConfigured ?? false
+  const canTest = connected && !testMutation.isPending
 
-  const statusLabel = connected ? '연동 완료' : '연동 전';
+  const statusLabel = connected ? '연동 완료' : '연동 전'
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -115,9 +115,12 @@ export default function SlackIntegrationPage() {
                         style={{ objectFit: 'contain' }}
                       />
                     </Box>
-                    <Typography variant="h6" sx={{ fontWeight: 700 }}>Slack</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                      Slack
+                    </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      A/B 테스트 등 모든 변경사항에 대한 업데이트를 슬랙 메시지로 확인할 수 있습니다.
+                      A/B 테스트 등 모든 변경사항에 대한 업데이트를 슬랙 메시지로 확인할 수
+                      있습니다.
                     </Typography>
                     <Box>
                       <Button
@@ -149,11 +152,15 @@ export default function SlackIntegrationPage() {
           },
         }}
       >
-        <DialogTitle sx={{ px: { xs: 2.5, md: 4 }, pt: 3, pb: 1, fontWeight: 800 }}>Slack 연동</DialogTitle>
+        <DialogTitle sx={{ px: { xs: 2.5, md: 4 }, pt: 3, pb: 1, fontWeight: 800 }}>
+          Slack 연동
+        </DialogTitle>
         <DialogContent sx={{ px: { xs: 2.5, md: 4 }, pb: 4 }}>
           <Stack spacing={2}>
             <Stack direction="row" spacing={1.25} alignItems="center">
-              <Typography variant="body1" sx={{ fontWeight: 700 }}>연동 상태</Typography>
+              <Typography variant="body1" sx={{ fontWeight: 700 }}>
+                연동 상태
+              </Typography>
               <Chip
                 size="small"
                 label={statusLabel}
@@ -170,7 +177,7 @@ export default function SlackIntegrationPage() {
               <Button
                 variant="contained"
                 onClick={() => {
-                  window.location.href = '/api/integrations/slack/connect';
+                  window.location.href = '/api/integrations/slack/connect'
                 }}
                 disabled={!oauthConfigured}
                 sx={{ textTransform: 'none' }}
@@ -198,16 +205,35 @@ export default function SlackIntegrationPage() {
 
             <Divider sx={{ my: 1 }} />
 
-            <Box sx={{ bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(148,163,184,0.08)' : '#f8fafc', borderRadius: 2, p: 2.5 }}>
-              <Typography variant="body1" sx={{ fontWeight: 800, mb: 1.5 }}>연동 방법</Typography>
-              <Typography variant="body2" sx={{ mb: 0.5 }}>1. Slack 연동하기 버튼을 클릭하여 워크스페이스 액세스 요청을 확인해주세요.</Typography>
-              <Typography variant="body2" sx={{ mb: 0.5 }}>2. 메시지가 게시될 채널을 선택해주세요.</Typography>
-              <Typography variant="body2">3. 연동 완료 후 테스트 메시지를 보내 정상 동작 여부를 확인해주세요.</Typography>
+            <Box
+              sx={{
+                bgcolor: theme =>
+                  theme.palette.mode === 'dark' ? 'rgba(148,163,184,0.08)' : '#f8fafc',
+                borderRadius: 2,
+                p: 2.5,
+              }}
+            >
+              <Typography variant="body1" sx={{ fontWeight: 800, mb: 1.5 }}>
+                연동 방법
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 0.5 }}>
+                1. Slack 연동하기 버튼을 클릭하여 워크스페이스 액세스 요청을 확인해주세요.
+              </Typography>
+              <Typography variant="body2" sx={{ mb: 0.5 }}>
+                2. 메시지가 게시될 채널을 선택해주세요.
+              </Typography>
+              <Typography variant="body2">
+                3. 연동 완료 후 테스트 메시지를 보내 정상 동작 여부를 확인해주세요.
+              </Typography>
             </Box>
 
             <Stack spacing={0.5}>
-              <Typography variant="caption" color="text.secondary">워크스페이스: {integrationQuery.data?.teamName ?? '-'}</Typography>
-              <Typography variant="caption" color="text.secondary">채널: {integrationQuery.data?.channelName ?? '-'}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                워크스페이스: {integrationQuery.data?.teamName ?? '-'}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                채널: {integrationQuery.data?.channelName ?? '-'}
+              </Typography>
             </Stack>
 
             {oauthFeedback && (
@@ -218,7 +244,8 @@ export default function SlackIntegrationPage() {
 
             {!oauthConfigured && (
               <Alert severity="warning" variant="outlined">
-                서버에 SLACK_CLIENT_ID, SLACK_CLIENT_SECRET, SLACK_SIGNING_SECRET 환경 변수를 설정해야 연동이 동작합니다.
+                서버에 SLACK_CLIENT_ID, SLACK_CLIENT_SECRET, SLACK_SIGNING_SECRET 환경 변수를
+                설정해야 연동이 동작합니다.
               </Alert>
             )}
 
@@ -255,5 +282,5 @@ export default function SlackIntegrationPage() {
         </DialogContent>
       </Dialog>
     </Box>
-  );
+  )
 }

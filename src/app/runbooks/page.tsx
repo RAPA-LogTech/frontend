@@ -1,4 +1,4 @@
-import RunbooksPage from '@/features/runbooks/RunbooksPage';
+import RunbooksPage from '@/components/runbooks/RunbooksPage';
 
 export default function Page() {
   return <RunbooksPage />;

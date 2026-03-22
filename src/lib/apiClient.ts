@@ -30,15 +30,50 @@ const readErrorMessage = async (response: Response, fallback: string) => {
   }
 };
 
+export const getLogs = async ({
+  start_time,
+  end_time,
+  ...rest
+}: {
+  start_time?: string;
+  end_time?: string;
+  [key: string]: any;
+} = {}): Promise<LogEntry[]> => {
+  const baseUrl = "/api/observability/logs";
+  const params = new URLSearchParams();
+  if (start_time) params.append("start_time", start_time);
+  if (end_time) params.append("end_time", end_time);
+  // 기타 필터 추가
+  Object.entries(rest).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) params.append(k, String(v));
+  });
+  const url = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
+  const response = await fetch(url, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!response.ok) throw new Error("Failed to fetch logs");
+  const data = await response.json();
+  // API 응답이 { logs: LogEntry[] } 형태일 수도 있으니 보정
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.logs)) return data.logs;
+  return [];
+};
+
+// 기존 방식도 유지 (호환성)
 export const apiClient = {
   async getDashboards(): Promise<Dashboard[]> {
     await simulateLatency();
     return mockDashboards;
   },
-  async getLogs(): Promise<LogEntry[]> {
+  async getLogsLegacy(timeRange?: '15m' | '1h' | '6h' | '24h' | 'all'): Promise<LogEntry[]> {
     try {
       // BFF → observability-service /v1/logs
-      const response = await fetch('/api/observability/logs?limit=1000');
+      const params = new URLSearchParams({ limit: '1000' });
+      if (timeRange && timeRange !== 'all') {
+        params.append('timeRange', timeRange);
+      }
+      const response = await fetch(`/api/observability/logs?${params.toString()}`);
       if (!response.ok) return [];
       const data = (await response.json()) as { logs?: LogEntry[] };
       return Array.isArray(data.logs) ? data.logs : [];

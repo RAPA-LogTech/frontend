@@ -1,7 +1,7 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Alert,
   Box,
@@ -26,18 +26,18 @@ import {
   TextField,
   Tooltip,
   Typography,
-} from '@mui/material';
+} from '@mui/material'
 import {
   Add as AddIcon,
   DeleteOutline as DeleteIcon,
   Download as DownloadIcon,
   Refresh as RefreshIcon,
   Description as ReportIcon,
-} from '@mui/icons-material';
-import { apiClient } from '@/lib/apiClient';
-import { formatDateTime } from '@/lib/formatters';
-import NoDataState from '@/components/common/NoDataState';
-import { ReportFormat, ReportItem, ReportType } from '@/lib/types';
+} from '@mui/icons-material'
+import { apiClient } from '@/lib/apiClient'
+import { formatDateTime } from '@/lib/formatters'
+import NoDataState from '@/components/common/NoDataState'
+import { ReportFormat, ReportItem, ReportType } from '@/lib/types'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -46,34 +46,34 @@ const TYPE_LABEL: Record<ReportType, string> = {
   metrics: '메트릭',
   traces: '트레이스',
   incident: '인시던트',
-};
+}
 
 const TYPE_COLOR: Record<ReportType, 'primary' | 'secondary' | 'info' | 'error'> = {
   logs: 'primary',
   metrics: 'info',
   traces: 'secondary',
   incident: 'error',
-};
+}
 
 const STATUS_LABEL: Record<string, string> = {
   draft: '초안',
   generating: '생성 중',
   completed: '완료',
   failed: '실패',
-};
+}
 
 const STATUS_COLOR: Record<string, 'default' | 'warning' | 'success' | 'error'> = {
   draft: 'default',
   generating: 'warning',
   completed: 'success',
   failed: 'error',
-};
+}
 
 const FORMAT_LABEL: Record<ReportFormat, string> = {
   pdf: 'PDF',
   csv: 'CSV',
   json: 'JSON',
-};
+}
 
 const ALL_SERVICES = [
   'api-gateway',
@@ -82,9 +82,9 @@ const ALL_SERVICES = [
   'payment-service',
   'notification-service',
   'database',
-];
+]
 
-const toDatetimeLocal = (iso: string) => iso.slice(0, 16);
+const toDatetimeLocal = (iso: string) => iso.slice(0, 16)
 
 function formatPeriod(from: string, to: string) {
   const fmt = (s: string) =>
@@ -92,44 +92,44 @@ function formatPeriod(from: string, to: string) {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
-    });
-  return `${fmt(from)} ~ ${fmt(to)}`;
+    })
+  return `${fmt(from)} ~ ${fmt(to)}`
 }
 
 // ─── Create Dialog ─────────────────────────────────────────────────────────────
 
 interface CreateDialogProps {
-  open: boolean;
-  onClose: () => void;
+  open: boolean
+  onClose: () => void
   onSubmit: (payload: {
-    title: string;
-    type: ReportType;
-    format: ReportFormat;
-    periodFrom: string;
-    periodTo: string;
-    services: string[];
-  }) => void;
-  loading: boolean;
+    title: string
+    type: ReportType
+    format: ReportFormat
+    periodFrom: string
+    periodTo: string
+    services: string[]
+  }) => void
+  loading: boolean
 }
 
 function CreateReportDialog({ open, onClose, onSubmit, loading }: CreateDialogProps) {
-  const now = new Date();
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const now = new Date()
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
-  const [title, setTitle] = useState('');
-  const [type, setType] = useState<ReportType>('logs');
-  const [format, setFormat] = useState<ReportFormat>('pdf');
-  const [periodFrom, setPeriodFrom] = useState(toDatetimeLocal(weekAgo.toISOString()));
-  const [periodTo, setPeriodTo] = useState(toDatetimeLocal(now.toISOString()));
-  const [services, setServices] = useState<string[]>([]);
+  const [title, setTitle] = useState('')
+  const [type, setType] = useState<ReportType>('logs')
+  const [format, setFormat] = useState<ReportFormat>('pdf')
+  const [periodFrom, setPeriodFrom] = useState(toDatetimeLocal(weekAgo.toISOString()))
+  const [periodTo, setPeriodTo] = useState(toDatetimeLocal(now.toISOString()))
+  const [services, setServices] = useState<string[]>([])
 
   const handleServiceChange = (e: SelectChangeEvent<string[]>) => {
-    const val = e.target.value;
-    setServices(typeof val === 'string' ? val.split(',') : val);
-  };
+    const val = e.target.value
+    setServices(typeof val === 'string' ? val.split(',') : val)
+  }
 
   const handleSubmit = () => {
-    if (!title.trim() || services.length === 0) return;
+    if (!title.trim() || services.length === 0) return
     onSubmit({
       title: title.trim(),
       type,
@@ -137,10 +137,10 @@ function CreateReportDialog({ open, onClose, onSubmit, loading }: CreateDialogPr
       periodFrom: new Date(periodFrom).toISOString(),
       periodTo: new Date(periodTo).toISOString(),
       services,
-    });
-  };
+    })
+  }
 
-  const isValid = title.trim().length > 0 && services.length > 0 && periodFrom && periodTo;
+  const isValid = title.trim().length > 0 && services.length > 0 && periodFrom && periodTo
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -150,7 +150,7 @@ function CreateReportDialog({ open, onClose, onSubmit, loading }: CreateDialogPr
           <TextField
             label="보고서 제목"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={e => setTitle(e.target.value)}
             placeholder="예: 3월 1주차 로그 보고서"
             fullWidth
             required
@@ -162,9 +162,9 @@ function CreateReportDialog({ open, onClose, onSubmit, loading }: CreateDialogPr
               <Select
                 value={type}
                 label="유형"
-                onChange={(e) => setType(e.target.value as ReportType)}
+                onChange={e => setType(e.target.value as ReportType)}
               >
-                {(Object.keys(TYPE_LABEL) as ReportType[]).map((t) => (
+                {(Object.keys(TYPE_LABEL) as ReportType[]).map(t => (
                   <MenuItem key={t} value={t}>
                     {TYPE_LABEL[t]}
                   </MenuItem>
@@ -177,9 +177,9 @@ function CreateReportDialog({ open, onClose, onSubmit, loading }: CreateDialogPr
               <Select
                 value={format}
                 label="형식"
-                onChange={(e) => setFormat(e.target.value as ReportFormat)}
+                onChange={e => setFormat(e.target.value as ReportFormat)}
               >
-                {(Object.keys(FORMAT_LABEL) as ReportFormat[]).map((f) => (
+                {(Object.keys(FORMAT_LABEL) as ReportFormat[]).map(f => (
                   <MenuItem key={f} value={f}>
                     {FORMAT_LABEL[f]}
                   </MenuItem>
@@ -193,7 +193,7 @@ function CreateReportDialog({ open, onClose, onSubmit, loading }: CreateDialogPr
               label="시작 시각"
               type="datetime-local"
               value={periodFrom}
-              onChange={(e) => setPeriodFrom(e.target.value)}
+              onChange={e => setPeriodFrom(e.target.value)}
               fullWidth
               InputLabelProps={{ shrink: true }}
             />
@@ -201,7 +201,7 @@ function CreateReportDialog({ open, onClose, onSubmit, loading }: CreateDialogPr
               label="종료 시각"
               type="datetime-local"
               value={periodTo}
-              onChange={(e) => setPeriodTo(e.target.value)}
+              onChange={e => setPeriodTo(e.target.value)}
               fullWidth
               InputLabelProps={{ shrink: true }}
             />
@@ -214,15 +214,15 @@ function CreateReportDialog({ open, onClose, onSubmit, loading }: CreateDialogPr
               value={services}
               onChange={handleServiceChange}
               input={<OutlinedInput label="서비스" />}
-              renderValue={(selected) => (
+              renderValue={selected => (
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                  {(selected as string[]).map((v) => (
+                  {(selected as string[]).map(v => (
                     <Chip key={v} label={v} size="small" />
                   ))}
                 </Box>
               )}
             >
-              {ALL_SERVICES.map((svc) => (
+              {ALL_SERVICES.map(svc => (
                 <MenuItem key={svc} value={svc}>
                   {svc}
                 </MenuItem>
@@ -235,31 +235,27 @@ function CreateReportDialog({ open, onClose, onSubmit, loading }: CreateDialogPr
         <Button onClick={onClose} disabled={loading}>
           취소
         </Button>
-        <Button
-          variant="contained"
-          onClick={handleSubmit}
-          disabled={!isValid || loading}
-        >
+        <Button variant="contained" onClick={handleSubmit} disabled={!isValid || loading}>
           {loading ? '생성 중...' : '보고서 생성'}
         </Button>
       </DialogActions>
     </Dialog>
-  );
+  )
 }
 
 // ─── Detail Dialog ─────────────────────────────────────────────────────────────
 
 interface DetailDialogProps {
-  report: ReportItem | null;
-  onClose: () => void;
-  onDelete: (id: string) => void;
-  deleteLoading: boolean;
+  report: ReportItem | null
+  onClose: () => void
+  onDelete: (id: string) => void
+  deleteLoading: boolean
 }
 
 function ReportDetailDialog({ report, onClose, onDelete, deleteLoading }: DetailDialogProps) {
-  if (!report) return null;
+  if (!report) return null
 
-  const summary = report.summary ?? {};
+  const summary = report.summary ?? {}
 
   return (
     <Dialog open={!!report} onClose={onClose} fullWidth maxWidth="sm">
@@ -269,11 +265,7 @@ function ReportDetailDialog({ report, onClose, onDelete, deleteLoading }: Detail
             {report.title}
           </Typography>
           <Stack direction="row" spacing={1}>
-            <Chip
-              label={TYPE_LABEL[report.type]}
-              color={TYPE_COLOR[report.type]}
-              size="small"
-            />
+            <Chip label={TYPE_LABEL[report.type]} color={TYPE_COLOR[report.type]} size="small" />
             <Chip
               label={STATUS_LABEL[report.status]}
               color={STATUS_COLOR[report.status]}
@@ -288,7 +280,7 @@ function ReportDetailDialog({ report, onClose, onDelete, deleteLoading }: Detail
           {/* Basic info */}
           <Box
             sx={{
-              bgcolor: (theme) =>
+              bgcolor: theme =>
                 theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'grey.50',
               borderRadius: 1,
               p: 2,
@@ -303,9 +295,7 @@ function ReportDetailDialog({ report, onClose, onDelete, deleteLoading }: Detail
               {report.completedAt && (
                 <InfoRow label="완료 시각" value={formatDateTime(report.completedAt)} />
               )}
-              {report.fileSize && (
-                <InfoRow label="파일 크기" value={report.fileSize} />
-              )}
+              {report.fileSize && <InfoRow label="파일 크기" value={report.fileSize} />}
             </Stack>
           </Box>
 
@@ -321,10 +311,18 @@ function ReportDetailDialog({ report, onClose, onDelete, deleteLoading }: Detail
                   <SummaryCard label="전체 레코드" value={summary.totalRecords.toLocaleString()} />
                 )}
                 {summary.errorCount !== undefined && (
-                  <SummaryCard label="에러" value={summary.errorCount.toLocaleString()} color="error.main" />
+                  <SummaryCard
+                    label="에러"
+                    value={summary.errorCount.toLocaleString()}
+                    color="error.main"
+                  />
                 )}
                 {summary.warningCount !== undefined && (
-                  <SummaryCard label="경고" value={summary.warningCount.toLocaleString()} color="warning.main" />
+                  <SummaryCard
+                    label="경고"
+                    value={summary.warningCount.toLocaleString()}
+                    color="warning.main"
+                  />
                 )}
                 {summary.avgDurationMs !== undefined && (
                   <SummaryCard label="평균 지연" value={`${summary.avgDurationMs} ms`} />
@@ -367,7 +365,7 @@ function ReportDetailDialog({ report, onClose, onDelete, deleteLoading }: Detail
         )}
       </DialogActions>
     </Dialog>
-  );
+  )
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -380,7 +378,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
         {value}
       </Typography>
     </Stack>
-  );
+  )
 }
 
 function SummaryCard({ label, value, color }: { label: string; value: string; color?: string }) {
@@ -406,18 +404,12 @@ function SummaryCard({ label, value, color }: { label: string; value: string; co
         {value}
       </Typography>
     </Box>
-  );
+  )
 }
 
 // ─── Report Card Item ──────────────────────────────────────────────────────────
 
-function ReportRow({
-  report,
-  onClick,
-}: {
-  report: ReportItem;
-  onClick: () => void;
-}) {
+function ReportRow({ report, onClick }: { report: ReportItem; onClick: () => void }) {
   return (
     <Card
       variant="outlined"
@@ -439,7 +431,7 @@ function ReportRow({
           <Stack direction="row" alignItems="center" gap={1.5} sx={{ flex: 1, minWidth: 0 }}>
             <ReportIcon
               sx={{
-                color: (theme) => theme.palette[TYPE_COLOR[report.type]].main,
+                color: theme => theme.palette[TYPE_COLOR[report.type]].main,
                 flexShrink: 0,
               }}
             />
@@ -473,17 +465,17 @@ function ReportRow({
         </Stack>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ReportsPage() {
-  const queryClient = useQueryClient();
-  const [createOpen, setCreateOpen] = useState(false);
-  const [selectedReport, setSelectedReport] = useState<ReportItem | null>(null);
-  const [filterType, setFilterType] = useState<ReportType | 'all'>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const queryClient = useQueryClient()
+  const [createOpen, setCreateOpen] = useState(false)
+  const [selectedReport, setSelectedReport] = useState<ReportItem | null>(null)
+  const [filterType, setFilterType] = useState<ReportType | 'all'>('all')
+  const [filterStatus, setFilterStatus] = useState<string>('all')
 
   const {
     data: reports = [],
@@ -493,36 +485,49 @@ export default function ReportsPage() {
   } = useQuery({
     queryKey: ['reports'],
     queryFn: apiClient.getReports,
-  });
+  })
 
   const createMutation = useMutation({
     mutationFn: apiClient.createReport,
-    onSuccess: (newReport) => {
-      queryClient.setQueryData<ReportItem[]>(['reports'], (prev = []) => [newReport, ...prev]);
-      setCreateOpen(false);
+    onSuccess: newReport => {
+      queryClient.setQueryData<ReportItem[]>(['reports'], (prev = []) => [newReport, ...prev])
+      setCreateOpen(false)
     },
-  });
+  })
 
   const deleteMutation = useMutation({
     mutationFn: apiClient.deleteReport,
     onSuccess: (_, deletedId) => {
       queryClient.setQueryData<ReportItem[]>(['reports'], (prev = []) =>
-        prev.filter((r) => r.id !== deletedId),
-      );
-      setSelectedReport(null);
+        prev.filter(r => r.id !== deletedId)
+      )
+      setSelectedReport(null)
     },
-  });
+  })
 
-  const filtered = reports.filter((r) => {
-    if (filterType !== 'all' && r.type !== filterType) return false;
-    if (filterStatus !== 'all' && r.status !== filterStatus) return false;
-    return true;
-  });
+  const filtered = reports.filter(r => {
+    if (filterType !== 'all' && r.type !== filterType) return false
+    if (filterStatus !== 'all' && r.status !== filterStatus) return false
+    return true
+  })
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2, md: 3 }, height: '100%', minHeight: 0 }}>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: { xs: 1.5, sm: 2, md: 3 },
+        height: '100%',
+        minHeight: 0,
+      }}
+    >
       {/* Header */}
-      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} gap={1}>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ sm: 'center' }}
+        gap={1}
+      >
         <Typography variant="h4" fontWeight={700}>
           보고서
         </Typography>
@@ -550,10 +555,10 @@ export default function ReportsPage() {
           <Select
             value={filterType}
             label="유형"
-            onChange={(e) => setFilterType(e.target.value as ReportType | 'all')}
+            onChange={e => setFilterType(e.target.value as ReportType | 'all')}
           >
             <MenuItem value="all">전체</MenuItem>
-            {(Object.keys(TYPE_LABEL) as ReportType[]).map((t) => (
+            {(Object.keys(TYPE_LABEL) as ReportType[]).map(t => (
               <MenuItem key={t} value={t}>
                 {TYPE_LABEL[t]}
               </MenuItem>
@@ -563,13 +568,9 @@ export default function ReportsPage() {
 
         <FormControl size="small" sx={{ minWidth: 130 }}>
           <InputLabel>상태</InputLabel>
-          <Select
-            value={filterStatus}
-            label="상태"
-            onChange={(e) => setFilterStatus(e.target.value)}
-          >
+          <Select value={filterStatus} label="상태" onChange={e => setFilterStatus(e.target.value)}>
             <MenuItem value="all">전체</MenuItem>
-            {Object.keys(STATUS_LABEL).map((s) => (
+            {Object.keys(STATUS_LABEL).map(s => (
               <MenuItem key={s} value={s}>
                 {STATUS_LABEL[s]}
               </MenuItem>
@@ -590,7 +591,7 @@ export default function ReportsPage() {
       <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
         {isLoading ? (
           <Stack spacing={1.5}>
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3, 4].map(i => (
               <Skeleton key={i} variant="rounded" height={72} />
             ))}
           </Stack>
@@ -601,7 +602,7 @@ export default function ReportsPage() {
           />
         ) : (
           <Stack spacing={1.5}>
-            {filtered.map((r) => (
+            {filtered.map(r => (
               <ReportRow key={r.id} report={r} onClick={() => setSelectedReport(r)} />
             ))}
           </Stack>
@@ -612,7 +613,7 @@ export default function ReportsPage() {
       <CreateReportDialog
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        onSubmit={(payload) => createMutation.mutate(payload)}
+        onSubmit={payload => createMutation.mutate(payload)}
         loading={createMutation.isPending}
       />
 
@@ -620,9 +621,9 @@ export default function ReportsPage() {
       <ReportDetailDialog
         report={selectedReport}
         onClose={() => setSelectedReport(null)}
-        onDelete={(id) => deleteMutation.mutate(id)}
+        onDelete={id => deleteMutation.mutate(id)}
         deleteLoading={deleteMutation.isPending}
       />
     </Box>
-  );
+  )
 }

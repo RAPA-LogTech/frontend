@@ -1,4 +1,4 @@
-import SlackIntegrationPage from '@/features/integrations/SlackIntegrationPage';
+import SlackIntegrationPage from '@/components/integrations/SlackIntegrationPage';
 
 export default function Page() {
   return <SlackIntegrationPage />;

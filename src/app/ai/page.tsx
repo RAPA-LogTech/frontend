@@ -1,4 +1,4 @@
-import AiPage from '@/features/ai/AiPage';
+import AiPage from '@/components/ai/AiPage';
 
 export default function Page() {
   return <AiPage />;

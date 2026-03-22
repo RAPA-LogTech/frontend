@@ -1,4 +1,4 @@
-import OverviewPage from '@/features/overview/OverviewPage';
+import OverviewPage from '@/components/overview/OverviewPage';
 
 export default function Page() {
   return <OverviewPage />;

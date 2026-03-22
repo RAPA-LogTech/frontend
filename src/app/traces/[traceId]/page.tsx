@@ -1,4 +1,4 @@
-import TracesDetailPage from '@/features/traces/TracesDetailPage';
+import TracesDetailPage from '@/components/traces/TracesDetailPage';
 
 export default async function Page({ params }: { params: Promise<{ traceId: string }> }) {
   const { traceId } = await params;

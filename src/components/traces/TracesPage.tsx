@@ -1,8 +1,8 @@
-'use client';
+'use client'
 
-import Link from 'next/link';
-import { UIEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link'
+import { UIEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   Box,
   Button,
@@ -22,7 +22,7 @@ import {
   Stack,
   Typography,
   useTheme,
-} from '@mui/material';
+} from '@mui/material'
 import {
   CartesianGrid,
   Cell,
@@ -33,202 +33,207 @@ import {
   XAxis,
   YAxis,
   ZAxis,
-} from 'recharts';
-import { apiClient } from '@/lib/apiClient';
-import { formatTimestamp } from '@/lib/formatters';
-import type { Trace } from '@/lib/types';
-import NoDataState from '@/components/common/NoDataState';
+} from 'recharts'
+import { apiClient } from '@/lib/apiClient'
+import { formatTimestamp } from '@/lib/formatters'
+import type { Trace } from '@/lib/types'
+import NoDataState from '@/components/common/NoDataState'
 
-type SortKey = 'recent' | 'duration';
+type SortKey = 'recent' | 'duration'
 
 type TraceStreamPayload = {
-  cursor: number;
-  ts: number;
-  trace: Trace;
-};
+  cursor: number
+  ts: number
+  trace: Trace
+}
 
-const EMPTY_TRACES: Trace[] = [];
+const EMPTY_TRACES: Trace[] = []
 
 export default function TracesPage() {
-  const PAGE_SIZE = 30;
-  const theme = useTheme();
+  const PAGE_SIZE = 30
+  const theme = useTheme()
   const {
     data: tracesData,
     isLoading: isTracesLoading,
     isFetched: isTracesFetched,
-  } = useQuery({ queryKey: ['traces'], queryFn: apiClient.getTraces });
-  const traces = tracesData ?? EMPTY_TRACES;
-  const [liveTraces, setLiveTraces] = useState<Trace[]>([]);
-  const [isLiveEnabled, setIsLiveEnabled] = useState(true);
-  const [streamStatus, setStreamStatus] = useState<'connecting' | 'live' | 'reconnecting' | 'offline'>('connecting');
-  const lastTraceCursorRef = useRef(0);
-  const [sortKey, setSortKey] = useState<SortKey>('recent');
-  const [hoveredTraceId, setHoveredTraceId] = useState<string | null>(null);
-  const [selectedTraceId, setSelectedTraceId] = useState<string | null>(null);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [showDependencyGraph, setShowDependencyGraph] = useState(false);
+  } = useQuery({ queryKey: ['traces'], queryFn: apiClient.getTraces })
+  const traces = tracesData ?? EMPTY_TRACES
+  const [liveTraces, setLiveTraces] = useState<Trace[]>([])
+  const [isLiveEnabled, setIsLiveEnabled] = useState(true)
+  const [streamStatus, setStreamStatus] = useState<
+    'connecting' | 'live' | 'reconnecting' | 'offline'
+  >('connecting')
+  const lastTraceCursorRef = useRef(0)
+  const [sortKey, setSortKey] = useState<SortKey>('recent')
+  const [hoveredTraceId, setHoveredTraceId] = useState<string | null>(null)
+  const [selectedTraceId, setSelectedTraceId] = useState<string | null>(null)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [showDependencyGraph, setShowDependencyGraph] = useState(false)
   const [scatterDomain, setScatterDomain] = useState<{
-    xMin: number;
-    xMax: number;
-    yMin: number;
-    yMax: number;
-  } | null>(null);
+    xMin: number
+    xMax: number
+    yMin: number
+    yMax: number
+  } | null>(null)
 
   useEffect(() => {
     if (traces.length > 0) {
-      setLiveTraces((prev) => (prev.length === 0 ? traces : prev));
+      setLiveTraces(prev => (prev.length === 0 ? traces : prev))
     }
 
     if (isLiveEnabled) {
-      setStreamStatus('connecting');
+      setStreamStatus('connecting')
     }
-  }, [traces, isLiveEnabled]);
+  }, [traces, isLiveEnabled])
 
   useEffect(() => {
     if (!isLiveEnabled) {
-      setStreamStatus('offline');
-      return;
+      setStreamStatus('offline')
+      return
     }
 
-    const MAX_TRACES = 240;
-    let eventSource: EventSource | null = null;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    let isUnmounted = false;
-    let retryAttempt = 0;
+    const MAX_TRACES = 240
+    let eventSource: EventSource | null = null
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+    let isUnmounted = false
+    let retryAttempt = 0
 
     const applyTracePayload = (payload: TraceStreamPayload) => {
-      if (!payload?.trace) return;
+      if (!payload?.trace) return
 
-      setLiveTraces((prev) => {
-        const deduped = prev.filter((item) => item.id !== payload.trace.id);
-        return [payload.trace, ...deduped].slice(0, MAX_TRACES);
-      });
+      setLiveTraces(prev => {
+        const deduped = prev.filter(item => item.id !== payload.trace.id)
+        return [payload.trace, ...deduped].slice(0, MAX_TRACES)
+      })
 
-      lastTraceCursorRef.current = Math.max(lastTraceCursorRef.current, payload.cursor ?? 0);
-    };
+      lastTraceCursorRef.current = Math.max(lastTraceCursorRef.current, payload.cursor ?? 0)
+    }
 
     const fetchBacklog = async () => {
-      let cursor = lastTraceCursorRef.current;
-      const limit = 200;
+      let cursor = lastTraceCursorRef.current
+      const limit = 200
 
       try {
         for (let step = 0; step < 10; step += 1) {
-          const response = await fetch(`/api/traces/backlog?cursor=${cursor}&limit=${limit}`);
-          if (!response.ok) return;
+          const response = await fetch(`/api/traces/backlog?cursor=${cursor}&limit=${limit}`)
+          if (!response.ok) return
 
           const data = (await response.json()) as {
-            events?: TraceStreamPayload[];
-            nextCursor?: number;
-            hasMore?: boolean;
-            latestCursor?: number;
-          };
+            events?: TraceStreamPayload[]
+            nextCursor?: number
+            hasMore?: boolean
+            latestCursor?: number
+          }
 
-          (data.events ?? []).forEach((event) => applyTracePayload(event));
+          ;(data.events ?? []).forEach(event => applyTracePayload(event))
 
-          cursor = Math.max(cursor, data.nextCursor ?? cursor);
+          cursor = Math.max(cursor, data.nextCursor ?? cursor)
           lastTraceCursorRef.current = Math.max(
             lastTraceCursorRef.current,
-            data.latestCursor ?? cursor,
-          );
+            data.latestCursor ?? cursor
+          )
 
-          if (!data.hasMore) break;
+          if (!data.hasMore) break
         }
       } catch {
         // ignore backlog fetch failure and continue with live stream
       }
-    };
+    }
 
     const connect = async () => {
-      if (isUnmounted) return;
+      if (isUnmounted) return
 
-      setStreamStatus(retryAttempt === 0 ? 'connecting' : 'reconnecting');
-      await fetchBacklog();
-      if (isUnmounted) return;
+      setStreamStatus(retryAttempt === 0 ? 'connecting' : 'reconnecting')
+      await fetchBacklog()
+      if (isUnmounted) return
 
-      eventSource = new EventSource('/api/traces/stream');
+      eventSource = new EventSource('/api/traces/stream')
 
       eventSource.onopen = () => {
-        retryAttempt = 0;
-        setStreamStatus('live');
-      };
+        retryAttempt = 0
+        setStreamStatus('live')
+      }
 
-      eventSource.addEventListener('trace', (event) => {
+      eventSource.addEventListener('trace', event => {
         try {
-          const payload = JSON.parse((event as MessageEvent<string>).data) as TraceStreamPayload;
-          applyTracePayload(payload);
+          const payload = JSON.parse((event as MessageEvent<string>).data) as TraceStreamPayload
+          applyTracePayload(payload)
         } catch {
           // ignore malformed trace event
         }
-      });
+      })
 
       eventSource.onerror = () => {
-        eventSource?.close();
-        eventSource = null;
+        eventSource?.close()
+        eventSource = null
 
-        if (isUnmounted) return;
-        setStreamStatus('reconnecting');
-        retryAttempt += 1;
-        const delay = Math.min(5000, 1000 * 2 ** Math.min(retryAttempt, 3));
-        reconnectTimer = setTimeout(connect, delay);
-      };
-    };
+        if (isUnmounted) return
+        setStreamStatus('reconnecting')
+        retryAttempt += 1
+        const delay = Math.min(5000, 1000 * 2 ** Math.min(retryAttempt, 3))
+        reconnectTimer = setTimeout(connect, delay)
+      }
+    }
 
-    connect();
+    connect()
 
     return () => {
-      isUnmounted = true;
-      setStreamStatus('offline');
+      isUnmounted = true
+      setStreamStatus('offline')
       if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
+        clearTimeout(reconnectTimer)
       }
-      eventSource?.close();
-    };
-  }, [isLiveEnabled]);
+      eventSource?.close()
+    }
+  }, [isLiveEnabled])
 
-  const traceSeries = useMemo(() => (liveTraces.length > 0 ? liveTraces : traces), [liveTraces, traces]);
+  const traceSeries = useMemo(
+    () => (liveTraces.length > 0 ? liveTraces : traces),
+    [liveTraces, traces]
+  )
 
   const sortedTraces = useMemo(() => {
-    const cloned = [...traceSeries];
+    const cloned = [...traceSeries]
     if (sortKey === 'duration') {
-      return cloned.sort((a, b) => b.duration - a.duration);
+      return cloned.sort((a, b) => b.duration - a.duration)
     }
-    return cloned.sort((a, b) => b.startTime - a.startTime);
-  }, [traceSeries, sortKey]);
-  const hasTraces = sortedTraces.length > 0;
+    return cloned.sort((a, b) => b.startTime - a.startTime)
+  }, [traceSeries, sortKey])
+  const hasTraces = sortedTraces.length > 0
 
   const minStart = useMemo(
-    () => (hasTraces ? Math.min(...sortedTraces.map((trace) => trace.startTime)) : 0),
-    [hasTraces, sortedTraces],
-  );
+    () => (hasTraces ? Math.min(...sortedTraces.map(trace => trace.startTime)) : 0),
+    [hasTraces, sortedTraces]
+  )
   const maxStart = useMemo(
-    () => (hasTraces ? Math.max(...sortedTraces.map((trace) => trace.startTime)) : 0),
-    [hasTraces, sortedTraces],
-  );
+    () => (hasTraces ? Math.max(...sortedTraces.map(trace => trace.startTime)) : 0),
+    [hasTraces, sortedTraces]
+  )
   const minDuration = useMemo(
-    () => (hasTraces ? Math.min(...sortedTraces.map((trace) => trace.duration)) : 0),
-    [hasTraces, sortedTraces],
-  );
+    () => (hasTraces ? Math.min(...sortedTraces.map(trace => trace.duration)) : 0),
+    [hasTraces, sortedTraces]
+  )
   const maxDuration = useMemo(
-    () => (hasTraces ? Math.max(...sortedTraces.map((trace) => trace.duration)) : 0),
-    [hasTraces, sortedTraces],
-  );
+    () => (hasTraces ? Math.max(...sortedTraces.map(trace => trace.duration)) : 0),
+    [hasTraces, sortedTraces]
+  )
 
   useEffect(() => {
-    if (!hasTraces) return;
+    if (!hasTraces) return
 
-    const observedXMin = minStart;
-    const observedXMax = maxStart;
-    const observedYMin = Math.max(0, minDuration * 0.9);
-    const observedYMax = maxDuration * 1.05;
+    const observedXMin = minStart
+    const observedXMax = maxStart
+    const observedYMin = Math.max(0, minDuration * 0.9)
+    const observedYMax = maxDuration * 1.05
 
-    setScatterDomain((prev) => {
+    setScatterDomain(prev => {
       if (!prev) {
         return {
           xMin: observedXMin,
           xMax: observedXMax,
           yMin: observedYMin,
           yMax: observedYMax,
-        };
+        }
       }
 
       const next = {
@@ -236,81 +241,81 @@ export default function TracesPage() {
         xMax: Math.max(prev.xMax, observedXMax),
         yMin: Math.min(prev.yMin, observedYMin),
         yMax: Math.max(prev.yMax, observedYMax),
-      };
-
-      if (
-        next.xMin === prev.xMin
-        && next.xMax === prev.xMax
-        && next.yMin === prev.yMin
-        && next.yMax === prev.yMax
-      ) {
-        return prev;
       }
 
-      return next;
-    });
-  }, [hasTraces, minStart, maxStart, minDuration, maxDuration]);
+      if (
+        next.xMin === prev.xMin &&
+        next.xMax === prev.xMax &&
+        next.yMin === prev.yMin &&
+        next.yMax === prev.yMax
+      ) {
+        return prev
+      }
+
+      return next
+    })
+  }, [hasTraces, minStart, maxStart, minDuration, maxDuration])
 
   const handleSortChange = (event: SelectChangeEvent<SortKey>) => {
-    setSortKey(event.target.value as SortKey);
-  };
+    setSortKey(event.target.value as SortKey)
+  }
 
   const getStatusColor = (statusCode?: number) => {
-    if (!statusCode) return theme.palette.text.secondary;
-    if (statusCode >= 500) return theme.palette.error.main;
-    if (statusCode >= 400) return theme.palette.warning.main;
-    if (statusCode >= 300) return theme.palette.warning.light;
-    return theme.palette.success.main;
-  };
+    if (!statusCode) return theme.palette.text.secondary
+    if (statusCode >= 500) return theme.palette.error.main
+    if (statusCode >= 400) return theme.palette.warning.main
+    if (statusCode >= 300) return theme.palette.warning.light
+    return theme.palette.success.main
+  }
 
   const formatDurationUnit = (value: number) => {
-    if (value >= 1000) return `${(value / 1000).toFixed(2)}s`;
-    return `${value.toFixed(0)}ms`;
-  };
+    if (value >= 1000) return `${(value / 1000).toFixed(2)}s`
+    return `${value.toFixed(0)}ms`
+  }
 
   const formatTimeUnit = (value: number) => {
-    const date = new Date(value);
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    return `${hours}:${minutes}:${seconds}`;
-  };
+    const date = new Date(value)
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
+    return `${hours}:${minutes}:${seconds}`
+  }
 
-  const timeRange = Math.max(maxStart - minStart, 1);
-  const durationRange = Math.max(maxDuration - minDuration, 1);
+  const timeRange = Math.max(maxStart - minStart, 1)
+  const durationRange = Math.max(maxDuration - minDuration, 1)
   const hoveredTrace = hoveredTraceId
-    ? sortedTraces.find((trace) => trace.id === hoveredTraceId) ?? null
-    : null;
+    ? (sortedTraces.find(trace => trace.id === hoveredTraceId) ?? null)
+    : null
 
   const displayedTraces = selectedTraceId
-    ? sortedTraces.filter((trace) => trace.id === selectedTraceId)
-    : sortedTraces;
+    ? sortedTraces.filter(trace => trace.id === selectedTraceId)
+    : sortedTraces
 
   const dependencyGraph = useMemo(() => {
-    const edgeMap = new Map<string, { source: string; target: string; count: number }>();
-    const services = new Set<string>();
+    const edgeMap = new Map<string, { source: string; target: string; count: number }>()
+    const services = new Set<string>()
 
     for (const trace of displayedTraces) {
-      const spanById = new Map(trace.spans.map((span) => [span.id, span]));
+      const spanById = new Map(trace.spans.map(span => [span.id, span]))
 
       for (const span of trace.spans) {
-        services.add(span.service);
-        if (!span.parentSpanId) continue;
+        services.add(span.service)
+        if (!span.parentSpanId) continue
 
-        const parent = spanById.get(span.parentSpanId);
-        if (!parent) continue;
-        services.add(parent.service);
+        const parent = spanById.get(span.parentSpanId)
+        if (!parent) continue
+        services.add(parent.service)
 
-        const source = parent.service;
-        const target = span.service;
-        if (source === target) continue;
+        const source = parent.service
+        const target = span.service
+        if (source === target) continue
 
-        const key = `${source}->${target}`;
-        const existing = edgeMap.get(key);
+        const key = `${source}->${target}`
+        const existing = edgeMap.get(key)
         if (existing) {
-          existing.count += 1;
+          existing.count += 1
         } else {
-          edgeMap.set(key, { source, target, count: 1 });
+          edgeMap.set(key, { source, target, count: 1 })
         }
       }
     }
@@ -318,31 +323,34 @@ export default function TracesPage() {
     return {
       nodes: Array.from(services).sort(),
       edges: Array.from(edgeMap.values()).sort((a, b) => b.count - a.count),
-    };
-  }, [displayedTraces]);
+    }
+  }, [displayedTraces])
 
-  const visibleTraces = useMemo(() => displayedTraces.slice(0, visibleCount), [displayedTraces, visibleCount]);
-  const hasMoreTraces = visibleCount < displayedTraces.length;
+  const visibleTraces = useMemo(
+    () => displayedTraces.slice(0, visibleCount),
+    [displayedTraces, visibleCount]
+  )
+  const hasMoreTraces = visibleCount < displayedTraces.length
 
   const handleTraceListScroll = (event: UIEvent<HTMLDivElement>) => {
-    if (!hasMoreTraces) return;
+    if (!hasMoreTraces) return
 
-    const { scrollTop, clientHeight, scrollHeight } = event.currentTarget;
+    const { scrollTop, clientHeight, scrollHeight } = event.currentTarget
     if (scrollHeight - (scrollTop + clientHeight) < 140) {
-      setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, displayedTraces.length));
+      setVisibleCount(prev => Math.min(prev + PAGE_SIZE, displayedTraces.length))
     }
-  };
+  }
 
   useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [sortKey, selectedTraceId]);
+    setVisibleCount(PAGE_SIZE)
+  }, [sortKey, selectedTraceId])
 
   const handleDownloadResults = () => {
     const escapeCsv = (value: string | number | null | undefined) => {
-      const text = String(value ?? '');
-      const escaped = text.replace(/"/g, '""');
-      return `"${escaped}"`;
-    };
+      const text = String(value ?? '')
+      const escaped = text.replace(/"/g, '""')
+      return `"${escaped}"`
+    }
 
     const header = [
       'traceId',
@@ -355,21 +363,21 @@ export default function TracesPage() {
       'spanCount',
       'errorSpanCount',
       'topServices',
-    ];
+    ]
 
-    const rows = displayedTraces.map((trace) => {
+    const rows = displayedTraces.map(trace => {
       const serviceCounts = trace.spans.reduce<Record<string, number>>((accumulator, span) => {
-        accumulator[span.service] = (accumulator[span.service] ?? 0) + 1;
-        return accumulator;
-      }, {});
+        accumulator[span.service] = (accumulator[span.service] ?? 0) + 1
+        return accumulator
+      }, {})
 
       const topServices = Object.entries(serviceCounts)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5)
         .map(([service, count]) => `${service}(${count})`)
-        .join(', ');
+        .join(', ')
 
-      const errorSpanCount = trace.spans.filter((span) => span.status === 'error').length;
+      const errorSpanCount = trace.spans.filter(span => span.status === 'error').length
 
       return [
         trace.id,
@@ -382,32 +390,32 @@ export default function TracesPage() {
         trace.spans.length,
         errorSpanCount,
         topServices,
-      ];
-    });
+      ]
+    })
 
     const csvContent = [
       header.map(escapeCsv).join(','),
-      ...rows.map((row) => row.map(escapeCsv).join(',')),
-    ].join('\n');
+      ...rows.map(row => row.map(escapeCsv).join(',')),
+    ].join('\n')
 
-    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
 
-    anchor.href = url;
-    anchor.download = `traces-results-${timestamp}.csv`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
-  };
+    anchor.href = url
+    anchor.download = `traces-results-${timestamp}.csv`
+    document.body.appendChild(anchor)
+    anchor.click()
+    document.body.removeChild(anchor)
+    URL.revokeObjectURL(url)
+  }
 
   const chartData = useMemo(
     () =>
-      sortedTraces.map((trace) => {
-        const normalized = (trace.duration - minDuration) / Math.max(durationRange, 1);
-        const errorSpanCount = trace.spans.filter((span) => span.status === 'error').length;
+      sortedTraces.map(trace => {
+        const normalized = (trace.duration - minDuration) / Math.max(durationRange, 1)
+        const errorSpanCount = trace.spans.filter(span => span.status === 'error').length
         return {
           id: trace.id,
           service: trace.service,
@@ -419,17 +427,17 @@ export default function TracesPage() {
           errorSpanCount,
           statusCode: trace.status_code,
           color: getStatusColor(trace.status_code),
-        };
+        }
       }),
-    [durationRange, getStatusColor, minDuration, sortedTraces],
-  );
+    [durationRange, getStatusColor, minDuration, sortedTraces]
+  )
 
   const xDomain: [number, number] = scatterDomain
     ? [scatterDomain.xMin, scatterDomain.xMax]
-    : [minStart, maxStart];
+    : [minStart, maxStart]
   const yDomain: [number, number] = scatterDomain
     ? [scatterDomain.yMin, scatterDomain.yMax]
-    : [Math.max(0, minDuration * 0.9), maxDuration * 1.05];
+    : [Math.max(0, minDuration * 0.9), maxDuration * 1.05]
 
   if (isTracesLoading) {
     return (
@@ -440,10 +448,16 @@ export default function TracesPage() {
           </Typography>
           <Skeleton variant="rounded" width={80} height={28} />
         </Stack>
-        <Paper variant="outlined" sx={{ p: { xs: 1.5, md: 2 }, borderColor: 'divider', bgcolor: 'background.paper' }}>
+        <Paper
+          variant="outlined"
+          sx={{ p: { xs: 1.5, md: 2 }, borderColor: 'divider', bgcolor: 'background.paper' }}
+        >
           <Skeleton variant="rounded" height={250} />
         </Paper>
-        <Paper variant="outlined" sx={{ borderColor: 'divider', bgcolor: 'background.paper', p: 2 }}>
+        <Paper
+          variant="outlined"
+          sx={{ borderColor: 'divider', bgcolor: 'background.paper', p: 2 }}
+        >
           <Stack gap={1.25}>
             {Array.from({ length: 4 }).map((_, index) => (
               <Skeleton key={`trace-list-skeleton-${index}`} variant="rounded" height={88} />
@@ -451,7 +465,7 @@ export default function TracesPage() {
           </Stack>
         </Paper>
       </Box>
-    );
+    )
   }
 
   if (isTracesFetched && !hasTraces) {
@@ -462,7 +476,7 @@ export default function TracesPage() {
         </Typography>
         <NoDataState title="No traces data" description="트레이스 데이터를 찾지 못했습니다." />
       </Box>
-    );
+    )
   }
 
   return (
@@ -474,7 +488,7 @@ export default function TracesPage() {
         <Button
           size="small"
           variant="outlined"
-          onClick={() => setIsLiveEnabled((prev) => !prev)}
+          onClick={() => setIsLiveEnabled(prev => !prev)}
           sx={{
             minWidth: 72,
             px: 1,
@@ -483,7 +497,10 @@ export default function TracesPage() {
             borderColor: isLiveEnabled ? 'success.main' : 'divider',
             color: isLiveEnabled ? 'success.main' : 'text.secondary',
             '@keyframes neonPulse': {
-              '0%, 100%': { opacity: 1, textShadow: '0 0 6px rgba(74, 222, 128, 0.75), 0 0 12px rgba(74, 222, 128, 0.45)' },
+              '0%, 100%': {
+                opacity: 1,
+                textShadow: '0 0 6px rgba(74, 222, 128, 0.75), 0 0 12px rgba(74, 222, 128, 0.45)',
+              },
               '50%': { opacity: 0.42, textShadow: '0 0 1px rgba(74, 222, 128, 0.3)' },
             },
           }}
@@ -495,7 +512,10 @@ export default function TracesPage() {
                 height: 7,
                 borderRadius: '50%',
                 bgcolor: isLiveEnabled ? 'success.main' : 'text.disabled',
-                animation: isLiveEnabled && streamStatus === 'live' ? 'neonPulse 1.2s ease-in-out infinite' : 'none',
+                animation:
+                  isLiveEnabled && streamStatus === 'live'
+                    ? 'neonPulse 1.2s ease-in-out infinite'
+                    : 'none',
               }}
             />
             <Typography
@@ -504,7 +524,10 @@ export default function TracesPage() {
                 fontWeight: 800,
                 letterSpacing: 0.5,
                 color: isLiveEnabled ? 'success.main' : 'text.secondary',
-                animation: isLiveEnabled && streamStatus === 'live' ? 'neonPulse 1.2s ease-in-out infinite' : 'none',
+                animation:
+                  isLiveEnabled && streamStatus === 'live'
+                    ? 'neonPulse 1.2s ease-in-out infinite'
+                    : 'none',
               }}
             >
               LIVE
@@ -558,25 +581,25 @@ export default function TracesPage() {
                     border: `1px solid ${theme.palette.divider}`,
                     borderRadius: 8,
                   }}
-                  content={(props) => {
+                  content={props => {
                     const payload = props?.payload as
                       | Array<{
                           payload?: {
-                            service?: string;
-                            operation?: string;
-                            startTime?: number;
-                            duration?: number;
-                            statusCode?: number;
-                            spanCount?: number;
-                            errorSpanCount?: number;
-                            id?: string;
-                          };
+                            service?: string
+                            operation?: string
+                            startTime?: number
+                            duration?: number
+                            statusCode?: number
+                            spanCount?: number
+                            errorSpanCount?: number
+                            id?: string
+                          }
                         }>
-                      | undefined;
+                      | undefined
 
-                    const item = payload?.[0]?.payload;
+                    const item = payload?.[0]?.payload
                     if (!props?.active || !item) {
-                      return null;
+                      return null
                     }
 
                     return (
@@ -593,7 +616,11 @@ export default function TracesPage() {
                         <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }}>
                           {item.service}: {item.operation}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: 'block', mb: 0.5 }}
+                        >
                           {formatTimeUnit(item.startTime ?? 0)} · {item.id}
                         </Typography>
                         <Typography variant="caption" sx={{ display: 'block' }}>
@@ -609,7 +636,7 @@ export default function TracesPage() {
                           Error Spans: {item.errorSpanCount ?? 0}
                         </Typography>
                       </Box>
-                    );
+                    )
                   }}
                 />
                 <Scatter
@@ -617,15 +644,15 @@ export default function TracesPage() {
                   isAnimationActive={false}
                   onMouseEnter={(point: { id?: string }) => setHoveredTraceId(point?.id ?? null)}
                   onClick={(point: { id?: string }) => {
-                    const pointId = point?.id;
-                    if (!pointId) return;
-                    setSelectedTraceId((prev) => (prev === pointId ? null : pointId));
+                    const pointId = point?.id
+                    if (!pointId) return
+                    setSelectedTraceId(prev => (prev === pointId ? null : pointId))
                   }}
                 >
-                  {chartData.map((point) => {
-                    const isSelected = selectedTraceId === point.id;
-                    const isHovered = hoveredTraceId === point.id;
-                    const isDimmed = selectedTraceId !== null && !isSelected;
+                  {chartData.map(point => {
+                    const isSelected = selectedTraceId === point.id
+                    const isHovered = hoveredTraceId === point.id
+                    const isDimmed = selectedTraceId !== null && !isSelected
                     return (
                       <Cell
                         key={`trace-cell-${point.id}`}
@@ -635,7 +662,7 @@ export default function TracesPage() {
                         strokeWidth={isSelected ? 2 : 1}
                         style={{ cursor: 'pointer' }}
                       />
-                    );
+                    )
                   })}
                 </Scatter>
               </ScatterChart>
@@ -679,86 +706,98 @@ export default function TracesPage() {
           </Stack>
         </Stack>
 
-        <Box sx={{ p: 2, bgcolor: 'action.hover', borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Box
+          sx={{ p: 2, bgcolor: 'action.hover', borderBottom: '1px solid', borderColor: 'divider' }}
+        >
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Compare traces by selecting result items
           </Typography>
         </Box>
 
-        <Box
-          sx={{ p: 1.5, maxHeight: 520, overflowY: 'auto' }}
-          onScroll={handleTraceListScroll}
-        >
+        <Box sx={{ p: 1.5, maxHeight: 520, overflowY: 'auto' }} onScroll={handleTraceListScroll}>
           <Stack gap={1.5}>
-            {visibleTraces.map((trace) => {
-            const serviceCounts = trace.spans.reduce<Record<string, number>>((accumulator, span) => {
-              accumulator[span.service] = (accumulator[span.service] ?? 0) + 1;
-              return accumulator;
-            }, {});
+            {visibleTraces.map(trace => {
+              const serviceCounts = trace.spans.reduce<Record<string, number>>(
+                (accumulator, span) => {
+                  accumulator[span.service] = (accumulator[span.service] ?? 0) + 1
+                  return accumulator
+                },
+                {}
+              )
 
-            const errorCount = trace.spans.filter((span) => span.status === 'error').length;
-            const topServices = Object.entries(serviceCounts)
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 5);
+              const errorCount = trace.spans.filter(span => span.status === 'error').length
+              const topServices = Object.entries(serviceCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
 
-            return (
-              <Paper
-                key={trace.id}
-                component={Link}
-                href={`/traces/${trace.id}`}
-                variant="outlined"
-                sx={{
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  borderColor: selectedTraceId === trace.id ? 'primary.main' : 'divider',
-                  overflow: 'hidden',
-                  '&:hover': {
-                    borderColor: 'primary.main',
-                    bgcolor: 'action.hover',
-                  },
-                }}
-              >
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 1, py: 1.5, bgcolor: 'action.hover' }}>
-                  <Stack direction="row" alignItems="center" gap={1}>
-                    <Checkbox size="small" sx={{ p: 0.5 }} />
-                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                      {trace.service}: {trace.operation}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {trace.id}
-                    </Typography>
-                  </Stack>
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    {trace.duration.toFixed(2)}ms
-                  </Typography>
-                </Stack>
-
-                <Stack
-                  direction={{ xs: 'column', md: 'row' }}
-                  justifyContent="space-between"
-                  alignItems={{ xs: 'flex-start', md: 'center' }}
-                  gap={1}
-                  sx={{ px: 1.5, py: 1.5 }}
+              return (
+                <Paper
+                  key={trace.id}
+                  component={Link}
+                  href={`/traces/${trace.id}`}
+                  variant="outlined"
+                  sx={{
+                    textDecoration: 'none',
+                    color: 'inherit',
+                    borderColor: selectedTraceId === trace.id ? 'primary.main' : 'divider',
+                    overflow: 'hidden',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      bgcolor: 'action.hover',
+                    },
+                  }}
                 >
-                  <Stack direction="row" gap={1} flexWrap="wrap" alignItems="center">
-                    <Chip size="small" label={`${trace.spans.length} Spans`} variant="outlined" />
-                    <Chip
-                      size="small"
-                      label={`${errorCount} Errors`}
-                      color={errorCount > 0 ? 'error' : 'success'}
-                      variant={errorCount > 0 ? 'filled' : 'outlined'}
-                    />
-                    {topServices.map(([service, count]) => (
-                      <Chip key={`${trace.id}-${service}`} size="small" label={`${service} (${count})`} variant="outlined" />
-                    ))}
+                  <Stack
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    sx={{ px: 1, py: 1.5, bgcolor: 'action.hover' }}
+                  >
+                    <Stack direction="row" alignItems="center" gap={1}>
+                      <Checkbox size="small" sx={{ p: 0.5 }} />
+                      <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                        {trace.service}: {trace.operation}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {trace.id}
+                      </Typography>
+                    </Stack>
+                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                      {trace.duration.toFixed(2)}ms
+                    </Typography>
                   </Stack>
-                  <Typography variant="body2" color="text.secondary">
-                    {formatTimestamp(trace.startTime)}
-                  </Typography>
-                </Stack>
-              </Paper>
-            );
-          })}
+
+                  <Stack
+                    direction={{ xs: 'column', md: 'row' }}
+                    justifyContent="space-between"
+                    alignItems={{ xs: 'flex-start', md: 'center' }}
+                    gap={1}
+                    sx={{ px: 1.5, py: 1.5 }}
+                  >
+                    <Stack direction="row" gap={1} flexWrap="wrap" alignItems="center">
+                      <Chip size="small" label={`${trace.spans.length} Spans`} variant="outlined" />
+                      <Chip
+                        size="small"
+                        label={`${errorCount} Errors`}
+                        color={errorCount > 0 ? 'error' : 'success'}
+                        variant={errorCount > 0 ? 'filled' : 'outlined'}
+                      />
+                      {topServices.map(([service, count]) => (
+                        <Chip
+                          key={`${trace.id}-${service}`}
+                          size="small"
+                          label={`${service} (${count})`}
+                          variant="outlined"
+                        />
+                      ))}
+                    </Stack>
+                    <Typography variant="body2" color="text.secondary">
+                      {formatTimestamp(trace.startTime)}
+                    </Typography>
+                  </Stack>
+                </Paper>
+              )
+            })}
           </Stack>
           <Typography variant="caption" color="text.secondary" sx={{ mt: 1.25, display: 'block' }}>
             Showing {visibleTraces.length} of {displayedTraces.length} traces
@@ -791,7 +830,7 @@ export default function TracesPage() {
                 borderRadius: 1,
               }}
             >
-              {dependencyGraph.nodes.map((node) => (
+              {dependencyGraph.nodes.map(node => (
                 <Chip key={node} label={node} size="small" variant="outlined" />
               ))}
             </Box>
@@ -815,9 +854,15 @@ export default function TracesPage() {
                   borderColor: 'divider',
                 }}
               >
-                <Typography variant="caption" sx={{ fontWeight: 700 }}>Source</Typography>
-                <Typography variant="caption" sx={{ fontWeight: 700 }}>Target</Typography>
-                <Typography variant="caption" sx={{ fontWeight: 700 }}>Calls</Typography>
+                <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                  Source
+                </Typography>
+                <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                  Target
+                </Typography>
+                <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                  Calls
+                </Typography>
               </Box>
 
               <Box sx={{ maxHeight: 280, overflowY: 'auto' }}>
@@ -826,7 +871,7 @@ export default function TracesPage() {
                     No cross-service dependencies found in current result set.
                   </Typography>
                 ) : (
-                  dependencyGraph.edges.map((edge) => (
+                  dependencyGraph.edges.map(edge => (
                     <Box
                       key={`${edge.source}-${edge.target}`}
                       sx={{
@@ -840,7 +885,9 @@ export default function TracesPage() {
                     >
                       <Typography variant="body2">{edge.source}</Typography>
                       <Typography variant="body2">{edge.target}</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>{edge.count}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                        {edge.count}
+                      </Typography>
                     </Box>
                   ))
                 )}
@@ -850,5 +897,5 @@ export default function TracesPage() {
         </DialogContent>
       </Dialog>
     </Box>
-  );
+  )
 }
