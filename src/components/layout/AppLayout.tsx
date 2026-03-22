@@ -1,53 +1,49 @@
-'use client';
+'use client'
 
-import React, { useState } from 'react';
-import { usePathname } from 'next/navigation';
-import { Box, useTheme, useMediaQuery } from '@mui/material';
-import Sidebar from './Sidebar';
-import TopBar from './TopBar';
-import GlobalFilterBar from './GlobalFilterBar';
-import AiChatDrawer from '../chat/AiChatDrawer';
-import { GlobalFilterState } from '@/lib/types';
-import { defaultGlobalFilter } from '@/lib/mock';
+import React, { useState } from 'react'
+import { usePathname } from 'next/navigation'
+import { Box, useTheme, useMediaQuery } from '@mui/material'
+import Sidebar from './Sidebar'
+import TopBar from './TopBar'
+import GlobalFilterBar from './GlobalFilterBar'
+import AiChatDrawer from '../chat/AiChatDrawer'
+import { GlobalFilterState } from '@/lib/types'
+import { defaultGlobalFilter } from '@/lib/mock'
 
 interface AppLayoutProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
-const drawerWidth = 280;
-const topBarHeight = 48;
-const aiDrawerWidth = 400;
+const drawerWidth = 280
+const topBarHeight = 48
+const aiDrawerWidth = 400
 
 export default function AppLayout({ children }: AppLayoutProps) {
-  const pathname = usePathname();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  const [filters, setFilters] = useState<GlobalFilterState>(defaultGlobalFilter);
-  const [aiChatOpen, setAiChatOpen] = useState(false);
+  const pathname = usePathname()
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
+  const [filters, setFilters] = useState<GlobalFilterState>(defaultGlobalFilter)
+  const [aiChatOpen, setAiChatOpen] = useState(false)
 
-  const showGlobalFilterBar = (
-    pathname === '/traces'
-    || pathname === '/metrics'
-  );
+  const showGlobalFilterBar = pathname === '/traces' || pathname === '/metrics'
 
   const handleDrawerToggle = () => {
-    setMobileDrawerOpen(!mobileDrawerOpen);
-  };
+    setMobileDrawerOpen(!mobileDrawerOpen)
+  }
 
   return (
-    <Box sx={{ 
-      display: 'flex', 
-      height: '100vh', 
-      overflow: 'hidden', 
-      bgcolor: 'background.default',  // ← dynamic (dark: #0a0f1a, light: #f8fafc)
-      width: '100%' 
-    }}>
+    <Box
+      sx={{
+        display: 'flex',
+        height: '100vh',
+        overflow: 'hidden',
+        bgcolor: 'background.default', // ← dynamic (dark: #0a0f1a, light: #f8fafc)
+        width: '100%',
+      }}
+    >
       {/* Top AppBar */}
-      <TopBar
-        onMenuClick={handleDrawerToggle}
-        showMenuButton={isMobile}
-      />
+      <TopBar onMenuClick={handleDrawerToggle} showMenuButton={isMobile} />
 
       {/* Desktop Sidebar - md 이상만 표시 */}
       {!isMobile && (
@@ -124,6 +120,5 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* AI Chat Drawer - fixed width */}
       <AiChatDrawer open={aiChatOpen} onClose={() => setAiChatOpen(false)} filters={filters} />
     </Box>
-  );
+  )
 }
-

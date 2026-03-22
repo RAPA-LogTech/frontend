@@ -9,15 +9,15 @@
  */
 export const formatTimestamp = (timestamp: string | number): string => {
   try {
-    const date = new Date(timestamp);
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    return `${hours}:${minutes}:${seconds}`;
+    const date = new Date(timestamp)
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
+    return `${hours}:${minutes}:${seconds}`
   } catch {
-    return timestamp as string;
+    return timestamp as string
   }
-};
+}
 
 /**
  * Format ISO timestamp to YYYY-MM-DD HH:MM:SS format
@@ -26,15 +26,15 @@ export const formatTimestamp = (timestamp: string | number): string => {
  */
 export const formatDateTime = (timestamp: string | number): string => {
   try {
-    const date = new Date(timestamp);
-    const year = String(date.getFullYear());
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    const date = new Date(timestamp)
+    const year = String(date.getFullYear())
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
   } catch {
-    return String(timestamp);
+    return String(timestamp)
   }
-};
+}

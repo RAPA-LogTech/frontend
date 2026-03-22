@@ -1,6 +1,6 @@
-'use client';
+'use client'
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react'
 import {
   Drawer,
   Box,
@@ -12,44 +12,40 @@ import {
   Typography,
   Stack,
   Skeleton,
-} from '@mui/material';
+} from '@mui/material'
 import {
   Close as CloseIcon,
   Send as SendIcon,
   SmartToy as BotIcon,
   Person as UserIcon,
-} from '@mui/icons-material';
-import { AiMessage, GlobalFilterState } from '@/lib/types';
-import { mockAiMessages } from '@/lib/mock';
+} from '@mui/icons-material'
+import { AiMessage, GlobalFilterState } from '@/lib/types'
+import { mockAiMessages } from '@/lib/mock'
 
 interface AiChatDrawerProps {
-  open: boolean;
-  onClose: () => void;
-  filters: GlobalFilterState;
+  open: boolean
+  onClose: () => void
+  filters: GlobalFilterState
 }
 
-const aiDrawerWidth = 400;
+const aiDrawerWidth = 400
 
-export const AiChatDrawer: React.FC<AiChatDrawerProps> = ({
-  open,
-  onClose,
-  filters,
-}) => {
-  const [messages, setMessages] = useState<AiMessage[]>(mockAiMessages);
-  const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+export const AiChatDrawer: React.FC<AiChatDrawerProps> = ({ open, onClose, filters }) => {
+  const [messages, setMessages] = useState<AiMessage[]>(mockAiMessages)
+  const [inputValue, setInputValue] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    scrollToBottom()
+  }, [messages])
 
   const handleSend = async () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim()) return
 
     // Add user message
     const userMessage: AiMessage = {
@@ -61,11 +57,11 @@ export const AiChatDrawer: React.FC<AiChatDrawerProps> = ({
         service: filters.service[0],
         timeRange: filters.timeRange,
       },
-    };
+    }
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInputValue('');
-    setIsLoading(true);
+    setMessages(prev => [...prev, userMessage])
+    setInputValue('')
+    setIsLoading(true)
 
     // Simulate API call
     setTimeout(() => {
@@ -74,18 +70,18 @@ export const AiChatDrawer: React.FC<AiChatDrawerProps> = ({
         role: 'assistant',
         content: `This is a mock response to: "${inputValue}"\n\nIn production, this would be powered by an LLM with access to your observability data.`,
         timestamp: Date.now(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-      setIsLoading(false);
-    }, 800);
-  };
+      }
+      setMessages(prev => [...prev, assistantMessage])
+      setIsLoading(false)
+    }, 800)
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+      e.preventDefault()
+      handleSend()
     }
-  };
+  }
 
   return (
     <>
@@ -216,7 +212,7 @@ export const AiChatDrawer: React.FC<AiChatDrawerProps> = ({
               </Box>
             </Box>
           ) : (
-            messages.map((msg) => (
+            messages.map(msg => (
               <Box
                 key={msg.id}
                 sx={{
@@ -248,14 +244,8 @@ export const AiChatDrawer: React.FC<AiChatDrawerProps> = ({
                     flex: 1,
                     maxWidth: '80%',
                     p: 1.5,
-                    bgcolor:
-                      msg.role === 'user'
-                        ? 'rgba(147, 51, 234, 0.2)'
-                        : '#1e293b',
-                    borderColor:
-                      msg.role === 'user'
-                        ? 'rgba(147, 51, 234, 0.3)'
-                        : '#334155',
+                    bgcolor: msg.role === 'user' ? 'rgba(147, 51, 234, 0.2)' : '#1e293b',
+                    borderColor: msg.role === 'user' ? 'rgba(147, 51, 234, 0.3)' : '#334155',
                     color: '#e2e8f0',
                   }}
                 >
@@ -276,7 +266,7 @@ export const AiChatDrawer: React.FC<AiChatDrawerProps> = ({
                       <Box
                         component="button"
                         onClick={() => {
-                          console.log('Action:', msg.metadata);
+                          console.log('Action:', msg.metadata)
                         }}
                         sx={{
                           fontSize: '0.75rem',
@@ -364,7 +354,7 @@ export const AiChatDrawer: React.FC<AiChatDrawerProps> = ({
             multiline
             maxRows={3}
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={e => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={isLoading}
             size="small"
@@ -403,7 +393,7 @@ export const AiChatDrawer: React.FC<AiChatDrawerProps> = ({
         </Box>
       </Drawer>
     </>
-  );
-};
+  )
+}
 
-export default AiChatDrawer;
+export default AiChatDrawer

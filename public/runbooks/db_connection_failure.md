@@ -1,6 +1,7 @@
 # Run-Book: Database Connection Failure
 
 ## 증상
+
 - DatabaseClient에서 connection timeout 발생
 - ConnectionPool exhausted 로그 반복
 - PaymentRepository에서 query execution 실패 (connection refused)
@@ -9,11 +10,13 @@
 - 5xx 에러율 급증
 
 ## 영향 범위
+
 - payment-api 서비스 전체 트랜잭션 처리 불가
 - 결제 요청 실패로 사용자 경험 직접 영향
 - 하위 의존 서비스(정산, 알림)까지 연쇄 장애 가능
 
 ## 즉시 조치
+
 1. DB 인스턴스 상태 확인
    - RDS 콘솔에서 인스턴스 상태, CPU, 메모리, 디스크 확인
    - `SELECT count(*) FROM pg_stat_activity;` 로 현재 커넥션 수 확인
@@ -28,6 +31,7 @@
    - Rate limiter 임계값 하향 조정
 
 ## 후속 조치
+
 1. slow query 분석 및 인덱스 추가
    - pg_stat_statements에서 mean_exec_time 상위 쿼리 식별
    - EXPLAIN ANALYZE로 실행 계획 확인 후 인덱스 생성
@@ -42,5 +46,6 @@
    - 임계치 초과 시 Slack 알림 설정
 
 ## 에스컬레이션
+
 - 15분 이내 복구 안 될 경우: DBA 팀 호출
 - 30분 이내 복구 안 될 경우: 인프라 팀장 + 서비스 PM 에스컬레이션

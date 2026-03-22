@@ -1,9 +1,9 @@
-'use client';
+'use client'
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import {
   AppBar,
   Toolbar,
@@ -18,102 +18,102 @@ import {
   Divider,
   Stack,
   Button,
-} from '@mui/material';
+} from '@mui/material'
 import {
   Notifications as NotificationsIcon,
   AccountCircle as AccountCircleIcon,
   Menu as MenuIcon,
   Brightness4 as Brightness4Icon,
-} from '@mui/icons-material';
-import { useColorMode } from '@/app/providers';
-import { apiClient } from '@/lib/apiClient';
-import { formatDateTime } from '@/lib/formatters';
+} from '@mui/icons-material'
+import { useColorMode } from '@/app/providers'
+import { apiClient } from '@/lib/apiClient'
+import { formatDateTime } from '@/lib/formatters'
 
-const drawerWidth = 280;
-const topBarHeight = 48;
+const drawerWidth = 280
+const topBarHeight = 48
 
 interface TopBarProps {
-  onMenuClick?: () => void;
-  showMenuButton?: boolean;
+  onMenuClick?: () => void
+  showMenuButton?: boolean
 }
 
 export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarProps) {
-  const router = useRouter();
-  const { mode, toggleMode } = useColorMode();
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [userAnchorEl, setUserAnchorEl] = useState<null | HTMLElement>(null);
-  const [notificationAnchorEl, setNotificationAnchorEl] = useState<null | HTMLElement>(null);
+  const router = useRouter()
+  const { mode, toggleMode } = useColorMode()
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const [userAnchorEl, setUserAnchorEl] = useState<null | HTMLElement>(null)
+  const [notificationAnchorEl, setNotificationAnchorEl] = useState<null | HTMLElement>(null)
   const { data: notifications = [] } = useQuery({
     queryKey: ['topbar-notifications'],
     queryFn: apiClient.getNotifications,
-  });
-  const [notificationReadMap, setNotificationReadMap] = useState<Record<string, boolean>>({});
+  })
+  const [notificationReadMap, setNotificationReadMap] = useState<Record<string, boolean>>({})
 
   React.useEffect(() => {
     if (notifications.length === 0) {
-      return;
+      return
     }
 
-    setNotificationReadMap((prev) => {
-      const next = { ...prev };
+    setNotificationReadMap(prev => {
+      const next = { ...prev }
       for (const notification of notifications) {
         if (next[notification.id] === undefined) {
-          next[notification.id] = notification.read;
+          next[notification.id] = notification.read
         }
       }
-      return next;
-    });
-  }, [notifications]);
+      return next
+    })
+  }, [notifications])
 
-  const unreadCount = notifications.filter((item) => !notificationReadMap[item.id]).length;
+  const unreadCount = notifications.filter(item => !notificationReadMap[item.id]).length
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setUserAnchorEl(event.currentTarget);
-    setShowUserMenu(true);
-  };
+    setUserAnchorEl(event.currentTarget)
+    setShowUserMenu(true)
+  }
 
   const handleMenuClose = () => {
-    setUserAnchorEl(null);
-    setShowUserMenu(false);
-  };
+    setUserAnchorEl(null)
+    setShowUserMenu(false)
+  }
 
   const handleNotificationMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setNotificationAnchorEl(event.currentTarget);
-  };
+    setNotificationAnchorEl(event.currentTarget)
+  }
 
   const handleNotificationMenuClose = () => {
-    setNotificationAnchorEl(null);
-  };
+    setNotificationAnchorEl(null)
+  }
 
   const handleNotificationItemClick = (notificationId: string) => {
-    setNotificationReadMap((prev) => ({
+    setNotificationReadMap(prev => ({
       ...prev,
       [notificationId]: true,
-    }));
-    handleNotificationMenuClose();
-  };
+    }))
+    handleNotificationMenuClose()
+  }
 
   const resolveNotificationRoute = (notification: { route?: string; source?: string }) => {
     if (notification.route) {
-      return notification.route;
+      return notification.route
     }
 
-    if (notification.source === 'metrics') return '/metrics';
-    if (notification.source === 'logs' || notification.source === 'alerts') return '/logs';
-    if (notification.source === 'traces') return '/traces';
-    if (notification.source === 'integrations') return '/integrations/slack';
-    if (notification.source === 'deploy') return '/dashboards';
+    if (notification.source === 'metrics') return '/metrics'
+    if (notification.source === 'logs' || notification.source === 'alerts') return '/logs'
+    if (notification.source === 'traces') return '/traces'
+    if (notification.source === 'integrations') return '/integrations/slack'
+    if (notification.source === 'deploy') return '/dashboards'
 
-    return '/';
-  };
+    return '/'
+  }
 
   React.useEffect(() => {
-    const routes = new Set<string>(['/notifications']);
-    notifications.forEach((notification) => {
-      routes.add(resolveNotificationRoute(notification));
-    });
-    routes.forEach((route) => router.prefetch(route));
-  }, [notifications, router]);
+    const routes = new Set<string>(['/notifications'])
+    notifications.forEach(notification => {
+      routes.add(resolveNotificationRoute(notification))
+    })
+    routes.forEach(route => router.prefetch(route))
+  }, [notifications, router])
 
   return (
     <AppBar
@@ -121,12 +121,12 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
       sx={{
         height: `${topBarHeight}px`,
         width: '100%',
-        bgcolor: (theme) => theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff',
-        color: (theme) => theme.palette.text.primary,
+        bgcolor: theme => (theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff'),
+        color: theme => theme.palette.text.primary,
         borderBottom: '1px solid',
-        borderColor: (theme) => theme.palette.divider,
+        borderColor: theme => theme.palette.divider,
         boxShadow: 'none',
-        zIndex: (theme) => theme.zIndex.drawer + 1,
+        zIndex: theme => theme.zIndex.drawer + 1,
       }}
     >
       <Toolbar
@@ -146,9 +146,9 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
               onClick={onMenuClick}
               size="small"
               sx={{
-                color: (theme) => theme.palette.text.secondary,
+                color: theme => theme.palette.text.secondary,
                 '&:hover': {
-                  color: (theme) => theme.palette.text.primary,
+                  color: theme => theme.palette.text.primary,
                 },
                 mr: 1,
               }}
@@ -170,12 +170,19 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
             cursor: 'pointer',
           }}
         >
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center' }}>
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                fontWeight: 700, 
-                color: (theme) => theme.palette.text.primary,
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              justifyContent: 'center',
+            }}
+          >
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 700,
+                color: theme => theme.palette.text.primary,
                 lineHeight: 1,
               }}
             >
@@ -186,7 +193,7 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
             label="Live"
             size="small"
             sx={{
-              bgcolor: (theme) => theme.palette.success.main,
+              bgcolor: theme => theme.palette.success.main,
               color: '#ffffff',
               fontWeight: 'bold',
             }}
@@ -201,9 +208,9 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
               onClick={toggleMode}
               size="small"
               sx={{
-                color: (theme) => theme.palette.text.secondary,
+                color: theme => theme.palette.text.secondary,
                 '&:hover': {
-                  color: (theme) => theme.palette.text.primary,
+                  color: theme => theme.palette.text.primary,
                 },
               }}
             >
@@ -217,9 +224,9 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
               size="small"
               onClick={handleNotificationMenuOpen}
               sx={{
-                color: (theme) => theme.palette.text.secondary,
+                color: theme => theme.palette.text.secondary,
                 '&:hover': {
-                  color: (theme) => theme.palette.text.primary,
+                  color: theme => theme.palette.text.primary,
                 },
               }}
             >
@@ -237,8 +244,8 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
             transformOrigin={{ vertical: 'top', horizontal: 'right' }}
             PaperProps={{
               sx: {
-                bgcolor: (theme) => theme.palette.background.paper,
-                color: (theme) => theme.palette.text.primary,
+                bgcolor: theme => theme.palette.background.paper,
+                color: theme => theme.palette.text.primary,
                 mt: 1,
                 width: 460,
                 maxWidth: 'calc(100vw - 24px)',
@@ -250,7 +257,12 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
             }}
           >
             <Box sx={{ p: 1.5, pb: 1 }}>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                sx={{ mb: 1 }}
+              >
                 <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
                   알림
                 </Typography>
@@ -267,7 +279,11 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
               </Stack>
 
               <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                <Chip label={`전체 ${notifications.length}`} size="small" sx={{ fontWeight: 700 }} />
+                <Chip
+                  label={`전체 ${notifications.length}`}
+                  size="small"
+                  sx={{ fontWeight: 700 }}
+                />
                 <Chip label={`미확인 ${unreadCount}`} size="small" variant="outlined" />
               </Stack>
             </Box>
@@ -280,18 +296,18 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
                   알림이 없습니다.
                 </Typography>
               ) : (
-                notifications.map((notification) => {
-                  const isUnread = !notificationReadMap[notification.id];
-                  const resolvedRoute = resolveNotificationRoute(notification);
+                notifications.map(notification => {
+                  const isUnread = !notificationReadMap[notification.id]
+                  const resolvedRoute = resolveNotificationRoute(notification)
                   const accentColor = (theme: any) => {
                     if (notification.severity === 'critical' || notification.severity === 'error') {
-                      return theme.palette.error.main;
+                      return theme.palette.error.main
                     }
                     if (notification.severity === 'warning') {
-                      return theme.palette.warning.main;
+                      return theme.palette.warning.main
                     }
-                    return theme.palette.info.main;
-                  };
+                    return theme.palette.info.main
+                  }
 
                   return (
                     <Box
@@ -338,17 +354,25 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
                             >
                               {notification.title}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ flexShrink: 0 }}
+                            >
                               {formatDateTime(notification.timestamp)}
                             </Typography>
                           </Stack>
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.35, lineHeight: 1.35 }}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ display: 'block', mt: 0.35, lineHeight: 1.35 }}
+                          >
                             {notification.message}
                           </Typography>
                         </Box>
                       </Stack>
                     </Box>
-                  );
+                  )
                 })
               )}
             </Box>
@@ -360,9 +384,9 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
               size="small"
               onClick={handleMenuOpen}
               sx={{
-                color: (theme) => theme.palette.text.secondary,
+                color: theme => theme.palette.text.secondary,
                 '&:hover': {
-                  color: (theme) => theme.palette.text.primary,
+                  color: theme => theme.palette.text.primary,
                 },
               }}
             >
@@ -376,8 +400,8 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
             onClose={handleMenuClose}
             PaperProps={{
               sx: {
-                bgcolor: (theme) => theme.palette.background.paper,
-                color: (theme) => theme.palette.text.primary,
+                bgcolor: theme => theme.palette.background.paper,
+                color: theme => theme.palette.text.primary,
                 mt: 1,
               },
             }}
@@ -405,6 +429,5 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
         </Box>
       </Toolbar>
     </AppBar>
-  );
+  )
 }
-

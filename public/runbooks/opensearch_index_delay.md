@@ -1,6 +1,7 @@
 # Run-Book: OpenSearch Indexing Delay
 
 ## 증상
+
 - IngestionPipeline에서 log ingestion backlog 증가
 - OpenSearchIndexer에서 index refresh 지연 경고
 - SearchApi에서 최근 로그 검색 불가 경고
@@ -8,11 +9,13 @@
 - 인덱싱 지연 시간이 임계값(예: 30초) 초과
 
 ## 영향 범위
+
 - 실시간 로그 모니터링 불가 (검색 결과에 최신 데이터 누락)
 - 알림 시스템이 최신 이벤트를 감지 못할 수 있음
 - 장애 대응 시 실시간 로그 확인 지연
 
 ## 즉시 조치
+
 1. OpenSearch 클러스터 상태 확인
    - `GET _cluster/health` → status가 green/yellow/red 확인
    - `GET _cat/nodes?v` → 노드별 CPU, heap, disk 확인
@@ -28,6 +31,7 @@
    - ISM(Index State Management) 정책 확인
 
 ## 후속 조치
+
 1. 클러스터 사이징 재검토
    - 데이터 노드 수 / 인스턴스 타입 업그레이드
    - 샤드 수 최적화 (인덱스당 적정 샤드 크기: 10-50GB)
@@ -42,5 +46,6 @@
    - JVM heap pressure 알람 추가
 
 ## 에스컬레이션
+
 - 클러스터 status가 red인 경우: 즉시 인프라 팀 호출
 - 1시간 이상 인덱싱 지연 지속: 서비스 PM에게 영향도 공유

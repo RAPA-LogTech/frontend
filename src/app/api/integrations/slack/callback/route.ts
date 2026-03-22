@@ -1,89 +1,89 @@
-import { cookies } from 'next/headers';
+import { cookies } from 'next/headers'
 import {
   getMaskedWebhookUrl,
   getSlackOAuthConfig,
   setSlackInstallation,
-} from '@/lib/slackIntegrationStore';
-import { writePersistedSlackInstallation } from '@/lib/slackInstallationPersistence';
+} from '@/lib/slackIntegrationStore'
+import { writePersistedSlackInstallation } from '@/lib/slackInstallationPersistence'
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
-const oauthStateCookieName = 'slack_oauth_state';
+const oauthStateCookieName = 'slack_oauth_state'
 
 const getAppOrigin = (request: Request) => {
-  const configuredRedirectUri = process.env.SLACK_REDIRECT_URI?.trim();
+  const configuredRedirectUri = process.env.SLACK_REDIRECT_URI?.trim()
 
   if (configuredRedirectUri) {
-    return new URL(configuredRedirectUri).origin;
+    return new URL(configuredRedirectUri).origin
   }
 
-  return new URL(request.url).origin;
-};
+  return new URL(request.url).origin
+}
 
 type SlackOAuthResponse = {
-  ok?: boolean;
-  error?: string;
-  access_token?: string;
-  scope?: string;
+  ok?: boolean
+  error?: string
+  access_token?: string
+  scope?: string
   team?: {
-    id?: string;
-    name?: string;
-  };
+    id?: string
+    name?: string
+  }
   authed_user?: {
-    id?: string;
-  };
+    id?: string
+  }
   incoming_webhook?: {
-    channel?: string;
-    channel_id?: string;
-    url?: string;
-  };
-};
+    channel?: string
+    channel_id?: string
+    url?: string
+  }
+}
 
 const getRedirectUri = (request: Request) => {
-  const configured = process.env.SLACK_REDIRECT_URI?.trim();
+  const configured = process.env.SLACK_REDIRECT_URI?.trim()
 
   if (configured) {
-    return configured;
+    return configured
   }
 
-  const url = new URL(request.url);
-  return `${url.origin}/api/integrations/slack/callback`;
-};
+  const url = new URL(request.url)
+  return `${url.origin}/api/integrations/slack/callback`
+}
 
 const redirectToIntegrationPage = (request: Request, status: string, details?: string) => {
-  const url = new URL('/integrations/slack', getAppOrigin(request));
-  url.searchParams.set('slack', status);
+  const url = new URL('/integrations/slack', getAppOrigin(request))
+  url.searchParams.set('slack', status)
 
   if (details) {
-    url.searchParams.set('details', details);
+    url.searchParams.set('details', details)
   }
 
-  return Response.redirect(url);
-};
+  return Response.redirect(url)
+}
 
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const state = url.searchParams.get('state') ?? '';
-  const code = url.searchParams.get('code') ?? '';
-  const authError = url.searchParams.get('error') ?? '';
-  const cookieStore = await cookies();
-  const savedState = cookieStore.get(oauthStateCookieName)?.value ?? '';
-  cookieStore.delete(oauthStateCookieName);
+  const url = new URL(request.url)
+  const state = url.searchParams.get('state') ?? ''
+  const code = url.searchParams.get('code') ?? ''
+  const authError = url.searchParams.get('error') ?? ''
+  const cookieStore = await cookies()
+  const savedState = cookieStore.get(oauthStateCookieName)?.value ?? ''
+  cookieStore.delete(oauthStateCookieName)
 
   if (authError) {
-    return redirectToIntegrationPage(request, 'cancelled', authError);
+    return redirectToIntegrationPage(request, 'cancelled', authError)
   }
 
   if (!state || !savedState || state !== savedState) {
-    return redirectToIntegrationPage(request, 'state-error');
+    return redirectToIntegrationPage(request, 'state-error')
   }
 
   if (!code) {
-    return redirectToIntegrationPage(request, 'missing-code');
+    return redirectToIntegrationPage(request, 'missing-code')
   }
 
-  const config = getSlackOAuthConfig();
+  const config = getSlackOAuthConfig()
   const response = await fetch('https://slack.com/api/oauth.v2.access', {
     method: 'POST',
     headers: {
@@ -95,16 +95,20 @@ export async function GET(request: Request) {
       code,
       redirect_uri: getRedirectUri(request),
     }),
-  });
+  })
 
-  const data = (await response.json()) as SlackOAuthResponse;
+  const data = (await response.json()) as SlackOAuthResponse
 
   if (!response.ok || !data.ok) {
-    return redirectToIntegrationPage(request, 'oauth-error', data.error ?? response.statusText);
+    return redirectToIntegrationPage(request, 'oauth-error', data.error ?? response.statusText)
   }
 
-  const webhookUrl = data.incoming_webhook?.url;
-  const scopeList = data.scope?.split(',').map((scope) => scope.trim()).filter(Boolean) ?? config.scopes;
+  const webhookUrl = data.incoming_webhook?.url
+  const scopeList =
+    data.scope
+      ?.split(',')
+      .map(scope => scope.trim())
+      .filter(Boolean) ?? config.scopes
 
   const installation = setSlackInstallation({
     teamId: data.team?.id,
@@ -117,9 +121,9 @@ export async function GET(request: Request) {
     installedBy: data.authed_user?.id,
     installedAt: new Date().toISOString(),
     scopes: scopeList,
-  });
+  })
 
-  await writePersistedSlackInstallation(installation);
+  await writePersistedSlackInstallation(installation)
 
-  return redirectToIntegrationPage(request, 'connected');
+  return redirectToIntegrationPage(request, 'connected')
 }

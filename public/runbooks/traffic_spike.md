@@ -1,6 +1,7 @@
 # Run-Book: Traffic Spike / 과부하
 
 ## 증상
+
 - RateLimiter에서 request volume 급증 경고
 - ApiGateway upstream response latency 증가
 - HTTP 503 Service Unavailable 에러 발생
@@ -8,11 +9,13 @@
 - 요청 큐 백로그 증가
 
 ## 영향 범위
+
 - 서비스 응답 지연 및 일부 요청 실패 (503)
 - 사용자 결제 시도 실패율 증가
 - Auto-scaling 완료 전까지 성능 저하 지속
 
 ## 즉시 조치
+
 1. Auto-Scaling 상태 확인
    - ECS/EKS 오토스케일링 정책 확인 (target tracking 임계값)
    - 현재 desired/running task 수 확인
@@ -28,6 +31,7 @@
    - 배치/리포트 등 비실시간 작업 중단
 
 ## 후속 조치
+
 1. Auto-Scaling 정책 최적화
    - 스케일아웃 쿨다운 타임 단축
    - 예측 기반 스케일링(Predictive Scaling) 검토
@@ -41,5 +45,6 @@
    - WAF 규칙 추가 검토
 
 ## 에스컬레이션
+
 - 스케일아웃 후에도 503 지속 시: 인프라 팀 호출
 - DDoS 의심 시: 보안 팀 + AWS Shield Advanced 활성화 검토

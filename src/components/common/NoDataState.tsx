@@ -1,9 +1,9 @@
-import { Box, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material'
 
 type NoDataStateProps = {
-  title?: string;
-  description?: string;
-};
+  title?: string
+  description?: string
+}
 
 export default function NoDataState({
   title = 'No data',
@@ -28,5 +28,5 @@ export default function NoDataState({
         {description}
       </Typography>
     </Box>
-  );
+  )
 }

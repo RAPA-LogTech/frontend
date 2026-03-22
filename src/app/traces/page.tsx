@@ -1,5 +1,5 @@
-import TracesPage from '@/components/traces/TracesPage';
+import TracesPage from '@/components/traces/TracesPage'
 
 export default function Page() {
-  return <TracesPage />;
+  return <TracesPage />
 }

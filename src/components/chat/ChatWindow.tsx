@@ -1,6 +1,6 @@
-'use client';
+'use client'
 
-import { AiMessage } from '@/lib/types';
+import { AiMessage } from '@/lib/types'
 import {
   Box,
   Card,
@@ -11,22 +11,26 @@ import {
   TextField,
   Button,
   Stack,
-} from '@mui/material';
-import { Send as SendIcon } from '@mui/icons-material';
+} from '@mui/material'
+import { Send as SendIcon } from '@mui/icons-material'
 
 type ChatWindowProps = {
-  messages: AiMessage[];
-  attachContext: boolean;
-  onToggleAttachContext: (value: boolean) => void;
-};
+  messages: AiMessage[]
+  attachContext: boolean
+  onToggleAttachContext: (value: boolean) => void
+}
 
 const suggestedPrompts = [
   'checkout 에러율 상승 원인 알려줘',
   '최근 1시간 동안 느린 endpoint 분석해줘',
   '로그와 trace를 함께 상관분석해줘',
-];
+]
 
-export default function ChatWindow({ messages, attachContext, onToggleAttachContext }: ChatWindowProps) {
+export default function ChatWindow({
+  messages,
+  attachContext,
+  onToggleAttachContext,
+}: ChatWindowProps) {
   return (
     <Stack spacing={2}>
       {/* Messages */}
@@ -39,7 +43,7 @@ export default function ChatWindow({ messages, attachContext, onToggleAttachCont
         }}
       >
         <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-          {messages.map((message) => (
+          {messages.map(message => (
             <Box
               key={message.id}
               sx={{
@@ -61,7 +65,7 @@ export default function ChatWindow({ messages, attachContext, onToggleAttachCont
 
       {/* Suggested Prompts */}
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-        {suggestedPrompts.map((prompt) => (
+        {suggestedPrompts.map(prompt => (
           <Chip
             key={prompt}
             label={prompt}
@@ -85,7 +89,7 @@ export default function ChatWindow({ messages, attachContext, onToggleAttachCont
         control={
           <Switch
             checked={attachContext}
-            onChange={(e) => onToggleAttachContext(e.target.checked)}
+            onChange={e => onToggleAttachContext(e.target.checked)}
             sx={{
               '& .MuiSwitch-switchBase.Mui-checked': {
                 color: '#9333ea',
@@ -134,5 +138,5 @@ export default function ChatWindow({ messages, attachContext, onToggleAttachCont
         </Button>
       </Stack>
     </Stack>
-  );
+  )
 }

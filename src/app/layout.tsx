@@ -1,12 +1,12 @@
-import type { Metadata } from 'next';
-import './globals.css';
-import AppProviders from './providers';
-import AppLayout from '@/components/layout/AppLayout';
+import type { Metadata } from 'next'
+import './globals.css'
+import AppProviders from './providers'
+import AppLayout from '@/components/layout/AppLayout'
 
 export const metadata: Metadata = {
   title: 'LogTech Observability',
   description: 'Datadog-style observability dashboard scaffold',
-};
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -17,5 +17,5 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </AppProviders>
       </body>
     </html>
-  );
+  )
 }

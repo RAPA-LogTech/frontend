@@ -3,8 +3,8 @@
  * Observability Dashboard - Dark theme based design system for professional engineers
  */
 
-import { createTheme } from '@mui/material/styles';
-import type { PaletteMode } from '@mui/material';
+import { createTheme } from '@mui/material/styles'
+import type { PaletteMode } from '@mui/material'
 
 // ============ Color Palette ============
 
@@ -28,25 +28,25 @@ export const darkPalette = {
     50: '#ECFDFD',
   },
   // Semantic Colors (상태)
-  success: '#10B981',  // Emerald
-  warning: '#F59E0B',  // Amber
-  error: '#EF4444',    // Red
-  info: '#3B82F6',     // Blue
+  success: '#10B981', // Emerald
+  warning: '#F59E0B', // Amber
+  error: '#EF4444', // Red
+  info: '#3B82F6', // Blue
   // Neutral (회색)
   neutral: {
-    950: '#0B1020',    // 최상단 배경
-    900: '#121A2B',    // 카드, 섹션
-    800: '#1F2937',    // 호버, div
-    700: '#374151',    // 테두리
+    950: '#0B1020', // 최상단 배경
+    900: '#121A2B', // 카드, 섹션
+    800: '#1F2937', // 호버, div
+    700: '#374151', // 테두리
     600: '#4B5563',
     500: '#6B7280',
-    400: '#9CA3AF',    // 약한 텍스트
+    400: '#9CA3AF', // 약한 텍스트
     300: '#D1D5DB',
-    200: '#E5E7EB',    // 강한 텍스트 (다크모드)
+    200: '#E5E7EB', // 강한 텍스트 (다크모드)
     100: '#F3F4F6',
-    50: '#F9FAFB',     // 라이트모드 배경
+    50: '#F9FAFB', // 라이트모드 배경
   },
-};
+}
 
 export const lightPalette = {
   purple: {
@@ -82,7 +82,7 @@ export const lightPalette = {
     100: '#F1F5F9',
     50: '#F8FAFC',
   },
-};
+}
 
 // ============ Typography Sizes ============
 
@@ -95,19 +95,24 @@ export const typographySizes = {
   body: { fontSize: '14px', fontWeight: 400, lineHeight: 1.5 },
   bodySmall: { fontSize: '12px', fontWeight: 400, lineHeight: 1.5 },
   caption: { fontSize: '11px', fontWeight: 400, lineHeight: 1.4 },
-  mono: { fontSize: '13px', fontWeight: 500, lineHeight: 1.4, fontFamily: '"Monaco", "Courier New", monospace' },
-};
+  mono: {
+    fontSize: '13px',
+    fontWeight: 500,
+    lineHeight: 1.4,
+    fontFamily: '"Monaco", "Courier New", monospace',
+  },
+}
 
 // ============ Spacing Grid (8px base) ============
 
-export const spacing = (factor: number) => `${factor * 8}px`;
+export const spacing = (factor: number) => `${factor * 8}px`
 
 // ============ Color Palette Exports for Tailwind ============
 
 export const colors = {
   dark: darkPalette,
   light: lightPalette,
-};
+}
 
 // ============ MUI Theme Factory ============
 
@@ -282,7 +287,8 @@ export const getAppTheme = (mode: PaletteMode) => {
       },
     },
     typography: {
-      fontFamily: '"Inter", "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif',
+      fontFamily:
+        '"Inter", "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif',
       h1: { fontSize: '2rem', fontWeight: 600 },
       h2: { fontSize: '1.5rem', fontWeight: 600 },
       h3: { fontSize: '1.25rem', fontWeight: 600 },
@@ -298,8 +304,8 @@ export const getAppTheme = (mode: PaletteMode) => {
     shape: {
       borderRadius: 4,
     },
-  });
-};
+  })
+}
 
 const themeConfig = {
   darkPalette,
@@ -307,6 +313,6 @@ const themeConfig = {
   typographySizes,
   spacing,
   colors,
-};
+}
 
-export default themeConfig;
+export default themeConfig

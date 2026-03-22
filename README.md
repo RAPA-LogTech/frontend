@@ -42,6 +42,7 @@ SLACK_REDIRECT_URI=https://<ngrok-domain>/api/integrations/slack/callback
 5. 서버 재시작 후 Integrations > Slack에서 Connect Slack 테스트
 
 주의:
+
 - ngrok 무료 플랜은 재실행 시 도메인이 바뀔 수 있습니다.
 - 도메인이 바뀌면 .env.local의 SLACK_REDIRECT_URI와 Slack Redirect URLs를 함께 갱신해야 합니다.
 
@@ -62,7 +63,6 @@ https://<prod-domain>/api/integrations/slack/callback
 
 참고: 현재 구현은 데모/개발용으로 서버 메모리에 설치 정보를 저장하므로 서버 재시작 시 초기화됩니다. 운영용으로는 DB 또는 시크릿 스토리지에 고객별 설치 정보를 저장해야 합니다.
 
-
 > Observability Dashboard에서의 3가지 핵심 작업 흐름과 실제 데이터 예시
 
 ---
@@ -70,18 +70,20 @@ https://<prod-domain>/api/integrations/slack/callback
 ## 📌 Flow 1: 에러 탐지 → 원인 분석(AI) → 로그/트레이스 추적
 
 ### 시작점
+
 - **Overview 대시보드** 에서 KPI "Error Rate" 증가 감지
 - 또는 **알림 수신** (Slack / Email / PagerDuty)
 
 ### 단계별 상세
 
 #### 1️⃣ 대시보드에서 이상 인지
+
 ```
 Overview 페이지
 ├─ KPI Card: Error Rate = 7.2% (up 242% from 1h ago)
 │  Status: CRITICAL (빨간색)
 │
-├─ Alert: "High Error Rate - Checkout" 
+├─ Alert: "High Error Rate - Checkout"
 │  Time: 2026-03-02 10:30:00
 │  Severity: ERROR
 │
@@ -89,6 +91,7 @@ Overview 페이지
 ```
 
 **KPI Card 렌더링 코드 (참고)**
+
 ```typescript
 <KPICard
   title="Error Rate"
@@ -105,11 +108,12 @@ Overview 페이지
 ```
 
 #### 2️⃣ AI Assistant로 원인 분석 (Drawer)
+
 ```
 User: "Why did error rate spike at 14:30?"
 
 AI Assistant Response:
-"I've analyzed metrics from 14:30 (현재 컨텍스트 자동 감지: 
+"I've analyzed metrics from 14:30 (현재 컨텍스트 자동 감지:
 service=checkout, timeRange=1h)
 
 Root Cause Summary:
@@ -132,6 +136,7 @@ Next Steps:
 ```
 
 **관련 데이터 (public/data/logs-example.json)**
+
 ```json
 {
   "id": "log-001",
@@ -140,7 +145,7 @@ Next Steps:
   "level": "ERROR",
   "message": "Payment provider timeout after 3 retries",
   "metadata": {
-    "traceId": "trace-001-001",  // ← 클릭하면 Traces로 이동
+    "traceId": "trace-001-001", // ← 클릭하면 Traces로 이동
     "provider": "stripe",
     "timeout_ms": 5000
   }
@@ -148,6 +153,7 @@ Next Steps:
 ```
 
 #### 3️⃣ Logs 페이지로 이동 (AI 링크 클릭)
+
 ```
 URL: /logs?service=checkout&level=ERROR&timeRange=30m
 
@@ -170,6 +176,7 @@ Logs Table:
 ```
 
 #### 4️⃣ Traces 페이지로 이동
+
 ```
 URL: /traces?traceId=trace-001-001
 
@@ -212,13 +219,14 @@ Bottleneck Analysis:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 1. call-stripe (230ms, 44.2% of total)
    └─ External API latency (expected: 50-100ms)
-      
+
 2. db-query (140ms, 26.9% of total)
    └─ Potential N+1 query issue
       SQL: SELECT * FROM inventory WHERE product_id IN (...)
 ```
 
 **관련 데이터 (public/data/trace-example.json)**
+
 ```json
 {
   "spans": [
@@ -247,13 +255,14 @@ Bottleneck Analysis:
 ```
 
 #### 5️⃣ AI로 추가 분석 (Traces 페이지에서도 사용 가능)
+
 ```
 User: "Why is db query so slow?"
 
-AI Response: 
+AI Response:
 "The query hitting inventory table with 3 product IDs:
 
-SELECT * FROM inventory 
+SELECT * FROM inventory
   WHERE product_id IN (123, 456, 789)
 
 Performance Analysis:
@@ -274,11 +283,13 @@ Recommendation:
 ## 📌 Flow 2: 대시보드 이상 지표 → 알림 생성 → Slack 연결
 
 ### 시나리오
+
 엔지니어가 대시보드에서 CPU/Memory 급증을 감지 → 알림 자동 설정 → Slack에 실시간 알림 수신
 
 ### 단계별 상세
 
 #### 1️⃣ 메트릭 이상 발견
+
 ```
 Metrics 페이지 또는 Dashboards 페이지
 │
@@ -289,6 +300,7 @@ Metrics 페이지 또는 Dashboards 페이지
 ```
 
 #### 2️⃣ 알림 규칙 생성 (Modal)
+
 ```
 Create Alert Modal
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -326,23 +338,25 @@ Description:
 ```
 
 **관련 코드 (types.ts)**
+
 ```typescript
 type AlertCondition = {
-  metric: 'memory_usage';
-  operator: '>';
-  value: 90;
-  duration: 120;  // seconds
-  aggregation: 'max' | 'avg';
-};
+  metric: 'memory_usage'
+  operator: '>'
+  value: 90
+  duration: 120 // seconds
+  aggregation: 'max' | 'avg'
+}
 
 type AlertAction = {
-  type: 'slack';
-  target: '#infra-alerts';
-  template?: 'default' | 'custom';
-};
+  type: 'slack'
+  target: '#infra-alerts'
+  template?: 'default' | 'custom'
+}
 ```
 
 #### 3️⃣ Slack 연결 (첫 사용)
+
 ```
 "Actions" 섹션에서 Slack 선택 후 "[Connect Slack]" 클릭
 
@@ -366,6 +380,7 @@ Success: "✓ Slack integration connected! Ready to send alerts."
 ```
 
 **관련 데이터 (public/data/dashboards-example.json)**
+
 ```json
 {
   "actions": [
@@ -388,6 +403,7 @@ Success: "✓ Slack integration connected! Ready to send alerts."
 ```
 
 #### 4️⃣ 알림 전송 확인
+
 ```
 Slack #infra-alerts 채널에서:
 
@@ -411,6 +427,7 @@ Click "[📊 View Metrics]" → 브라우저에서 대시보드 열기
 ```
 
 **실제 Slack 메시지 payload (예시)**
+
 ```json
 {
   "blocks": [
@@ -460,13 +477,14 @@ Click "[📊 View Metrics]" → 브라우저에서 대시보드 열기
 ```
 
 #### 5️⃣ 알림 상태 업데이트 (자동)
+
 ```
 Alert 정상화되면:
 
 ✓ [Resolved] Memory Usage Critical - checkout-prod
   Duration: 5m 30s (auto-resolved at 10:35)
   Reason: Pod memory stabilized after restart
-  
+
 Resolution Timeline:
 - 10:30:00 Fired (95%)
 - 10:32:45 Still firing (93%)
@@ -474,6 +492,7 @@ Resolution Timeline:
 ```
 
 **관련 데이터 (public/data/alerts-example.json)**
+
 ```json
 {
   "alertEvents": [
@@ -495,11 +514,13 @@ Resolution Timeline:
 ## 📌 Flow 3: 로그에서 Trace ID로 트레이스 추적
 
 ### 시나리오
+
 사용자가 에러 로그 발견 → trace_id 클릭 → 전체 분산 추적 시각화 → 병목 지점 파악
 
 ### 단계별 상세
 
 #### 1️⃣ Logs 페이지에서 에러 로그 찾기
+
 ```
 Logs 페이지
 ├─ Filter: service=checkout, level=ERROR, timeRange=1h
@@ -516,6 +537,7 @@ Logs 페이지
 ```
 
 #### 2️⃣ 로그 상세보기 (Row 클릭)
+
 ```
 Log Detail Drawer
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -552,6 +574,7 @@ Actions:
 ```
 
 #### 3️⃣ Traces 페이지로 자동 이동
+
 ```
 User clicks "[→ View Trace]" 또는 직접 traceId 클릭
 
@@ -562,6 +585,7 @@ URL: /traces?traceId=trace-001-001
 ```
 
 **관련 데이터 (public/data/logs-example.json)**
+
 ```json
 {
   "id": "log-001",
@@ -572,7 +596,7 @@ URL: /traces?traceId=trace-001-001
   "metadata": {
     "userId": "user-12345",
     "requestId": "req-abc123def456",
-    "traceId": "trace-001-001",        // ← 가장 중요
+    "traceId": "trace-001-001", // ← 가장 중요
     "spanId": "span-001-002"
   },
   "tags": {
@@ -582,6 +606,7 @@ URL: /traces?traceId=trace-001-001
 ```
 
 #### 4️⃣ Trace 분석
+
 ```
 Trace ID: trace-001-001
 Status: 200 OK (but SLOW)
@@ -645,13 +670,13 @@ Recommendation from AI:
 
 모든 JSON 파일은 `/public/data/` 에 위치:
 
-| 파일 | 용도 | 관련 흐름 |
-|------|------|---------|
-| `logs-example.json` | 로그 데이터 + metadata (traceId, requestId) | Flow 1, 3 |
-| `metrics-example.json` | 시계열 메트릭 (error_rate, latency, throughput) | Flow 1, 2 |
-| `trace-example.json` | 스팬 워터폴 + 병목 분석 | Flow 1, 3 |
-| `dashboards-example.json` | 대시보드 정의 + 위젯 설정 | Flow 2 |
-| `alerts-example.json` | 알림 규칙 + 발생 이벤트 | Flow 2 |
+| 파일                      | 용도                                            | 관련 흐름 |
+| ------------------------- | ----------------------------------------------- | --------- |
+| `logs-example.json`       | 로그 데이터 + metadata (traceId, requestId)     | Flow 1, 3 |
+| `metrics-example.json`    | 시계열 메트릭 (error_rate, latency, throughput) | Flow 1, 2 |
+| `trace-example.json`      | 스팬 워터폴 + 병목 분석                         | Flow 1, 3 |
+| `dashboards-example.json` | 대시보드 정의 + 위젯 설정                       | Flow 2    |
+| `alerts-example.json`     | 알림 규칙 + 발생 이벤트                         | Flow 2    |
 
 ---
 
@@ -669,7 +694,7 @@ Recommendation from AI:
 📝 Logs Page
 ├─ mockLogs[] (Table)
 ├─ GlobalFilterState (service, level, timeRange)
-└─ Log Detail Drawer 
+└─ Log Detail Drawer
     └─ metadata.traceId (→ Traces link)
 
 🔍 Traces Page

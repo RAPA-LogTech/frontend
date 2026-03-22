@@ -1,5 +1,5 @@
-import MetricsPage from '@/components/metrics/MetricsPage';
+import MetricsPage from '@/components/metrics/MetricsPage'
 
 export default function Page() {
-  return <MetricsPage />;
+  return <MetricsPage />
 }

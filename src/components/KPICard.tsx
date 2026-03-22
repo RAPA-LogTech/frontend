@@ -1,24 +1,24 @@
-'use client';
+'use client'
 
-import React from 'react';
-import { Box, Card, CardContent, Stack, Typography, Tooltip, Chip } from '@mui/material';
-import InfoIcon from '@mui/icons-material/Info';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import React from 'react'
+import { Box, Card, CardContent, Stack, Typography, Tooltip, Chip } from '@mui/material'
+import InfoIcon from '@mui/icons-material/Info'
+import TrendingUpIcon from '@mui/icons-material/TrendingUp'
+import TrendingDownIcon from '@mui/icons-material/TrendingDown'
 
 interface KPICardProps {
-  title: string;
-  value: number | string;
-  unit?: string;
+  title: string
+  value: number | string
+  unit?: string
   trend?: {
-    value: number;
-    direction: 'up' | 'down' | 'stable';
-    timeRange: string;
-  };
-  status?: 'healthy' | 'warning' | 'critical' | 'info';
-  tooltip?: string;
-  onClick?: () => void;
-  sparkline?: Array<{ ts: number; value: number }>;
+    value: number
+    direction: 'up' | 'down' | 'stable'
+    timeRange: string
+  }
+  status?: 'healthy' | 'warning' | 'critical' | 'info'
+  tooltip?: string
+  onClick?: () => void
+  sparkline?: Array<{ ts: number; value: number }>
 }
 
 export const KPICard: React.FC<KPICardProps> = ({
@@ -36,9 +36,10 @@ export const KPICard: React.FC<KPICardProps> = ({
     warning: { bg: '#F59E0B33', text: '#F59E0B', border: '#F59E0B66' },
     critical: { bg: '#EF444433', text: '#EF4444', border: '#EF444466' },
     info: { bg: '#3B82F633', text: '#3B82F6', border: '#3B82F666' },
-  };
+  }
 
-  const trendColor = trend?.direction === 'up' ? '#EF4444' : trend?.direction === 'down' ? '#10B981' : '#9CA3AF';
+  const trendColor =
+    trend?.direction === 'up' ? '#EF4444' : trend?.direction === 'down' ? '#10B981' : '#9CA3AF'
 
   return (
     <Card
@@ -46,10 +47,12 @@ export const KPICard: React.FC<KPICardProps> = ({
       sx={{
         cursor: onClick ? 'pointer' : 'default',
         transition: 'all 200ms',
-        '&:hover': onClick ? {
-          backgroundColor: 'action.hover',
-          borderColor: 'primary.main',
-        } : {},
+        '&:hover': onClick
+          ? {
+              backgroundColor: 'action.hover',
+              borderColor: 'primary.main',
+            }
+          : {},
       }}
     >
       <CardContent>
@@ -87,9 +90,7 @@ export const KPICard: React.FC<KPICardProps> = ({
           >
             {typeof value === 'number' ? value.toFixed(1) : value}
             {unit && (
-              <span style={{ fontSize: '18px', marginLeft: '4px', fontWeight: 500 }}>
-                {unit}
-              </span>
+              <span style={{ fontSize: '18px', marginLeft: '4px', fontWeight: 500 }}>{unit}</span>
             )}
           </Typography>
         </Box>
@@ -150,7 +151,7 @@ export const KPICard: React.FC<KPICardProps> = ({
         )}
       </CardContent>
     </Card>
-  );
-};
+  )
+}
 
-export default KPICard;
+export default KPICard

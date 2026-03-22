@@ -1,7 +1,7 @@
-'use client';
+'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   Button,
   Box,
@@ -15,7 +15,7 @@ import {
   TextField,
   Typography,
   useTheme,
-} from '@mui/material';
+} from '@mui/material'
 import {
   Area,
   AreaChart,
@@ -27,104 +27,104 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from 'recharts';
-import type { MetricSeries } from '@/lib/types';
-import { apiClient } from '@/lib/apiClient';
-import NoDataState from '@/components/common/NoDataState';
+} from 'recharts'
+import type { MetricSeries } from '@/lib/types'
+import { apiClient } from '@/lib/apiClient'
+import NoDataState from '@/components/common/NoDataState'
 
 type MetricStreamPayload = {
-  cursor: number;
-  ts: number;
+  cursor: number
+  ts: number
   points: Array<{
-    id: string;
-    ts: number;
-    value: number;
-  }>;
-};
+    id: string
+    ts: number
+    value: number
+  }>
+}
 
-const EMPTY_METRICS: MetricSeries[] = [];
+const EMPTY_METRICS: MetricSeries[] = []
 
 const formatMetricValue = (value: number, unit: string) => {
   if (unit === 'req/s') {
-    return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toFixed(0);
+    return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toFixed(0)
   }
   if (unit === '%') {
-    return value.toFixed(2);
+    return value.toFixed(2)
   }
   if (unit === 'ms') {
-    return value.toFixed(0);
+    return value.toFixed(0)
   }
-  return value.toFixed(1);
-};
+  return value.toFixed(1)
+}
 
 const formatTimeLabel = (timestamp: number, withSeconds: boolean) => {
-  const date = new Date(timestamp);
-  const hh = String(date.getHours()).padStart(2, '0');
-  const mm = String(date.getMinutes()).padStart(2, '0');
-  const ss = String(date.getSeconds()).padStart(2, '0');
-  return withSeconds ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`;
-};
+  const date = new Date(timestamp)
+  const hh = String(date.getHours()).padStart(2, '0')
+  const mm = String(date.getMinutes()).padStart(2, '0')
+  const ss = String(date.getSeconds()).padStart(2, '0')
+  return withSeconds ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`
+}
 
 const getNiceAxisStep = (rawStep: number) => {
-  if (rawStep <= 0) return 1;
-  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
-  const normalized = rawStep / magnitude;
+  if (rawStep <= 0) return 1
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep))
+  const normalized = rawStep / magnitude
 
-  if (normalized <= 1) return 1 * magnitude;
-  if (normalized <= 2) return 2 * magnitude;
-  if (normalized <= 5) return 5 * magnitude;
-  return 10 * magnitude;
-};
+  if (normalized <= 1) return 1 * magnitude
+  if (normalized <= 2) return 2 * magnitude
+  if (normalized <= 5) return 5 * magnitude
+  return 10 * magnitude
+}
 
 const getNiceAxisDomain = (min: number, max: number) => {
-  if (!Number.isFinite(min) || !Number.isFinite(max)) return [0, 1] as const;
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return [0, 1] as const
   if (min === max) {
-    const pad = Math.max(1, Math.abs(min) * 0.1);
-    const low = Math.max(0, min - pad);
-    const high = max + pad;
-    return [low, high] as const;
+    const pad = Math.max(1, Math.abs(min) * 0.1)
+    const low = Math.max(0, min - pad)
+    const high = max + pad
+    return [low, high] as const
   }
 
-  const step = getNiceAxisStep((max - min) / 6);
-  const domainMin = Math.max(0, Math.floor(min / step) * step);
-  const domainMax = Math.ceil(max / step) * step;
-  return [domainMin, domainMax] as const;
-};
+  const step = getNiceAxisStep((max - min) / 6)
+  const domainMin = Math.max(0, Math.floor(min / step) * step)
+  const domainMax = Math.ceil(max / step) * step
+  return [domainMin, domainMax] as const
+}
 
 const getSeriesStats = (series: MetricSeries) => {
-  const values = series.points.map((point) => point.value);
-  const last = values[values.length - 1] ?? 0;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const avg = values.reduce((sum, value) => sum + value, 0) / Math.max(1, values.length);
-  return { last, min, max, avg };
-};
+  const values = series.points.map(point => point.value)
+  const last = values[values.length - 1] ?? 0
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const avg = values.reduce((sum, value) => sum + value, 0) / Math.max(1, values.length)
+  return { last, min, max, avg }
+}
 
 function MiniSparkline({ series, color }: { series: MetricSeries; color: string }) {
   if (series.points.length === 0) {
-    return <Box sx={{ height: 30, width: '100%' }} />;
+    return <Box sx={{ height: 30, width: '100%' }} />
   }
 
   const smoothValues = (values: number[], windowSize = 5) =>
     values.map((_, index) => {
-      const start = Math.max(0, index - Math.floor(windowSize / 2));
-      const end = Math.min(values.length - 1, index + Math.floor(windowSize / 2));
-      const slice = values.slice(start, end + 1);
-      return slice.reduce((sum, value) => sum + value, 0) / slice.length;
-    });
+      const start = Math.max(0, index - Math.floor(windowSize / 2))
+      const end = Math.min(values.length - 1, index + Math.floor(windowSize / 2))
+      const slice = values.slice(start, end + 1)
+      return slice.reduce((sum, value) => sum + value, 0) / slice.length
+    })
 
-  const values = series.points.map((point) => point.value);
-  const smoothed = smoothValues(values, 7);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const spread = Math.max(1, max - min);
-  const paddedMin = Math.max(0, min - spread * 0.15);
-  const paddedMax = max + spread * 0.15;
+  const values = series.points.map(point => point.value)
+  const smoothed = smoothValues(values, 7)
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const spread = Math.max(1, max - min)
+  const paddedMin = Math.max(0, min - spread * 0.15)
+  const paddedMax = max + spread * 0.15
 
   const sparkData = series.points.map((point, index) => ({
     idx: index,
     value: smoothed[index] ?? point.value,
-  }));
+  }))
 
   return (
     <Box sx={{ height: 32, width: '100%' }}>
@@ -159,7 +159,7 @@ function MiniSparkline({ series, color }: { series: MetricSeries; color: string 
         </AreaChart>
       </ResponsiveContainer>
     </Box>
-  );
+  )
 }
 
 function TimeSeriesPanel({
@@ -169,21 +169,21 @@ function TimeSeriesPanel({
   xAxisWithSeconds = false,
   niceYAxis = false,
 }: {
-  title: string;
-  seriesList: MetricSeries[];
-  chartType?: 'line' | 'area';
-  xAxisWithSeconds?: boolean;
-  niceYAxis?: boolean;
+  title: string
+  seriesList: MetricSeries[]
+  chartType?: 'line' | 'area'
+  xAxisWithSeconds?: boolean
+  niceYAxis?: boolean
 }) {
-  const theme = useTheme();
+  const theme = useTheme()
   const palette = [
     theme.palette.primary.main,
     theme.palette.success.main,
     theme.palette.warning.main,
     theme.palette.info.main,
-  ];
+  ]
 
-  const allValues = seriesList.flatMap((series) => series.points.map((point) => point.value));
+  const allValues = seriesList.flatMap(series => series.points.map(point => point.value))
   if (seriesList.length === 0 || allValues.length === 0) {
     return (
       <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
@@ -196,31 +196,31 @@ function TimeSeriesPanel({
           </Typography>
         </CardContent>
       </Card>
-    );
+    )
   }
 
-  const basePoints = seriesList[0].points;
+  const basePoints = seriesList[0].points
   const chartData = basePoints.map((point, index) => {
     const row: Record<string, number | string> = {
       ts: point.ts,
       label: formatTimeLabel(point.ts, xAxisWithSeconds),
-    };
+    }
 
-    seriesList.forEach((series) => {
-      row[series.id] = series.points[index]?.value ?? 0;
-    });
+    seriesList.forEach(series => {
+      row[series.id] = series.points[index]?.value ?? 0
+    })
 
-    return row;
-  });
+    return row
+  })
 
-  const min = Math.min(...allValues);
-  const max = Math.max(...allValues);
-  const padding = (max - min) * 0.08;
-  const roughDomainMin = Math.max(0, min - padding);
-  const roughDomainMax = max + padding;
+  const min = Math.min(...allValues)
+  const max = Math.max(...allValues)
+  const padding = (max - min) * 0.08
+  const roughDomainMin = Math.max(0, min - padding)
+  const roughDomainMax = max + padding
   const [domainMin, domainMax] = niceYAxis
     ? getNiceAxisDomain(roughDomainMin, roughDomainMax)
-    : [roughDomainMin, roughDomainMax];
+    : [roughDomainMin, roughDomainMax]
 
   return (
     <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
@@ -234,13 +234,32 @@ function TimeSeriesPanel({
               <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
                 <defs>
                   {seriesList.map((series, index) => (
-                    <linearGradient key={`grad-${series.id}`} id={`grad-${series.id}`} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={palette[index % palette.length]} stopOpacity={0.35} />
-                      <stop offset="95%" stopColor={palette[index % palette.length]} stopOpacity={0.02} />
+                    <linearGradient
+                      key={`grad-${series.id}`}
+                      id={`grad-${series.id}`}
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor={palette[index % palette.length]}
+                        stopOpacity={0.35}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor={palette[index % palette.length]}
+                        stopOpacity={0.02}
+                      />
                     </linearGradient>
                   ))}
                 </defs>
-                <CartesianGrid stroke={theme.palette.divider} strokeDasharray="3 3" vertical={false} />
+                <CartesianGrid
+                  stroke={theme.palette.divider}
+                  strokeDasharray="3 3"
+                  vertical={false}
+                />
                 <XAxis
                   dataKey="label"
                   tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
@@ -263,10 +282,13 @@ function TimeSeriesPanel({
                   }}
                   labelStyle={{ color: theme.palette.text.secondary }}
                   formatter={(value: number | undefined, name: string | undefined) => {
-                    const metricKey = name ?? '';
-                    const series = seriesList.find((item) => item.id === metricKey);
-                    const normalized = typeof value === 'number' ? value : Number(value ?? 0);
-                    return [`${formatMetricValue(normalized, series?.unit ?? '')} ${series?.unit ?? ''}`, series?.name ?? metricKey];
+                    const metricKey = name ?? ''
+                    const series = seriesList.find(item => item.id === metricKey)
+                    const normalized = typeof value === 'number' ? value : Number(value ?? 0)
+                    return [
+                      `${formatMetricValue(normalized, series?.unit ?? '')} ${series?.unit ?? ''}`,
+                      series?.name ?? metricKey,
+                    ]
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -287,7 +309,11 @@ function TimeSeriesPanel({
               </AreaChart>
             ) : (
               <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
-                <CartesianGrid stroke={theme.palette.divider} strokeDasharray="3 3" vertical={false} />
+                <CartesianGrid
+                  stroke={theme.palette.divider}
+                  strokeDasharray="3 3"
+                  vertical={false}
+                />
                 <XAxis
                   dataKey="label"
                   tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
@@ -310,10 +336,13 @@ function TimeSeriesPanel({
                   }}
                   labelStyle={{ color: theme.palette.text.secondary }}
                   formatter={(value: number | undefined, name: string | undefined) => {
-                    const metricKey = name ?? '';
-                    const series = seriesList.find((item) => item.id === metricKey);
-                    const normalized = typeof value === 'number' ? value : Number(value ?? 0);
-                    return [`${formatMetricValue(normalized, series?.unit ?? '')} ${series?.unit ?? ''}`, series?.name ?? metricKey];
+                    const metricKey = name ?? ''
+                    const series = seriesList.find(item => item.id === metricKey)
+                    const normalized = typeof value === 'number' ? value : Number(value ?? 0)
+                    return [
+                      `${formatMetricValue(normalized, series?.unit ?? '')} ${series?.unit ?? ''}`,
+                      series?.name ?? metricKey,
+                    ]
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -353,11 +382,11 @@ function TimeSeriesPanel({
         </Stack>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 export default function MetricsPage() {
-  const theme = useTheme();
+  const theme = useTheme()
 
   const {
     data: metricsData,
@@ -366,145 +395,151 @@ export default function MetricsPage() {
   } = useQuery({
     queryKey: ['metrics'],
     queryFn: apiClient.getMetrics,
-  });
-  const metrics = metricsData ?? EMPTY_METRICS;
+  })
+  const metrics = metricsData ?? EMPTY_METRICS
 
-  const [liveMetrics, setLiveMetrics] = useState<MetricSeries[]>([]);
-  const [isLiveEnabled, setIsLiveEnabled] = useState(true);
-  const [streamStatus, setStreamStatus] = useState<'connecting' | 'live' | 'reconnecting' | 'offline'>('connecting');
-  const lastMetricCursorRef = useRef(0);
+  const [liveMetrics, setLiveMetrics] = useState<MetricSeries[]>([])
+  const [isLiveEnabled, setIsLiveEnabled] = useState(true)
+  const [streamStatus, setStreamStatus] = useState<
+    'connecting' | 'live' | 'reconnecting' | 'offline'
+  >('connecting')
+  const lastMetricCursorRef = useRef(0)
 
   useEffect(() => {
     if (metrics.length > 0) {
-      setLiveMetrics((prev) => (prev.length === 0 ? metrics : prev));
+      setLiveMetrics(prev => (prev.length === 0 ? metrics : prev))
     }
 
     if (isLiveEnabled) {
-      setStreamStatus('connecting');
+      setStreamStatus('connecting')
     }
-  }, [metrics, isLiveEnabled]);
+  }, [metrics, isLiveEnabled])
 
   useEffect(() => {
     if (!isLiveEnabled) {
-      setStreamStatus('offline');
-      return;
+      setStreamStatus('offline')
+      return
     }
 
-    const MAX_POINTS = 120;
-    let eventSource: EventSource | null = null;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    let isUnmounted = false;
-    let retryAttempt = 0;
+    const MAX_POINTS = 120
+    let eventSource: EventSource | null = null
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+    let isUnmounted = false
+    let retryAttempt = 0
 
     const applyMetricPayload = (payload: MetricStreamPayload) => {
-      const updates = new Map(payload.points.map((point) => [point.id, point]));
+      const updates = new Map(payload.points.map(point => [point.id, point]))
 
-      setLiveMetrics((prev) =>
-        prev.map((series) => {
-          const nextPoint = updates.get(series.id);
-          if (!nextPoint) return series;
+      setLiveMetrics(prev =>
+        prev.map(series => {
+          const nextPoint = updates.get(series.id)
+          if (!nextPoint) return series
 
-          const points = [...series.points, { ts: nextPoint.ts, value: nextPoint.value }];
-          const trimmed = points.length > MAX_POINTS ? points.slice(points.length - MAX_POINTS) : points;
+          const points = [...series.points, { ts: nextPoint.ts, value: nextPoint.value }]
+          const trimmed =
+            points.length > MAX_POINTS ? points.slice(points.length - MAX_POINTS) : points
 
           return {
             ...series,
             points: trimmed,
-          };
-        }),
-      );
+          }
+        })
+      )
 
-      lastMetricCursorRef.current = Math.max(lastMetricCursorRef.current, payload.cursor ?? 0);
-    };
+      lastMetricCursorRef.current = Math.max(lastMetricCursorRef.current, payload.cursor ?? 0)
+    }
 
     const fetchBacklog = async () => {
-      let cursor = lastMetricCursorRef.current;
-      const limit = 200;
+      let cursor = lastMetricCursorRef.current
+      const limit = 200
 
       try {
         for (let step = 0; step < 10; step += 1) {
-          const response = await fetch(`/api/metrics/backlog?cursor=${cursor}&limit=${limit}`);
-          if (!response.ok) return;
+          const response = await fetch(`/api/metrics/backlog?cursor=${cursor}&limit=${limit}`)
+          if (!response.ok) return
 
           const data = (await response.json()) as {
-            events?: MetricStreamPayload[];
-            nextCursor?: number;
-            hasMore?: boolean;
-            latestCursor?: number;
-          };
+            events?: MetricStreamPayload[]
+            nextCursor?: number
+            hasMore?: boolean
+            latestCursor?: number
+          }
 
-          (data.events ?? []).forEach((event) => applyMetricPayload(event));
+          ;(data.events ?? []).forEach(event => applyMetricPayload(event))
 
-          cursor = Math.max(cursor, data.nextCursor ?? cursor);
+          cursor = Math.max(cursor, data.nextCursor ?? cursor)
           lastMetricCursorRef.current = Math.max(
             lastMetricCursorRef.current,
-            data.latestCursor ?? cursor,
-          );
+            data.latestCursor ?? cursor
+          )
 
-          if (!data.hasMore) break;
+          if (!data.hasMore) break
         }
       } catch {
         // ignore backlog fetch failure and continue with live stream
       }
-    };
+    }
 
     const connect = async () => {
-      if (isUnmounted) return;
+      if (isUnmounted) return
 
-      setStreamStatus(retryAttempt === 0 ? 'connecting' : 'reconnecting');
-      await fetchBacklog();
-      if (isUnmounted) return;
+      setStreamStatus(retryAttempt === 0 ? 'connecting' : 'reconnecting')
+      await fetchBacklog()
+      if (isUnmounted) return
 
-      eventSource = new EventSource('/api/metrics/stream');
+      eventSource = new EventSource('/api/metrics/stream')
 
       eventSource.onopen = () => {
-        retryAttempt = 0;
-        setStreamStatus('live');
-      };
+        retryAttempt = 0
+        setStreamStatus('live')
+      }
 
-      eventSource.addEventListener('metric', (event) => {
+      eventSource.addEventListener('metric', event => {
         try {
-          const payload = JSON.parse((event as MessageEvent<string>).data) as MetricStreamPayload;
-          applyMetricPayload(payload);
+          const payload = JSON.parse((event as MessageEvent<string>).data) as MetricStreamPayload
+          applyMetricPayload(payload)
         } catch {
           // ignore malformed stream event
         }
-      });
+      })
 
       eventSource.onerror = () => {
-        eventSource?.close();
-        eventSource = null;
+        eventSource?.close()
+        eventSource = null
 
-        if (isUnmounted) return;
-        setStreamStatus('reconnecting');
-        retryAttempt += 1;
-        const delay = Math.min(5000, 1000 * 2 ** Math.min(retryAttempt, 3));
-        reconnectTimer = setTimeout(connect, delay);
-      };
-    };
+        if (isUnmounted) return
+        setStreamStatus('reconnecting')
+        retryAttempt += 1
+        const delay = Math.min(5000, 1000 * 2 ** Math.min(retryAttempt, 3))
+        reconnectTimer = setTimeout(connect, delay)
+      }
+    }
 
-    connect();
+    connect()
 
     return () => {
-      isUnmounted = true;
-      setStreamStatus('offline');
+      isUnmounted = true
+      setStreamStatus('offline')
       if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
+        clearTimeout(reconnectTimer)
       }
-      eventSource?.close();
-    };
-  }, [isLiveEnabled]);
+      eventSource?.close()
+    }
+  }, [isLiveEnabled])
 
-  const metricSeries = useMemo(() => (liveMetrics.length > 0 ? liveMetrics : metrics), [liveMetrics, metrics]);
+  const metricSeries = useMemo(
+    () => (liveMetrics.length > 0 ? liveMetrics : metrics),
+    [liveMetrics, metrics]
+  )
 
-  const requestSeries = metricSeries.filter((series) => series.name.includes('request_rate'));
-  const errorSeries = metricSeries.filter((series) => series.name.includes('error_rate'));
-  const latencySeries = metricSeries.filter((series) => series.name.includes('latency_p95'));
+  const requestSeries = metricSeries.filter(series => series.name.includes('request_rate'))
+  const errorSeries = metricSeries.filter(series => series.name.includes('error_rate'))
+  const latencySeries = metricSeries.filter(series => series.name.includes('latency_p95'))
   const resourceSeries = metricSeries.filter(
-    (series) => series.name.includes('cpu_usage') || series.name.includes('memory_usage'),
-  );
+    series => series.name.includes('cpu_usage') || series.name.includes('memory_usage')
+  )
 
-  const getLastValue = (series?: MetricSeries) => (series ? getSeriesStats(series).last : 0);
+  const getLastValue = (series?: MetricSeries) => (series ? getSeriesStats(series).last : 0)
 
   const kpis = [
     {
@@ -537,18 +572,18 @@ export default function MetricsPage() {
       series: resourceSeries[0],
       color: theme.palette.success.main,
     },
-  ];
+  ]
 
-  const totalPanels = [
-    ...requestSeries,
-    ...errorSeries,
-    ...latencySeries,
-    ...resourceSeries,
-  ];
+  const totalPanels = [...requestSeries, ...errorSeries, ...latencySeries, ...resourceSeries]
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2, md: 3 } }}>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} alignItems={{ md: 'center' }} justifyContent="space-between">
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        spacing={1.5}
+        alignItems={{ md: 'center' }}
+        justifyContent="space-between"
+      >
         <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
           Metrics
         </Typography>
@@ -556,7 +591,7 @@ export default function MetricsPage() {
           <Button
             size="small"
             variant="outlined"
-            onClick={() => setIsLiveEnabled((prev) => !prev)}
+            onClick={() => setIsLiveEnabled(prev => !prev)}
             sx={{
               minWidth: 72,
               px: 1,
@@ -565,7 +600,10 @@ export default function MetricsPage() {
               borderColor: isLiveEnabled ? 'success.main' : 'divider',
               color: isLiveEnabled ? 'success.main' : 'text.secondary',
               '@keyframes neonPulse': {
-                '0%, 100%': { opacity: 1, textShadow: '0 0 6px rgba(74, 222, 128, 0.75), 0 0 12px rgba(74, 222, 128, 0.45)' },
+                '0%, 100%': {
+                  opacity: 1,
+                  textShadow: '0 0 6px rgba(74, 222, 128, 0.75), 0 0 12px rgba(74, 222, 128, 0.45)',
+                },
                 '50%': { opacity: 0.42, textShadow: '0 0 1px rgba(74, 222, 128, 0.3)' },
               },
             }}
@@ -577,7 +615,10 @@ export default function MetricsPage() {
                   height: 7,
                   borderRadius: '50%',
                   bgcolor: isLiveEnabled ? 'success.main' : 'text.disabled',
-                  animation: isLiveEnabled && streamStatus === 'live' ? 'neonPulse 1.2s ease-in-out infinite' : 'none',
+                  animation:
+                    isLiveEnabled && streamStatus === 'live'
+                      ? 'neonPulse 1.2s ease-in-out infinite'
+                      : 'none',
                 }}
               />
               <Typography
@@ -586,22 +627,31 @@ export default function MetricsPage() {
                   fontWeight: 800,
                   letterSpacing: 0.5,
                   color: isLiveEnabled ? 'success.main' : 'text.secondary',
-                  animation: isLiveEnabled && streamStatus === 'live' ? 'neonPulse 1.2s ease-in-out infinite' : 'none',
+                  animation:
+                    isLiveEnabled && streamStatus === 'live'
+                      ? 'neonPulse 1.2s ease-in-out infinite'
+                      : 'none',
                 }}
               >
                 LIVE
               </Typography>
             </Stack>
           </Button>
-          <Button size="small" variant="outlined">Last 8h</Button>
-          <Button size="small" variant="outlined" onClick={() => setLiveMetrics(metrics)}>Reset</Button>
+          <Button size="small" variant="outlined">
+            Last 8h
+          </Button>
+          <Button size="small" variant="outlined" onClick={() => setLiveMetrics(metrics)}>
+            Reset
+          </Button>
         </Stack>
       </Stack>
 
       <TextField
         fullWidth
         label="PromQL (Advanced)"
-        placeholder={'e.g. sum(rate(http_requests_total{service=~"checkout|api-gateway"}[5m])) by (service)'}
+        placeholder={
+          'e.g. sum(rate(http_requests_total{service=~"checkout|api-gateway"}[5m])) by (service)'
+        }
         helperText="Type a PromQL query to filter or compare metric series"
         size="small"
         InputLabelProps={{ shrink: true }}
@@ -717,7 +767,7 @@ export default function MetricsPage() {
       ) : (
         <>
           <Grid container spacing={2}>
-            {kpis.map((kpi) => (
+            {kpis.map(kpi => (
               <Grid item xs={12} sm={6} md={3} key={kpi.label}>
                 <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
                   <CardContent sx={{ p: 2 }}>
@@ -748,7 +798,13 @@ export default function MetricsPage() {
 
           <Grid container spacing={2}>
             <Grid item xs={12} lg={8}>
-              <TimeSeriesPanel title="Request Rate by Service" seriesList={requestSeries} chartType="area" xAxisWithSeconds niceYAxis />
+              <TimeSeriesPanel
+                title="Request Rate by Service"
+                seriesList={requestSeries}
+                chartType="area"
+                xAxisWithSeconds
+                niceYAxis
+              />
             </Grid>
             <Grid item xs={12} lg={4}>
               <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
@@ -757,10 +813,16 @@ export default function MetricsPage() {
                     Live Metric Values
                   </Typography>
                   <Stack divider={<Divider flexItem />} spacing={1}>
-                    {totalPanels.map((series) => {
-                      const stats = getSeriesStats(series);
+                    {totalPanels.map(series => {
+                      const stats = getSeriesStats(series)
                       return (
-                        <Stack key={series.id} direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 0.75 }}>
+                        <Stack
+                          key={series.id}
+                          direction="row"
+                          alignItems="center"
+                          justifyContent="space-between"
+                          sx={{ py: 0.75 }}
+                        >
                           <Typography variant="caption" sx={{ color: 'text.secondary', pr: 1 }}>
                             {series.name}
                           </Typography>
@@ -768,24 +830,39 @@ export default function MetricsPage() {
                             {formatMetricValue(stats.last, series.unit)} {series.unit}
                           </Typography>
                         </Stack>
-                      );
+                      )
                     })}
                   </Stack>
                 </CardContent>
               </Card>
             </Grid>
             <Grid item xs={12} md={6}>
-              <TimeSeriesPanel title="Error Rate Trend" seriesList={errorSeries} xAxisWithSeconds niceYAxis />
+              <TimeSeriesPanel
+                title="Error Rate Trend"
+                seriesList={errorSeries}
+                xAxisWithSeconds
+                niceYAxis
+              />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TimeSeriesPanel title="Latency p95 (ms)" seriesList={latencySeries} xAxisWithSeconds niceYAxis />
+              <TimeSeriesPanel
+                title="Latency p95 (ms)"
+                seriesList={latencySeries}
+                xAxisWithSeconds
+                niceYAxis
+              />
             </Grid>
             <Grid item xs={12}>
-              <TimeSeriesPanel title="Resource Usage (CPU/Memory)" seriesList={resourceSeries} xAxisWithSeconds niceYAxis />
+              <TimeSeriesPanel
+                title="Resource Usage (CPU/Memory)"
+                seriesList={resourceSeries}
+                xAxisWithSeconds
+                niceYAxis
+              />
             </Grid>
           </Grid>
         </>
       )}
     </Box>
-  );
+  )
 }

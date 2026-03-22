@@ -12,7 +12,7 @@ import {
   GlobalFilterState,
   MetricPoint,
   AiConversation,
-} from './types';
+} from './types'
 
 // ============ Filter Options ============
 
@@ -27,7 +27,7 @@ export const globalFilterOptions = {
   services: ['checkout', 'payments', 'search', 'gateway', 'notifications', 'auth', 'api-server'],
   envs: ['prod', 'staging', 'dev'] as const,
   clusters: ['apne2-a', 'apne2-b', 'usw2-a', 'usw2-b'],
-};
+}
 
 // ============ Dashboards ============
 
@@ -41,9 +41,27 @@ export const mockDashboards: Dashboard[] = [
     updatedAt: '2026-03-02T10:12:00Z',
     createdAt: '2026-02-15T14:20:00Z',
     widgets: [
-      { id: 'w1', type: 'kpi', title: 'Error Rate', config: { metric: 'error_rate', service: 'checkout' }, position: { x: 0, y: 0, w: 3, h: 2 } },
-      { id: 'w2', type: 'kpi', title: 'Latency p95', config: { metric: 'latency_p95', service: 'checkout' }, position: { x: 3, y: 0, w: 3, h: 2 } },
-      { id: 'w3', type: 'chart', title: 'Error Trend (24h)', config: { metric: 'error_rate' }, position: { x: 0, y: 2, w: 6, h: 3 } },
+      {
+        id: 'w1',
+        type: 'kpi',
+        title: 'Error Rate',
+        config: { metric: 'error_rate', service: 'checkout' },
+        position: { x: 0, y: 0, w: 3, h: 2 },
+      },
+      {
+        id: 'w2',
+        type: 'kpi',
+        title: 'Latency p95',
+        config: { metric: 'latency_p95', service: 'checkout' },
+        position: { x: 3, y: 0, w: 3, h: 2 },
+      },
+      {
+        id: 'w3',
+        type: 'chart',
+        title: 'Error Trend (24h)',
+        config: { metric: 'error_rate' },
+        position: { x: 0, y: 2, w: 6, h: 3 },
+      },
     ],
   },
   {
@@ -65,7 +83,7 @@ export const mockDashboards: Dashboard[] = [
     createdAt: '2025-12-01T12:00:00Z',
     widgets: [],
   },
-];
+]
 
 // ============ Logs ============
 
@@ -153,21 +171,25 @@ export const mockLogs: LogEntry[] = [
       blacklistSize: 5670,
     },
   },
-];
+]
 
 // ============ Metrics ============
 
-const generateMetricPoints = (baseValue: number, variance: number, count: number = 60): MetricPoint[] => {
-  const points: MetricPoint[] = [];
-  const now = Date.now();
+const generateMetricPoints = (
+  baseValue: number,
+  variance: number,
+  count: number = 60
+): MetricPoint[] => {
+  const points: MetricPoint[] = []
+  const now = Date.now()
   for (let i = count - 1; i >= 0; i--) {
     points.push({
       ts: now - i * 60000,
       value: baseValue + (Math.random() - 0.5) * variance,
-    });
+    })
   }
-  return points;
-};
+  return points
+}
 
 export const mockMetrics: MetricSeries[] = [
   {
@@ -212,7 +234,7 @@ export const mockMetrics: MetricSeries[] = [
     points: generateMetricPoints(78, 15, 60),
     color: '#8B5CF6',
   },
-];
+]
 
 // ============ Traces ============
 
@@ -240,7 +262,7 @@ const createTraceSpan = (
     'http.status_code': status === 'error' ? 500 : 200,
   },
   logs,
-});
+})
 
 const baseMockTraces: Trace[] = [
   {
@@ -252,27 +274,44 @@ const baseMockTraces: Trace[] = [
     status: 'slow',
     status_code: 200,
     spans: [
-      createTraceSpan('span-1', 'web-request', 'api-gateway', 520, Date.now() - 120000, undefined, 'ok', [
-        {
-          timestamp: Date.now() - 119998,
-          fields: {
-            event: 'HTTP request received',
-            level: 'info',
-            method: 'POST',
-            path: '/api/checkout',
+      createTraceSpan(
+        'span-1',
+        'web-request',
+        'api-gateway',
+        520,
+        Date.now() - 120000,
+        undefined,
+        'ok',
+        [
+          {
+            timestamp: Date.now() - 119998,
+            fields: {
+              event: 'HTTP request received',
+              level: 'info',
+              method: 'POST',
+              path: '/api/checkout',
+            },
           },
-        },
-        {
-          timestamp: Date.now() - 119650,
-          fields: {
-            event: 'Calling downstream services',
-            level: 'info',
-            services: 'inventory,payments,notifications',
+          {
+            timestamp: Date.now() - 119650,
+            fields: {
+              event: 'Calling downstream services',
+              level: 'info',
+              services: 'inventory,payments,notifications',
+            },
           },
-        },
-      ]),
+        ]
+      ),
       createTraceSpan('span-2', 'validate-cart', 'checkout', 45, Date.now() - 119980, 'span-1'),
-      createTraceSpan('span-3', 'fetch-inventory', 'inventory', 200, Date.now() - 119930, 'span-1', 'slow'),
+      createTraceSpan(
+        'span-3',
+        'fetch-inventory',
+        'inventory',
+        200,
+        Date.now() - 119930,
+        'span-1',
+        'slow'
+      ),
       createTraceSpan('span-3-1', 'redis-get', 'redis', 50, Date.now() - 119920, 'span-3'),
       createTraceSpan('span-3-2', 'db-query', 'db', 140, Date.now() - 119870, 'span-3', 'slow', [
         {
@@ -285,35 +324,61 @@ const baseMockTraces: Trace[] = [
           },
         },
       ]),
-      createTraceSpan('span-4', 'charge-payment', 'payments', 250, Date.now() - 119730, 'span-1', 'slow'),
-      createTraceSpan('span-4-1', 'call-stripe', 'stripe-gateway', 230, Date.now() - 119720, 'span-4', 'slow', [
-        {
-          timestamp: Date.now() - 119700,
-          fields: {
-            event: 'Stripe API request started',
-            level: 'info',
-            endpoint: '/v1/charges',
+      createTraceSpan(
+        'span-4',
+        'charge-payment',
+        'payments',
+        250,
+        Date.now() - 119730,
+        'span-1',
+        'slow'
+      ),
+      createTraceSpan(
+        'span-4-1',
+        'call-stripe',
+        'stripe-gateway',
+        230,
+        Date.now() - 119720,
+        'span-4',
+        'slow',
+        [
+          {
+            timestamp: Date.now() - 119700,
+            fields: {
+              event: 'Stripe API request started',
+              level: 'info',
+              endpoint: '/v1/charges',
+            },
           },
-        },
-        {
-          timestamp: Date.now() - 119505,
-          fields: {
-            event: 'Stripe API response delayed',
-            level: 'warn',
-            latency_ms: 230,
+          {
+            timestamp: Date.now() - 119505,
+            fields: {
+              event: 'Stripe API response delayed',
+              level: 'warn',
+              latency_ms: 230,
+            },
           },
-        },
-      ]),
-      createTraceSpan('span-5', 'send-confirmation', 'notifications', 25, Date.now() - 119480, 'span-1', 'ok', [
-        {
-          timestamp: Date.now() - 119465,
-          fields: {
-            event: 'Confirmation enqueued',
-            level: 'info',
-            provider: 'email',
+        ]
+      ),
+      createTraceSpan(
+        'span-5',
+        'send-confirmation',
+        'notifications',
+        25,
+        Date.now() - 119480,
+        'span-1',
+        'ok',
+        [
+          {
+            timestamp: Date.now() - 119465,
+            fields: {
+              event: 'Confirmation enqueued',
+              level: 'info',
+              provider: 'email',
+            },
           },
-        },
-      ]),
+        ]
+      ),
     ],
   },
   {
@@ -327,7 +392,14 @@ const baseMockTraces: Trace[] = [
     spans: [
       createTraceSpan('span-a', 'web-request', 'api-gateway', 180, Date.now() - 60000),
       createTraceSpan('span-b', 'parse-query', 'search', 10, Date.now() - 59990, 'span-a'),
-      createTraceSpan('span-c', 'elasticsearch-search', 'elasticsearch', 160, Date.now() - 59980, 'span-a'),
+      createTraceSpan(
+        'span-c',
+        'elasticsearch-search',
+        'elasticsearch',
+        160,
+        Date.now() - 59980,
+        'span-a'
+      ),
       createTraceSpan('span-d', 'format-results', 'search', 10, Date.now() - 59820, 'span-a'),
     ],
   },
@@ -340,12 +412,28 @@ const baseMockTraces: Trace[] = [
     status: 'error',
     status_code: 500,
     spans: [
-      createTraceSpan('span-x', 'web-request', 'api-gateway', 2500, Date.now() - 30000, undefined, 'error'),
+      createTraceSpan(
+        'span-x',
+        'web-request',
+        'api-gateway',
+        2500,
+        Date.now() - 30000,
+        undefined,
+        'error'
+      ),
       createTraceSpan('span-y', 'validate-refund', 'payments', 50, Date.now() - 29990, 'span-x'),
-      createTraceSpan('span-z', 'call-stripe', 'stripe-gateway', 2400, Date.now() - 29940, 'span-x', 'error'),
+      createTraceSpan(
+        'span-z',
+        'call-stripe',
+        'stripe-gateway',
+        2400,
+        Date.now() - 29940,
+        'span-x',
+        'error'
+      ),
     ],
   },
-];
+]
 
 const syntheticTraceServices = [
   'checkout',
@@ -355,7 +443,7 @@ const syntheticTraceServices = [
   'notifications',
   'auth',
   'api-server',
-];
+]
 
 const syntheticTraceOperations = [
   'POST /api/checkout',
@@ -365,37 +453,45 @@ const syntheticTraceOperations = [
   'GET /api/orders',
   'POST /api/notify',
   'PUT /api/profile',
-];
+]
 
 const pseudoNoise = (index: number, salt: number) => {
-  const raw = Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453;
-  return raw - Math.floor(raw);
-};
+  const raw = Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453
+  return raw - Math.floor(raw)
+}
 
 const buildSyntheticTrace = (index: number): Trace => {
-  const traceId = `trace-auto-${index.toString().padStart(3, '0')}`;
-  const service = syntheticTraceServices[index % syntheticTraceServices.length];
-  const operation = syntheticTraceOperations[index % syntheticTraceOperations.length];
-  const jitterA = pseudoNoise(index, 1);
-  const jitterB = pseudoNoise(index, 2);
-  const jitterC = pseudoNoise(index, 3);
-  const spikeBonus = jitterB > 0.84 ? 700 + Math.floor(jitterC * 1800) : 0;
-  const duration = 80 + Math.floor(jitterA * 980) + spikeBonus;
+  const traceId = `trace-auto-${index.toString().padStart(3, '0')}`
+  const service = syntheticTraceServices[index % syntheticTraceServices.length]
+  const operation = syntheticTraceOperations[index % syntheticTraceOperations.length]
+  const jitterA = pseudoNoise(index, 1)
+  const jitterB = pseudoNoise(index, 2)
+  const jitterC = pseudoNoise(index, 3)
+  const spikeBonus = jitterB > 0.84 ? 700 + Math.floor(jitterC * 1800) : 0
+  const duration = 80 + Math.floor(jitterA * 980) + spikeBonus
   const lookbackMs =
     90 * 1000 +
     index * (18 * 1000 + Math.floor(jitterA * 52 * 1000)) +
-    Math.floor(jitterB * 75 * 1000);
-  const startTime = Date.now() - lookbackMs;
-  const status = jitterC > 0.9 ? 'error' : jitterA > 0.62 ? 'slow' : 'ok';
-  const statusCode = status === 'error' ? 500 : status === 'slow' ? 302 : 200;
+    Math.floor(jitterB * 75 * 1000)
+  const startTime = Date.now() - lookbackMs
+  const status = jitterC > 0.9 ? 'error' : jitterA > 0.62 ? 'slow' : 'ok'
+  const statusCode = status === 'error' ? 500 : status === 'slow' ? 302 : 200
 
-  const rootSpanId = `${traceId}-span-root`;
-  const appSpanId = `${traceId}-span-app`;
-  const dbSpanId = `${traceId}-span-db`;
-  const extSpanId = `${traceId}-span-ext`;
+  const rootSpanId = `${traceId}-span-root`
+  const appSpanId = `${traceId}-span-app`
+  const dbSpanId = `${traceId}-span-db`
+  const extSpanId = `${traceId}-span-ext`
 
   const rawSpans: TraceSpan[] = [
-    createTraceSpan(rootSpanId, 'http-request', 'api-gateway', duration, startTime, undefined, status),
+    createTraceSpan(
+      rootSpanId,
+      'http-request',
+      'api-gateway',
+      duration,
+      startTime,
+      undefined,
+      status
+    ),
     createTraceSpan(
       appSpanId,
       'app-handler',
@@ -423,9 +519,9 @@ const buildSyntheticTrace = (index: number): Trace => {
       appSpanId,
       status === 'error' ? 'error' : jitterB > 0.78 ? 'slow' : 'ok'
     ),
-  ];
+  ]
 
-  const spans = rawSpans.map((span) => ({ ...span, traceId }));
+  const spans = rawSpans.map(span => ({ ...span, traceId }))
 
   return {
     id: traceId,
@@ -440,12 +536,14 @@ const buildSyntheticTrace = (index: number): Trace => {
       environment: index % 6 === 0 ? 'staging' : 'prod',
       region: ['ap-northeast-2', 'us-west-2', 'eu-west-1'][index % 3],
     },
-  };
-};
+  }
+}
 
-const syntheticMockTraces: Trace[] = Array.from({ length: 97 }, (_, idx) => buildSyntheticTrace(idx + 4));
+const syntheticMockTraces: Trace[] = Array.from({ length: 97 }, (_, idx) =>
+  buildSyntheticTrace(idx + 4)
+)
 
-export const mockTraces: Trace[] = [...baseMockTraces, ...syntheticMockTraces];
+export const mockTraces: Trace[] = [...baseMockTraces, ...syntheticMockTraces]
 
 // ============ Alerts ============
 
@@ -502,7 +600,7 @@ export const mockAlerts: Alert[] = [
     triggerCount: 1,
     lastTriggeredAt: '2026-03-01T18:20:00Z',
   },
-];
+]
 
 export const mockAlertEvents: AlertEvent[] = [
   {
@@ -528,7 +626,7 @@ export const mockAlertEvents: AlertEvent[] = [
     status: 'resolved',
     resolvedAt: '2026-03-02T10:15:00Z',
   },
-];
+]
 
 // ============ Integrations ============
 
@@ -568,7 +666,7 @@ export const mockIntegrations: Integration[] = [
     lastTestedAt: '2026-03-01T14:00:00Z',
     lastTestStatus: 'success',
   },
-];
+]
 
 // ============ Services ============
 
@@ -618,7 +716,7 @@ export const mockServices: ServiceInfo[] = [
     owner: 'SRE Team',
     tags: { team: 'communications', criticality: 'medium' },
   },
-];
+]
 
 // ============ AI Chat ============
 
@@ -693,7 +791,7 @@ The root cause appears to be the Stripe API degradation. Recommend:
       actionTarget: 'service:checkout,service:gateway,level:ERROR',
     },
   },
-];
+]
 
 export const mockAiConversations: AiConversation[] = [
   {
@@ -707,7 +805,7 @@ export const mockAiConversations: AiConversation[] = [
       timeRange: '1h',
     },
   },
-];
+]
 
 // ============ Global Filter State (default) ============
 
@@ -718,22 +816,20 @@ export const defaultGlobalFilter: GlobalFilterState = {
   service: [],
   env: ['prod'],
   cluster: [],
-};
+}
 
 // ============ Helper Functions ============
 
-export const getLogsByService = (service: string) =>
-  mockLogs.filter((log) => log.service === service);
+export const getLogsByService = (service: string) => mockLogs.filter(log => log.service === service)
 
 export const getMetricsByService = (service: string) =>
-  mockMetrics.filter((metric) => metric.service === service);
+  mockMetrics.filter(metric => metric.service === service)
 
 export const getServiceStatus = (service: string) =>
-  mockServices.find((s) => s.name === service)?.status || 'unknown';
+  mockServices.find(s => s.name === service)?.status || 'unknown'
 
 export const getAlertsByService = (service: string) =>
-  mockAlerts.filter((alert) => alert.condition.metric.includes(service));
-
+  mockAlerts.filter(alert => alert.condition.metric.includes(service))
 
 const makeMetricSeries = (
   id: string,
@@ -744,25 +840,25 @@ const makeMetricSeries = (
   slope: number,
   spikeEvery: number,
   spikeSize: number,
-  service?: string,
+  service?: string
 ): MetricSeries => {
-  const points: MetricPoint[] = [];
-  const totalPoints = 96;
-  const intervalMs = 5 * 60 * 1000;
-  const start = Date.now() - totalPoints * intervalMs;
+  const points: MetricPoint[] = []
+  const totalPoints = 96
+  const intervalMs = 5 * 60 * 1000
+  const start = Date.now() - totalPoints * intervalMs
 
   for (let index = 0; index < totalPoints; index += 1) {
-    const waveA = Math.sin(index / 6) * amplitude;
-    const waveB = Math.cos(index / 11) * (amplitude * 0.4);
-    const trend = slope * index;
-    const spike = index % spikeEvery === 0 && index > 0 ? spikeSize : 0;
-    const jitter = ((index % 5) - 2) * (amplitude * 0.06);
-    const value = Math.max(0, base + waveA + waveB + trend + spike + jitter);
+    const waveA = Math.sin(index / 6) * amplitude
+    const waveB = Math.cos(index / 11) * (amplitude * 0.4)
+    const trend = slope * index
+    const spike = index % spikeEvery === 0 && index > 0 ? spikeSize : 0
+    const jitter = ((index % 5) - 2) * (amplitude * 0.06)
+    const value = Math.max(0, base + waveA + waveB + trend + spike + jitter)
 
     points.push({
       ts: start + index * intervalMs,
       value: Number(value.toFixed(unit === '%' ? 3 : 2)),
-    });
+    })
   }
 
   return {
@@ -771,21 +867,61 @@ const makeMetricSeries = (
     unit,
     service,
     points,
-  };
-};
+  }
+}
 
 export const mockMetricSeries: MetricSeries[] = [
-  makeMetricSeries('m-req-checkout', 'request_rate_checkout', 'req/s', 980, 120, 0.9, 19, 140, 'checkout'),
+  makeMetricSeries(
+    'm-req-checkout',
+    'request_rate_checkout',
+    'req/s',
+    980,
+    120,
+    0.9,
+    19,
+    140,
+    'checkout'
+  ),
   makeMetricSeries('m-req-api', 'request_rate_api', 'req/s', 760, 95, 0.6, 23, 100, 'api-gateway'),
-  makeMetricSeries('m-err-checkout', 'error_rate_checkout', '%', 0.35, 0.18, 0.001, 17, 0.6, 'checkout'),
+  makeMetricSeries(
+    'm-err-checkout',
+    'error_rate_checkout',
+    '%',
+    0.35,
+    0.18,
+    0.001,
+    17,
+    0.6,
+    'checkout'
+  ),
   makeMetricSeries('m-err-api', 'error_rate_api', '%', 0.22, 0.14, 0.0008, 29, 0.45, 'api-gateway'),
-  makeMetricSeries('m-p95-checkout', 'latency_p95_checkout', 'ms', 280, 45, 0.2, 31, 65, 'checkout'),
+  makeMetricSeries(
+    'm-p95-checkout',
+    'latency_p95_checkout',
+    'ms',
+    280,
+    45,
+    0.2,
+    31,
+    65,
+    'checkout'
+  ),
   makeMetricSeries('m-p95-api', 'latency_p95_api', 'ms', 190, 30, 0.12, 27, 40, 'api-gateway'),
   makeMetricSeries('m-cpu-checkout', 'cpu_usage_checkout', '%', 48, 10, 0.05, 25, 11, 'checkout'),
   makeMetricSeries('m-mem-checkout', 'memory_usage_checkout', '%', 61, 8, 0.04, 33, 8, 'checkout'),
-];
+]
 
 export const mockAiConversation: AiMessage[] = [
-  { id: 'a1', role: 'assistant', content: '어떤 이상 징후를 분석할까요? 현재 p95 latency가 상승 중입니다.', timestamp: Date.now() - 60000 },
-  { id: 'a2', role: 'user', content: 'checkout 서비스 에러율 급증 원인 알려줘.', timestamp: Date.now() - 30000 },
-];
+  {
+    id: 'a1',
+    role: 'assistant',
+    content: '어떤 이상 징후를 분석할까요? 현재 p95 latency가 상승 중입니다.',
+    timestamp: Date.now() - 60000,
+  },
+  {
+    id: 'a2',
+    role: 'user',
+    content: 'checkout 서비스 에러율 급증 원인 알려줘.',
+    timestamp: Date.now() - 30000,
+  },
+]
