@@ -23,7 +23,7 @@ export default function FilterTag({ value, onDelete, sx }: FilterTagProps) {
         color: isLuceneFormat ? 'warning.dark' : 'info.dark',
         borderColor: isLuceneFormat ? 'warning.main' : 'info.main',
         '& .MuiChip-deleteIcon': {
-          margin: 0,
+          'margin-right': 4,
         },
         '&:hover': {
           backgroundColor: isLuceneFormat ? 'warning.light' : 'info.light',

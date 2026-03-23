@@ -16,6 +16,7 @@ import { apiClient } from '@/lib/apiClient'
 import { LogEntry } from '@/lib/types'
 import LogsTable from '@/components/logs/LogsTable'
 import LogFilters from '@/components/logs/LogFilters'
+import LiveButton from '@/components/logs/LogFilters/LiveButton'
 import NoDataState from '@/components/common/NoDataState'
 import { LogsHistogram, type HistogramDataItem } from '@/components/logs/LogsHistogram'
 import { FieldExplorer } from '@/components/logs/FieldExplorer'
@@ -103,14 +104,38 @@ export default function LogsPage() {
   const [selectedHosts, setSelectedHosts] = useState<string[]>(['All'])
   const [customFilters, setCustomFilters] = useState<string[]>([])
 
+  // customFilters에서 key:value 파싱 → API 파라미터 추출
+  const apiFilterParams = useMemo(() => {
+    const params: Record<string, string> = {}
+    for (const f of customFilters) {
+      const idx = f.indexOf(':')
+      if (idx === -1) continue
+      const key = f.slice(0, idx).trim()
+      const val = f.slice(idx + 1).trim()
+      if (key === 'service') params.service = val
+      else if (key === 'level') params.level = val
+      else if (key === 'env') params.env = val
+      else if (key === 'index') params.log_source = val === 'logs-app' ? 'app' : 'host'
+    }
+    return params
+  }, [customFilters])
+
   const {
     data: queryLogsData,
     refetch,
     isLoading: isLogsLoading,
     isFetched: isLogsFetched,
   } = useQuery({
-    queryKey: ['logs', timeRange],
-    queryFn: () => apiClient.getLogsLegacy(timeRange),
+    queryKey: ['logs', timeRange, apiFilterParams],
+    queryFn: async () => {
+      const params = new URLSearchParams({ limit: '1000' })
+      if (timeRange && timeRange !== 'all') params.append('timeRange', timeRange)
+      Object.entries(apiFilterParams).forEach(([k, v]) => params.append(k, v))
+      const res = await fetch(`/api/observability/logs?${params.toString()}`)
+      if (!res.ok) return []
+      const data = await res.json() as { logs?: LogEntry[] }
+      return Array.isArray(data.logs) ? data.logs : []
+    },
   })
   const queryLogs = queryLogsData ?? EMPTY_LOGS
 
@@ -508,23 +533,7 @@ export default function LogsPage() {
         <LogFilters
           query={query}
           onQueryChange={setQuery}
-          timeRange={timeRange}
-          onTimeRangeChange={setTimeRange}
           onRefresh={refetch}
-          isLiveEnabled={isLiveEnabled}
-          onLiveEnabledChange={setIsLiveEnabled}
-          isLiveStreaming={isLiveStreaming}
-          logSource={logSource}
-          onLogSourceChange={setLogSource}
-          filterOptions={filterOptions}
-          selectedServices={selectedServices}
-          onSelectedServicesChange={setSelectedServices}
-          selectedEnvs={selectedEnvs}
-          onSelectedEnvsChange={setSelectedEnvs}
-          selectedLevels={selectedLevels}
-          onSelectedLevelsChange={setSelectedLevels}
-          selectedHosts={selectedHosts}
-          onSelectedHostsChange={setSelectedHosts}
           customFilters={customFilters}
           onCustomFiltersChange={setCustomFilters}
         />
@@ -541,23 +550,7 @@ export default function LogsPage() {
         <LogFilters
           query={query}
           onQueryChange={setQuery}
-          timeRange={timeRange}
-          onTimeRangeChange={setTimeRange}
           onRefresh={refetch}
-          isLiveEnabled={isLiveEnabled}
-          onLiveEnabledChange={setIsLiveEnabled}
-          isLiveStreaming={isLiveStreaming}
-          logSource={logSource}
-          onLogSourceChange={setLogSource}
-          filterOptions={filterOptions}
-          selectedServices={selectedServices}
-          onSelectedServicesChange={setSelectedServices}
-          selectedEnvs={selectedEnvs}
-          onSelectedEnvsChange={setSelectedEnvs}
-          selectedLevels={selectedLevels}
-          onSelectedLevelsChange={setSelectedLevels}
-          selectedHosts={selectedHosts}
-          onSelectedHostsChange={setSelectedHosts}
           customFilters={customFilters}
           onCustomFiltersChange={setCustomFilters}
         />
@@ -568,9 +561,16 @@ export default function LogsPage() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2, md: 3 } }}>
-      <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-        Logs
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+          Logs
+        </Typography>
+        <LiveButton
+          value={isLiveEnabled}
+          onChange={setIsLiveEnabled}
+          isStreaming={isLiveStreaming}
+        />
+      </Box>
 
       <Paper
         variant="outlined"
@@ -584,21 +584,9 @@ export default function LogsPage() {
           <LogFilters
             query={query}
             onQueryChange={setQuery}
-            timeRange={timeRange}
-            onTimeRangeChange={setTimeRange}
             onRefresh={refetch}
-            isLiveEnabled={isLiveEnabled}
-            onLiveEnabledChange={setIsLiveEnabled}
-            isLiveStreaming={isLiveStreaming}
-            logSource={logSource}
-            onLogSourceChange={setLogSource}
-            filterOptions={filterOptions}
-            selectedServices={selectedServices}
-            onSelectedServicesChange={setSelectedServices}
-            selectedEnvs={selectedEnvs}
-            onSelectedEnvsChange={setSelectedEnvs}
-            selectedLevels={selectedLevels}
-            onSelectedLevelsChange={setSelectedLevels}
+            customFilters={customFilters}
+            onCustomFiltersChange={setCustomFilters}
           />
         </Box>
 
@@ -610,10 +598,10 @@ export default function LogsPage() {
           }}
         >
           <FieldExplorer
-            fieldSearch={fieldSearch}
-            onFieldSearchChange={setFieldSearch}
-            filteredFields={filteredFields}
             onAppendFieldFilter={appendFieldFilter}
+            filterOptions={filterOptions}
+            timeRange={timeRange}
+            onTimeRangeChange={setTimeRange}
           />
 
           <Box sx={{ p: 1.5 }}>
