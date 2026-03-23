@@ -27,6 +27,8 @@ type LogStreamPayload = {
   log: LogEntry
 }
 
+type LogSource = 'all' | 'app' | 'host'
+
 type InternalHistogramBucket = {
   key: number
   label: Date
@@ -77,11 +79,29 @@ export default function LogsPage() {
   const [query, setQuery] = useState('')
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null)
   const [activeTab, setActiveTab] = useState<'logs' | 'patterns' | 'exceptions'>('logs')
-  const [isLuceneMode, setIsLuceneMode] = useState(true)
   const [timeRange, setTimeRange] = useState<'15m' | '1h' | '6h' | '24h' | 'all'>('15m')
+  const [logSource, setLogSource] = useState<LogSource>('all')
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [fieldSearch, setFieldSearch] = useState('')
   const [selectedBucketKey, setSelectedBucketKey] = useState<number | null>(null)
+
+  // 필터 옵션 목록 수신
+  const { data: filterOptions, isLoading: isFilterOptionsLoading } = useQuery({
+    queryKey: ['logFilterOptions'],
+    queryFn: async () => {
+      // OpenAPI 엔드포인트에 맞게 직접 fetch 사용
+      const response = await fetch('/api/observability/logs/filters')
+      if (!response.ok) return undefined
+      const data = await response.json()
+      return data
+    },
+  })
+  // 필터 상태 관리
+  const [selectedServices, setSelectedServices] = useState<string[]>(['All'])
+  const [selectedEnvs, setSelectedEnvs] = useState<string[]>(['All'])
+  const [selectedLevels, setSelectedLevels] = useState<string[]>(['All'])
+  const [selectedHosts, setSelectedHosts] = useState<string[]>(['All'])
+  const [customFilters, setCustomFilters] = useState<string[]>([])
 
   const {
     data: queryLogsData,
@@ -261,11 +281,38 @@ export default function LogsPage() {
     })
 
     const byQuery = byTime.filter(log => {
-      if (!query.trim()) return true
+      // customFilters 적용
+      if (customFilters.length > 0) {
+        return customFilters.every(filter => {
+          const lowerFilter = filter.toLowerCase()
+          const logText =
+            `${log.service} ${log.message} ${log.level} ${JSON.stringify(log.metadata ?? {})}`.toLowerCase()
 
-      if (isLuceneMode) {
-        return luceneMatch(log, query)
+          // lucene 형태 (key:value) 체크
+          if (lowerFilter.includes(':')) {
+            const [key, value] = lowerFilter.split(':')
+            if (key === 'service') {
+              return log.service.toLowerCase().includes(value)
+            }
+            if (key === 'env' || key === 'environment') {
+              return log.env.toLowerCase().includes(value)
+            }
+            if (key === 'level') {
+              return log.level.toLowerCase().includes(value)
+            }
+            // metadata 필드 검색
+            const metadata = log.metadata ?? {}
+            const metaValue = String(metadata[key] ?? '').toLowerCase()
+            return metaValue.includes(value)
+          }
+
+          // 일반 텍스트 검색
+          return logText.includes(lowerFilter)
+        })
       }
+
+      // query 기반 검색 (기존 로직 유지)
+      if (!query.trim()) return true
 
       return `${log.service} ${log.message} ${log.level} ${JSON.stringify(log.metadata ?? {})}`
         .toLowerCase()
@@ -273,10 +320,9 @@ export default function LogsPage() {
     })
 
     return activeTab === 'exceptions' ? byQuery.filter(log => log.level === 'ERROR') : byQuery
-  }, [logs, query, isLuceneMode, timeRange, activeTab])
+  }, [logs, query, timeRange, activeTab, customFilters])
 
   const appendFieldFilter = (field: string) => {
-    setIsLuceneMode(true)
     setQuery(prev => {
       const token = `${field}:`
       if (prev.includes(token)) return prev
@@ -451,7 +497,7 @@ export default function LogsPage() {
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
-  }, [query, timeRange, isLuceneMode, activeTab, selectedBucketKey])
+  }, [query, timeRange, activeTab, selectedBucketKey])
 
   if (isLogsLoading) {
     return (
@@ -459,16 +505,29 @@ export default function LogsPage() {
         <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
           Logs
         </Typography>
-        <Paper
-          variant="outlined"
-          sx={{ borderColor: 'divider', bgcolor: 'background.paper', p: 1.5 }}
-        >
-          <Stack gap={1.25}>
-            <Skeleton variant="rounded" height={40} />
-            <Skeleton variant="rounded" height={220} />
-            <Skeleton variant="rounded" height={260} />
-          </Stack>
-        </Paper>
+        <LogFilters
+          query={query}
+          onQueryChange={setQuery}
+          timeRange={timeRange}
+          onTimeRangeChange={setTimeRange}
+          onRefresh={refetch}
+          isLiveEnabled={isLiveEnabled}
+          onLiveEnabledChange={setIsLiveEnabled}
+          isLiveStreaming={isLiveStreaming}
+          logSource={logSource}
+          onLogSourceChange={setLogSource}
+          filterOptions={filterOptions}
+          selectedServices={selectedServices}
+          onSelectedServicesChange={setSelectedServices}
+          selectedEnvs={selectedEnvs}
+          onSelectedEnvsChange={setSelectedEnvs}
+          selectedLevels={selectedLevels}
+          onSelectedLevelsChange={setSelectedLevels}
+          selectedHosts={selectedHosts}
+          onSelectedHostsChange={setSelectedHosts}
+          customFilters={customFilters}
+          onCustomFiltersChange={setCustomFilters}
+        />
       </Box>
     )
   }
@@ -479,6 +538,29 @@ export default function LogsPage() {
         <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
           Logs
         </Typography>
+        <LogFilters
+          query={query}
+          onQueryChange={setQuery}
+          timeRange={timeRange}
+          onTimeRangeChange={setTimeRange}
+          onRefresh={refetch}
+          isLiveEnabled={isLiveEnabled}
+          onLiveEnabledChange={setIsLiveEnabled}
+          isLiveStreaming={isLiveStreaming}
+          logSource={logSource}
+          onLogSourceChange={setLogSource}
+          filterOptions={filterOptions}
+          selectedServices={selectedServices}
+          onSelectedServicesChange={setSelectedServices}
+          selectedEnvs={selectedEnvs}
+          onSelectedEnvsChange={setSelectedEnvs}
+          selectedLevels={selectedLevels}
+          onSelectedLevelsChange={setSelectedLevels}
+          selectedHosts={selectedHosts}
+          onSelectedHostsChange={setSelectedHosts}
+          customFilters={customFilters}
+          onCustomFiltersChange={setCustomFilters}
+        />
         <NoDataState title="No logs data" description="로그 데이터를 찾지 못했습니다." />
       </Box>
     )
@@ -502,14 +584,21 @@ export default function LogsPage() {
           <LogFilters
             query={query}
             onQueryChange={setQuery}
-            isLuceneMode={isLuceneMode}
-            onLuceneModeChange={setIsLuceneMode}
             timeRange={timeRange}
             onTimeRangeChange={setTimeRange}
             onRefresh={refetch}
             isLiveEnabled={isLiveEnabled}
             onLiveEnabledChange={setIsLiveEnabled}
             isLiveStreaming={isLiveStreaming}
+            logSource={logSource}
+            onLogSourceChange={setLogSource}
+            filterOptions={filterOptions}
+            selectedServices={selectedServices}
+            onSelectedServicesChange={setSelectedServices}
+            selectedEnvs={selectedEnvs}
+            onSelectedEnvsChange={setSelectedEnvs}
+            selectedLevels={selectedLevels}
+            onSelectedLevelsChange={setSelectedLevels}
           />
         </Box>
 
