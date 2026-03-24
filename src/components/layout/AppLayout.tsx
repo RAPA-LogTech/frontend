@@ -26,8 +26,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [filters, setFilters] = useState<GlobalFilterState>(defaultGlobalFilter)
   const [aiChatOpen, setAiChatOpen] = useState(false)
 
-  const showGlobalFilterBar = pathname === '/traces' || pathname === '/metrics'
-
   const handleDrawerToggle = () => {
     setMobileDrawerOpen(!mobileDrawerOpen)
   }
@@ -106,11 +104,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
               width: '100%',
             }}
           >
-            {showGlobalFilterBar ? (
-              <Box sx={{ mb: 2 }}>
-                <GlobalFilterBar value={filters} onChange={setFilters} />
-              </Box>
-            ) : null}
             {children}
           </Box>
         </Box>

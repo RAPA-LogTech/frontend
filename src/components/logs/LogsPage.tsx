@@ -79,7 +79,6 @@ export default function LogsPage() {
   const lastLogCursorRef = useRef(0)
   const [query, setQuery] = useState('')
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null)
-  const [activeTab, setActiveTab] = useState<'logs' | 'patterns' | 'exceptions'>('logs')
   const [timeRange, setTimeRange] = useState<'15m' | '1h' | '6h' | '24h' | 'all'>('15m')
   const [logSource, setLogSource] = useState<LogSource>('all')
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
@@ -133,7 +132,7 @@ export default function LogsPage() {
       Object.entries(apiFilterParams).forEach(([k, v]) => params.append(k, v))
       const res = await fetch(`/api/observability/logs?${params.toString()}`)
       if (!res.ok) return []
-      const data = await res.json() as { logs?: LogEntry[] }
+      const data = (await res.json()) as { logs?: LogEntry[] }
       return Array.isArray(data.logs) ? data.logs : []
     },
   })
@@ -344,8 +343,8 @@ export default function LogsPage() {
         .includes(query.toLowerCase())
     })
 
-    return activeTab === 'exceptions' ? byQuery.filter(log => log.level === 'ERROR') : byQuery
-  }, [logs, query, timeRange, activeTab, customFilters])
+    return byQuery
+  }, [logs, query, timeRange, customFilters])
 
   const appendFieldFilter = (field: string) => {
     setQuery(prev => {
@@ -522,7 +521,7 @@ export default function LogsPage() {
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
-  }, [query, timeRange, activeTab, selectedBucketKey])
+  }, [query, timeRange, selectedBucketKey])
 
   if (isLogsLoading) {
     return (
@@ -631,19 +630,6 @@ export default function LogsPage() {
                   selectedBucketKey={selectedBucketKey}
                   onSelectBucket={setSelectedBucketKey}
                 />
-
-                <ToggleButtonGroup
-                  exclusive
-                  value={activeTab}
-                  onChange={(_, value) => value && setActiveTab(value)}
-                  size="small"
-                  sx={{ mb: 1.5 }}
-                >
-                  <ToggleButton value="logs">Logs</ToggleButton>
-                  <ToggleButton value="patterns">Patterns</ToggleButton>
-                  <ToggleButton value="exceptions">Exceptions ({exceptionCount})</ToggleButton>
-                </ToggleButtonGroup>
-
                 <Box
                   onScroll={handleTableScroll}
                   sx={{

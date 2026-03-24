@@ -3,395 +3,263 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  Button,
   Box,
   Card,
   CardContent,
+  Chip,
   Divider,
   Grid,
-  InputAdornment,
+  Paper,
   Skeleton,
   Stack,
-  TextField,
+  Tab,
+  Tabs,
   Typography,
   useTheme,
 } from '@mui/material'
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
+import { Area, AreaChart, ResponsiveContainer, YAxis } from 'recharts'
 import type { MetricSeries } from '@/lib/types'
 import { apiClient } from '@/lib/apiClient'
 import NoDataState from '@/components/common/NoDataState'
+import LiveButton from '@/components/logs/LogFilters/LiveButton'
 
 type MetricStreamPayload = {
   cursor: number
   ts: number
-  points: Array<{
-    id: string
-    ts: number
-    value: number
-  }>
+  points: Array<{ id: string; ts: number; value: number }>
 }
 
 const EMPTY_METRICS: MetricSeries[] = []
 
-const formatMetricValue = (value: number, unit: string) => {
-  if (unit === 'req/s') {
-    return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toFixed(0)
-  }
-  if (unit === '%') {
-    return value.toFixed(2)
-  }
-  if (unit === 'ms') {
-    return value.toFixed(0)
-  }
-  return value.toFixed(1)
+const getSeriesLast = (series?: MetricSeries) =>
+  series ? (series.points[series.points.length - 1]?.value ?? 0) : 0
+
+const getSeriesAvg = (series?: MetricSeries) => {
+  if (!series || series.points.length === 0) return 0
+  return series.points.reduce((s, p) => s + p.value, 0) / series.points.length
 }
 
-const formatTimeLabel = (timestamp: number, withSeconds: boolean) => {
-  const date = new Date(timestamp)
-  const hh = String(date.getHours()).padStart(2, '0')
-  const mm = String(date.getMinutes()).padStart(2, '0')
-  const ss = String(date.getSeconds()).padStart(2, '0')
-  return withSeconds ? `${hh}:${mm}:${ss}` : `${hh}:${mm}`
+function StatusBadge({ value }: { value: number }) {
+  const isWarn = value > 1
+  return (
+    <Chip
+      label={isWarn ? '주의' : '정상'}
+      size="small"
+      color={isWarn ? 'warning' : 'success'}
+      variant="outlined"
+      sx={{ height: 20, fontSize: 11, fontWeight: 700, borderRadius: 1, px: 0.25 }}
+    />
+  )
 }
 
-const getNiceAxisStep = (rawStep: number) => {
-  if (rawStep <= 0) return 1
-  const magnitude = 10 ** Math.floor(Math.log10(rawStep))
-  const normalized = rawStep / magnitude
-
-  if (normalized <= 1) return 1 * magnitude
-  if (normalized <= 2) return 2 * magnitude
-  if (normalized <= 5) return 5 * magnitude
-  return 10 * magnitude
-}
-
-const getNiceAxisDomain = (min: number, max: number) => {
-  if (!Number.isFinite(min) || !Number.isFinite(max)) return [0, 1] as const
-  if (min === max) {
-    const pad = Math.max(1, Math.abs(min) * 0.1)
-    const low = Math.max(0, min - pad)
-    const high = max + pad
-    return [low, high] as const
-  }
-
-  const step = getNiceAxisStep((max - min) / 6)
-  const domainMin = Math.max(0, Math.floor(min / step) * step)
-  const domainMax = Math.ceil(max / step) * step
-  return [domainMin, domainMax] as const
-}
-
-const getSeriesStats = (series: MetricSeries) => {
-  const values = series.points.map(point => point.value)
-  const last = values[values.length - 1] ?? 0
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  const avg = values.reduce((sum, value) => sum + value, 0) / Math.max(1, values.length)
-  return { last, min, max, avg }
+function EnvBadge({ env }: { env: string }) {
+  const isProd = env === 'prod'
+  return (
+    <Chip
+      label={env.toUpperCase()}
+      size="small"
+      color={isProd ? 'info' : 'secondary'}
+      variant="outlined"
+      sx={{ height: 18, fontSize: 10, fontWeight: 700, borderRadius: 0.75, px: 0.25 }}
+    />
+  )
 }
 
 function MiniSparkline({ series, color }: { series: MetricSeries; color: string }) {
-  if (series.points.length === 0) {
-    return <Box sx={{ height: 30, width: '100%' }} />
-  }
-
-  const smoothValues = (values: number[], windowSize = 5) =>
-    values.map((_, index) => {
-      const start = Math.max(0, index - Math.floor(windowSize / 2))
-      const end = Math.min(values.length - 1, index + Math.floor(windowSize / 2))
-      const slice = values.slice(start, end + 1)
-      return slice.reduce((sum, value) => sum + value, 0) / slice.length
-    })
-
-  const values = series.points.map(point => point.value)
-  const smoothed = smoothValues(values, 7)
+  if (series.points.length === 0) return <Box sx={{ height: 48 }} />
+  const values = series.points.map(p => p.value)
   const min = Math.min(...values)
   const max = Math.max(...values)
   const spread = Math.max(1, max - min)
-  const paddedMin = Math.max(0, min - spread * 0.15)
-  const paddedMax = max + spread * 0.15
-
-  const sparkData = series.points.map((point, index) => ({
-    idx: index,
-    value: smoothed[index] ?? point.value,
-  }))
-
+  const data = series.points.map((p, i) => ({ i, v: p.value }))
   return (
-    <Box sx={{ height: 32, width: '100%' }}>
+    <Box sx={{ height: 48, width: '100%', mt: 1 }}>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={sparkData} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+        <AreaChart data={data} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
           <defs>
-            <linearGradient id={`kpi-grad-${series.id}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+            <linearGradient id={`sg-${series.id}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={color} stopOpacity={0.35} />
               <stop offset="95%" stopColor={color} stopOpacity={0.03} />
             </linearGradient>
           </defs>
+          <YAxis hide domain={[Math.max(0, min - spread * 0.1), max + spread * 0.1]} />
           <Area
             type="monotone"
-            dataKey="value"
+            dataKey="v"
             stroke={color}
-            fill={`url(#kpi-grad-${series.id})`}
-            strokeWidth={2.2}
+            fill={`url(#sg-${series.id})`}
+            strokeWidth={1.5}
             dot={false}
             isAnimationActive={false}
           />
-          <Line
-            type="monotone"
-            dataKey="value"
-            stroke={color}
-            strokeWidth={2.2}
-            dot={false}
-            isAnimationActive={false}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <YAxis hide domain={[paddedMin, paddedMax]} />
         </AreaChart>
       </ResponsiveContainer>
     </Box>
   )
 }
 
-function TimeSeriesPanel({
-  title,
-  seriesList,
-  chartType = 'line',
-  xAxisWithSeconds = false,
-  niceYAxis = false,
-}: {
-  title: string
-  seriesList: MetricSeries[]
-  chartType?: 'line' | 'area'
-  xAxisWithSeconds?: boolean
-  niceYAxis?: boolean
-}) {
+function SectionLabel({ children }: { children: React.ReactNode }) {
   const theme = useTheme()
-  const palette = [
-    theme.palette.primary.main,
-    theme.palette.success.main,
-    theme.palette.warning.main,
-    theme.palette.info.main,
-  ]
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+      <Box sx={{ width: 3, height: 16, bgcolor: 'primary.main', borderRadius: 1 }} />
+      <Typography
+        variant="caption"
+        sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 1 }}
+      >
+        {children}
+      </Typography>
+    </Box>
+  )
+}
 
-  const allValues = seriesList.flatMap(series => series.points.map(point => point.value))
-  if (seriesList.length === 0 || allValues.length === 0) {
-    return (
-      <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-        <CardContent sx={{ p: 2 }}>
-          <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
-            {title}
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
-            No data
-          </Typography>
-        </CardContent>
-      </Card>
-    )
-  }
+function ServiceHealthCard({
+  service,
+  envs,
+  errorRate,
+}: {
+  service: string
+  envs: string[]
+  errorRate: number
+}) {
+  return (
+    <Paper
+      variant="outlined"
+      sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper', borderRadius: 1 }}
+    >
+      <Stack direction="row" spacing={0.75} alignItems="center" mb={0.5} flexWrap="wrap">
+        <Typography
+          variant="caption"
+          sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 1 }}
+        >
+          {service.toUpperCase()}
+        </Typography>
+        {envs.map(env => (
+          <EnvBadge key={env} env={env} />
+        ))}
+      </Stack>
+      <Stack direction="row" spacing={1} alignItems="center">
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+          {errorRate.toFixed(1)}%
+        </Typography>
+        <StatusBadge value={errorRate} />
+      </Stack>
+      <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.25, display: 'block' }}>
+        HTTP error ratio (5m)
+      </Typography>
+    </Paper>
+  )
+}
 
-  const basePoints = seriesList[0].points
-  const chartData = basePoints.map((point, index) => {
-    const row: Record<string, number | string> = {
-      ts: point.ts,
-      label: formatTimeLabel(point.ts, xAxisWithSeconds),
-    }
+function MetricBigCard({
+  series,
+  label,
+  sublabel,
+  color,
+}: {
+  series?: MetricSeries
+  label: string
+  sublabel: string
+  color: string
+}) {
+  const value = getSeriesLast(series)
+  const unit = series?.unit ?? ''
 
-    seriesList.forEach(series => {
-      row[series.id] = series.points[index]?.value ?? 0
-    })
-
-    return row
-  })
-
-  const min = Math.min(...allValues)
-  const max = Math.max(...allValues)
-  const padding = (max - min) * 0.08
-  const roughDomainMin = Math.max(0, min - padding)
-  const roughDomainMax = max + padding
-  const [domainMin, domainMax] = niceYAxis
-    ? getNiceAxisDomain(roughDomainMin, roughDomainMax)
-    : [roughDomainMin, roughDomainMax]
+  const formatted = (() => {
+    if (unit === 'req/s')
+      return `${value >= 1000 ? (value / 1000).toFixed(1) + 'k' : value.toFixed(0)} req/5m`
+    if (unit === '%') return `${value.toFixed(0)} err/5m`
+    if (unit === 'ms') return `${value.toFixed(0)} ms`
+    return value.toFixed(1)
+  })()
 
   return (
-    <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-      <CardContent sx={{ p: 2 }}>
-        <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>
-          {title}
-        </Typography>
-        <Box sx={{ height: 220, borderRadius: 1, bgcolor: 'background.default', p: 1 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            {chartType === 'area' ? (
-              <AreaChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
-                <defs>
-                  {seriesList.map((series, index) => (
-                    <linearGradient
-                      key={`grad-${series.id}`}
-                      id={`grad-${series.id}`}
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="5%"
-                        stopColor={palette[index % palette.length]}
-                        stopOpacity={0.35}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor={palette[index % palette.length]}
-                        stopOpacity={0.02}
-                      />
-                    </linearGradient>
-                  ))}
-                </defs>
-                <CartesianGrid
-                  stroke={theme.palette.divider}
-                  strokeDasharray="3 3"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={{ stroke: theme.palette.divider }}
-                  minTickGap={24}
-                />
-                <YAxis
-                  tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={{ stroke: theme.palette.divider }}
-                  width={44}
-                  domain={[domainMin, domainMax]}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: theme.palette.background.paper,
-                    border: `1px solid ${theme.palette.divider}`,
-                    borderRadius: 8,
-                  }}
-                  labelStyle={{ color: theme.palette.text.secondary }}
-                  formatter={(value: number | undefined, name: string | undefined) => {
-                    const metricKey = name ?? ''
-                    const series = seriesList.find(item => item.id === metricKey)
-                    const normalized = typeof value === 'number' ? value : Number(value ?? 0)
-                    return [
-                      `${formatMetricValue(normalized, series?.unit ?? '')} ${series?.unit ?? ''}`,
-                      series?.name ?? metricKey,
-                    ]
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                {seriesList.map((series, index) => (
-                  <Area
-                    key={series.id}
-                    type="monotone"
-                    dataKey={series.id}
-                    name={series.name}
-                    stroke={palette[index % palette.length]}
-                    fill={`url(#grad-${series.id})`}
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 3 }}
-                    isAnimationActive={false}
-                  />
-                ))}
-              </AreaChart>
-            ) : (
-              <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
-                <CartesianGrid
-                  stroke={theme.palette.divider}
-                  strokeDasharray="3 3"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={{ stroke: theme.palette.divider }}
-                  minTickGap={24}
-                />
-                <YAxis
-                  tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={{ stroke: theme.palette.divider }}
-                  width={44}
-                  domain={[domainMin, domainMax]}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: theme.palette.background.paper,
-                    border: `1px solid ${theme.palette.divider}`,
-                    borderRadius: 8,
-                  }}
-                  labelStyle={{ color: theme.palette.text.secondary }}
-                  formatter={(value: number | undefined, name: string | undefined) => {
-                    const metricKey = name ?? ''
-                    const series = seriesList.find(item => item.id === metricKey)
-                    const normalized = typeof value === 'number' ? value : Number(value ?? 0)
-                    return [
-                      `${formatMetricValue(normalized, series?.unit ?? '')} ${series?.unit ?? ''}`,
-                      series?.name ?? metricKey,
-                    ]
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                {seriesList.map((series, index) => (
-                  <Line
-                    key={series.id}
-                    type="monotone"
-                    dataKey={series.id}
-                    name={series.name}
-                    stroke={palette[index % palette.length]}
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 3 }}
-                    isAnimationActive={false}
-                  />
-                ))}
-              </LineChart>
-            )}
-          </ResponsiveContainer>
-        </Box>
-        <Stack direction="row" spacing={2} sx={{ mt: 1.5, flexWrap: 'wrap' }}>
-          {seriesList.map((series, index) => (
-            <Stack key={series.id} direction="row" spacing={0.75} alignItems="center">
-              <Box
-                sx={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  bgcolor: palette[index % palette.length],
-                }}
-              />
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                {series.name}
-              </Typography>
-            </Stack>
-          ))}
-        </Stack>
-      </CardContent>
-    </Card>
+    <Paper
+      variant="outlined"
+      sx={{
+        p: 2,
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+        borderRadius: 1,
+        height: '100%',
+      }}
+    >
+      <Typography
+        variant="caption"
+        sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 1, display: 'block' }}
+      >
+        {label}
+      </Typography>
+      <Typography variant="h3" sx={{ fontWeight: 700, mt: 0.5 }}>
+        {formatted}
+      </Typography>
+      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+        {sublabel}
+      </Typography>
+      {series && <MiniSparkline series={series} color={color} />}
+    </Paper>
+  )
+}
+
+function InfraCard({
+  series,
+  label,
+  color,
+}: {
+  series?: MetricSeries
+  label: string
+  color: string
+}) {
+  const value = getSeriesLast(series)
+  const queryLabel = series?.name ?? ''
+  return (
+    <Paper
+      variant="outlined"
+      sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper', borderRadius: 1 }}
+    >
+      <Typography
+        variant="caption"
+        sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 1, display: 'block' }}
+      >
+        {label}
+      </Typography>
+      <Typography variant="h3" sx={{ fontWeight: 700, mt: 0.5 }}>
+        {value.toFixed(0)}%
+      </Typography>
+      <Typography
+        variant="caption"
+        sx={{ color: 'text.secondary', wordBreak: 'break-all', display: 'block' }}
+      >
+        {queryLabel}
+      </Typography>
+      {series && <MiniSparkline series={series} color={color} />}
+    </Paper>
   )
 }
 
 export default function MetricsPage() {
   const theme = useTheme()
+  const [tab, setTab] = useState(0)
+
+  const { data: serviceList = [] } = useQuery({
+    queryKey: ['metric-services'],
+    queryFn: apiClient.getMetricServices,
+    staleTime: 60_000,
+  })
+
+  const { data: serviceHealth = [] } = useQuery({
+    queryKey: ['metric-health'],
+    queryFn: apiClient.getMetricHealth,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  })
+
+  const tabs = ['Overview', ...(serviceList?.length ? serviceList : [])]
 
   const {
     data: metricsData,
-    isLoading: isMetricsLoading,
-    isFetched: isMetricsFetched,
+    isLoading,
+    isFetched,
   } = useQuery({
     queryKey: ['metrics'],
     queryFn: apiClient.getMetrics,
@@ -403,16 +271,10 @@ export default function MetricsPage() {
   const [streamStatus, setStreamStatus] = useState<
     'connecting' | 'live' | 'reconnecting' | 'offline'
   >('connecting')
-  const lastMetricCursorRef = useRef(0)
+  const lastCursorRef = useRef(0)
 
   useEffect(() => {
-    if (metrics.length > 0) {
-      setLiveMetrics(prev => (prev.length === 0 ? metrics : prev))
-    }
-
-    if (isLiveEnabled) {
-      setStreamStatus('connecting')
-    }
+    if (metrics.length > 0) setLiveMetrics(prev => (prev.length === 0 ? metrics : prev))
   }, [metrics, isLiveEnabled])
 
   useEffect(() => {
@@ -422,108 +284,80 @@ export default function MetricsPage() {
     }
 
     const MAX_POINTS = 120
-    let eventSource: EventSource | null = null
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
-    let isUnmounted = false
-    let retryAttempt = 0
+    let es: EventSource | null = null
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let unmounted = false
+    let retry = 0
 
-    const applyMetricPayload = (payload: MetricStreamPayload) => {
-      const updates = new Map(payload.points.map(point => [point.id, point]))
-
+    const apply = (payload: MetricStreamPayload) => {
+      const map = new Map(payload.points.map(p => [p.id, p]))
       setLiveMetrics(prev =>
-        prev.map(series => {
-          const nextPoint = updates.get(series.id)
-          if (!nextPoint) return series
-
-          const points = [...series.points, { ts: nextPoint.ts, value: nextPoint.value }]
-          const trimmed =
-            points.length > MAX_POINTS ? points.slice(points.length - MAX_POINTS) : points
-
+        prev.map(s => {
+          const next = map.get(s.id)
+          if (!next) return s
+          const pts = [...s.points, { ts: next.ts, value: next.value }]
           return {
-            ...series,
-            points: trimmed,
+            ...s,
+            points: pts.length > MAX_POINTS ? pts.slice(pts.length - MAX_POINTS) : pts,
           }
         })
       )
-
-      lastMetricCursorRef.current = Math.max(lastMetricCursorRef.current, payload.cursor ?? 0)
+      lastCursorRef.current = Math.max(lastCursorRef.current, payload.cursor ?? 0)
     }
 
     const fetchBacklog = async () => {
-      let cursor = lastMetricCursorRef.current
-      const limit = 200
-
-      try {
-        for (let step = 0; step < 10; step += 1) {
-          const response = await fetch(`/api/metrics/backlog?cursor=${cursor}&limit=${limit}`)
-          if (!response.ok) return
-
-          const data = (await response.json()) as {
+      let cursor = lastCursorRef.current
+      for (let i = 0; i < 10; i++) {
+        try {
+          const res = await fetch(`/api/metrics/backlog?cursor=${cursor}&limit=200`)
+          if (!res.ok) return
+          const data = (await res.json()) as {
             events?: MetricStreamPayload[]
             nextCursor?: number
             hasMore?: boolean
             latestCursor?: number
           }
-
-          ;(data.events ?? []).forEach(event => applyMetricPayload(event))
-
+          ;(data.events ?? []).forEach(apply)
           cursor = Math.max(cursor, data.nextCursor ?? cursor)
-          lastMetricCursorRef.current = Math.max(
-            lastMetricCursorRef.current,
-            data.latestCursor ?? cursor
-          )
-
+          lastCursorRef.current = Math.max(lastCursorRef.current, data.latestCursor ?? cursor)
           if (!data.hasMore) break
+        } catch {
+          break
         }
-      } catch {
-        // ignore backlog fetch failure and continue with live stream
       }
     }
 
     const connect = async () => {
-      if (isUnmounted) return
-
-      setStreamStatus(retryAttempt === 0 ? 'connecting' : 'reconnecting')
+      if (unmounted) return
+      setStreamStatus(retry === 0 ? 'connecting' : 'reconnecting')
       await fetchBacklog()
-      if (isUnmounted) return
-
-      eventSource = new EventSource('/api/metrics/stream')
-
-      eventSource.onopen = () => {
-        retryAttempt = 0
+      if (unmounted) return
+      es = new EventSource('/api/metrics/stream')
+      es.onopen = () => {
+        retry = 0
         setStreamStatus('live')
       }
-
-      eventSource.addEventListener('metric', event => {
+      es.addEventListener('metric', e => {
         try {
-          const payload = JSON.parse((event as MessageEvent<string>).data) as MetricStreamPayload
-          applyMetricPayload(payload)
-        } catch {
-          // ignore malformed stream event
-        }
+          apply(JSON.parse((e as MessageEvent<string>).data))
+        } catch {}
       })
-
-      eventSource.onerror = () => {
-        eventSource?.close()
-        eventSource = null
-
-        if (isUnmounted) return
+      es.onerror = () => {
+        es?.close()
+        es = null
+        if (unmounted) return
         setStreamStatus('reconnecting')
-        retryAttempt += 1
-        const delay = Math.min(5000, 1000 * 2 ** Math.min(retryAttempt, 3))
-        reconnectTimer = setTimeout(connect, delay)
+        retry++
+        timer = setTimeout(connect, Math.min(5000, 1000 * 2 ** Math.min(retry, 3)))
       }
     }
 
     connect()
-
     return () => {
-      isUnmounted = true
+      unmounted = true
       setStreamStatus('offline')
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer)
-      }
-      eventSource?.close()
+      if (timer) clearTimeout(timer)
+      es?.close()
     }
   }, [isLiveEnabled])
 
@@ -532,337 +366,206 @@ export default function MetricsPage() {
     [liveMetrics, metrics]
   )
 
-  const requestSeries = metricSeries.filter(series => series.name.includes('request_rate'))
-  const errorSeries = metricSeries.filter(series => series.name.includes('error_rate'))
-  const latencySeries = metricSeries.filter(series => series.name.includes('latency_p95'))
-  const resourceSeries = metricSeries.filter(
-    series => series.name.includes('cpu_usage') || series.name.includes('memory_usage')
+  const selectedService = tab === 0 ? null : tabs[tab]
+
+  const errorSeries = metricSeries.filter(
+    s => s.name.includes('error_rate') && (!selectedService || s.service === selectedService)
+  )
+  const requestSeries = metricSeries.filter(
+    s => s.name.includes('request_rate') && (!selectedService || s.service === selectedService)
+  )
+  const latencySeries = metricSeries.filter(
+    s => s.name.includes('latency_p95') && (!selectedService || s.service === selectedService)
+  )
+  const cpuSeries = metricSeries.filter(
+    s => s.name.includes('cpu_usage') && (!selectedService || s.service === selectedService)
+  )
+  const memorySeries = metricSeries.filter(
+    s => s.name.includes('memory_usage') && (!selectedService || s.service === selectedService)
   )
 
-  const getLastValue = (series?: MetricSeries) => (series ? getSeriesStats(series).last : 0)
+  const services =
+    serviceList.length > 0
+      ? serviceList
+      : ([...new Set(metricSeries.map(s => s.service).filter(Boolean))] as string[])
 
-  const kpis = [
-    {
-      label: 'Total Throughput',
-      unit: 'req/s',
-      value: requestSeries.reduce((sum, series) => sum + getSeriesStats(series).last, 0),
-      series: requestSeries[0],
-      color: theme.palette.primary.main,
-    },
-    {
-      label: 'Avg Error Rate',
-      unit: '%',
-      value:
-        errorSeries.reduce((sum, series) => sum + getSeriesStats(series).last, 0) /
-        Math.max(1, errorSeries.length),
-      series: errorSeries[0],
-      color: theme.palette.error.main,
-    },
-    {
-      label: 'Checkout P95',
-      unit: 'ms',
-      value: getLastValue(latencySeries[0]),
-      series: latencySeries[0],
-      color: theme.palette.warning.main,
-    },
-    {
-      label: 'CPU Headroom',
-      unit: '%',
-      value: Math.max(0, 100 - getLastValue(resourceSeries[0])),
-      series: resourceSeries[0],
-      color: theme.palette.success.main,
-    },
-  ]
+  const sumSeries = (list: MetricSeries[], id: string, unit: string): MetricSeries | undefined => {
+    if (list.length === 0) return undefined
+    const len = Math.max(...list.map(s => s.points.length))
+    const points = Array.from({ length: len }, (_, i) => ({
+      ts: list[0].points[i]?.ts ?? 0,
+      value: list.reduce((sum, s) => sum + (s.points[i]?.value ?? 0), 0),
+    }))
+    return { id, name: id, unit, points }
+  }
 
-  const totalPanels = [...requestSeries, ...errorSeries, ...latencySeries, ...resourceSeries]
+  const reqSum = sumSeries(requestSeries, 'total_request_rate', 'req/s')
+  const errSum = sumSeries(errorSeries, 'total_error_rate', '%')
+  const latMax = latencySeries[0]
+
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2, md: 3 } }}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between">
+          <Typography variant="h4" sx={{ fontWeight: 700 }}>
+            Metrics
+          </Typography>
+          <Skeleton variant="rounded" width={80} height={28} />
+        </Stack>
+        <Grid container spacing={2}>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Grid item xs={12} sm={6} md={3} key={i}>
+              <Skeleton variant="rounded" height={120} />
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
+    )
+  }
+  console.log(serviceHealth)
+  if (isFetched && metricSeries.length === 0) {
+    return (
+      <Box>
+        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
+          Metrics
+        </Typography>
+        <NoDataState title="No metrics data" description="No metrics data found." />
+      </Box>
+    )
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2, md: 3 } }}>
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        spacing={1.5}
-        alignItems={{ md: 'center' }}
-        justifyContent="space-between"
-      >
-        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-          Metrics
-        </Typography>
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={() => setIsLiveEnabled(prev => !prev)}
-            sx={{
-              minWidth: 72,
-              px: 1,
-              py: 0.25,
-              borderRadius: 999,
-              borderColor: isLiveEnabled ? 'success.main' : 'divider',
-              color: isLiveEnabled ? 'success.main' : 'text.secondary',
-              '@keyframes neonPulse': {
-                '0%, 100%': {
-                  opacity: 1,
-                  textShadow: '0 0 6px rgba(74, 222, 128, 0.75), 0 0 12px rgba(74, 222, 128, 0.45)',
-                },
-                '50%': { opacity: 0.42, textShadow: '0 0 1px rgba(74, 222, 128, 0.3)' },
-              },
-            }}
-          >
-            <Stack direction="row" spacing={0.6} alignItems="center">
-              <Box
-                sx={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: '50%',
-                  bgcolor: isLiveEnabled ? 'success.main' : 'text.disabled',
-                  animation:
-                    isLiveEnabled && streamStatus === 'live'
-                      ? 'neonPulse 1.2s ease-in-out infinite'
-                      : 'none',
-                }}
-              />
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: 800,
-                  letterSpacing: 0.5,
-                  color: isLiveEnabled ? 'success.main' : 'text.secondary',
-                  animation:
-                    isLiveEnabled && streamStatus === 'live'
-                      ? 'neonPulse 1.2s ease-in-out infinite'
-                      : 'none',
-                }}
-              >
-                LIVE
-              </Typography>
-            </Stack>
-          </Button>
-          <Button size="small" variant="outlined">
-            Last 8h
-          </Button>
-          <Button size="small" variant="outlined" onClick={() => setLiveMetrics(metrics)}>
-            Reset
-          </Button>
-        </Stack>
+      {/* 헤더 */}
+      <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1.5}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 700 }}>
+            Metrics
+          </Typography>
+        </Box>
+        <LiveButton
+          value={isLiveEnabled}
+          onChange={setIsLiveEnabled}
+          isStreaming={streamStatus === 'live'}
+        />
       </Stack>
 
-      <TextField
-        fullWidth
-        label="PromQL (Advanced)"
-        placeholder={
-          'e.g. sum(rate(http_requests_total{service=~"checkout|api-gateway"}[5m])) by (service)'
-        }
-        helperText="Type a PromQL query to filter or compare metric series"
-        size="small"
-        InputLabelProps={{ shrink: true }}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <Typography
-                variant="caption"
-                sx={{
-                  px: 0.75,
-                  py: 0.25,
-                  borderRadius: 0.75,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  color: 'text.secondary',
-                  fontFamily: 'monospace',
-                }}
-              >
-                query
-              </Typography>
-            </InputAdornment>
-          ),
-        }}
+      {/* 탭 */}
+      <Tabs
+        value={tab}
+        onChange={(_, v) => setTab(v)}
+        variant="scrollable"
+        scrollButtons="auto"
         sx={{
-          '& .MuiOutlinedInput-root': {
-            bgcolor: 'background.paper',
-            borderRadius: 1.25,
-            '& fieldset': {
-              borderColor: 'divider',
-            },
-            '&:hover fieldset': {
-              borderColor: 'text.secondary',
-            },
-            '&.Mui-focused fieldset': {
-              borderColor: 'primary.main',
-              borderWidth: 2,
-            },
-          },
-          '& .MuiInputBase-input::placeholder': {
-            opacity: 1,
+          minHeight: 36,
+          '& .MuiTab-root': {
+            minHeight: 36,
+            py: 0.5,
+            px: 2,
+            fontSize: 13,
+            fontWeight: 600,
             color: 'text.secondary',
-            fontStyle: 'italic',
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 1,
+            mr: 0.75,
+            '&.Mui-selected': {
+              color: 'text.primary',
+              bgcolor: 'action.selected',
+            },
           },
-          '& .MuiFormHelperText-root': {
-            ml: 0.5,
-          },
+          '& .MuiTabs-indicator': { display: 'none' },
         }}
-      />
+      >
+        {tabs.map(t => (
+          <Tab key={t} label={t} disableRipple />
+        ))}
+      </Tabs>
 
-      {isMetricsLoading ? (
-        <>
-          <Grid container spacing={2}>
-            {Array.from({ length: 4 }).map((_, index) => (
-              <Grid item xs={12} sm={6} md={3} key={`metrics-kpi-skeleton-${index}`}>
-                <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-                  <CardContent sx={{ p: 2 }}>
-                    <Skeleton variant="text" width="45%" height={18} />
-                    <Skeleton variant="text" width="70%" height={36} sx={{ mt: 0.5 }} />
-                    <Skeleton variant="rounded" height={32} sx={{ mt: 1.25 }} />
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
+      {/* 서비스 헬스 — Overview 탭에서만 표시 */}
+      {tab === 0 && (
+        <Paper
+          variant="outlined"
+          sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}
+        >
+          <SectionLabel>Service Health</SectionLabel>
+          <Grid container spacing={1.5}>
+            {serviceHealth.length > 0
+              ? serviceHealth.map(h => (
+                  <Grid item xs={12} sm={6} md={3} key={h.service}>
+                    <ServiceHealthCard service={h.service} envs={h.envs} errorRate={h.error_rate} />
+                  </Grid>
+                ))
+              : errorSeries.map(s => (
+                  <Grid item xs={12} sm={6} md={3} key={s.id}>
+                    <ServiceHealthCard
+                      service={s.service ?? s.id.split('_')[0]}
+                      envs={['prod']}
+                      errorRate={getSeriesLast(s)}
+                    />
+                  </Grid>
+                ))}
           </Grid>
-
-          <Grid container spacing={2}>
-            <Grid item xs={12} lg={8}>
-              <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-                <CardContent sx={{ p: 2 }}>
-                  <Skeleton variant="text" width="40%" height={22} />
-                  <Skeleton variant="rounded" height={220} sx={{ mt: 1 }} />
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} lg={4}>
-              <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-                <CardContent sx={{ p: 2 }}>
-                  <Skeleton variant="text" width="50%" height={20} sx={{ mb: 1 }} />
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <Skeleton key={`metrics-side-skeleton-${index}`} variant="text" height={28} />
-                  ))}
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-                <CardContent sx={{ p: 2 }}>
-                  <Skeleton variant="text" width="45%" height={22} />
-                  <Skeleton variant="rounded" height={220} sx={{ mt: 1 }} />
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-                <CardContent sx={{ p: 2 }}>
-                  <Skeleton variant="text" width="45%" height={22} />
-                  <Skeleton variant="rounded" height={220} sx={{ mt: 1 }} />
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12}>
-              <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-                <CardContent sx={{ p: 2 }}>
-                  <Skeleton variant="text" width="35%" height={22} />
-                  <Skeleton variant="rounded" height={220} sx={{ mt: 1 }} />
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
-        </>
-      ) : isMetricsFetched && metricSeries.length === 0 ? (
-        <NoDataState title="No metrics data" description="메트릭 데이터를 찾지 못했습니다." />
-      ) : (
-        <>
-          <Grid container spacing={2}>
-            {kpis.map(kpi => (
-              <Grid item xs={12} sm={6} md={3} key={kpi.label}>
-                <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-                  <CardContent sx={{ p: 2 }}>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        color: 'text.secondary',
-                        display: 'block',
-                      }}
-                    >
-                      {kpi.label}
-                    </Typography>
-                    <Typography variant="h5" sx={{ fontWeight: 'bold', mt: 1 }}>
-                      {formatMetricValue(kpi.value, kpi.unit)} {kpi.unit}
-                    </Typography>
-                    {kpi.series ? (
-                      <Box sx={{ mt: 1.5 }}>
-                        <MiniSparkline series={kpi.series} color={kpi.color} />
-                      </Box>
-                    ) : null}
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-
-          <Grid container spacing={2}>
-            <Grid item xs={12} lg={8}>
-              <TimeSeriesPanel
-                title="Request Rate by Service"
-                seriesList={requestSeries}
-                chartType="area"
-                xAxisWithSeconds
-                niceYAxis
-              />
-            </Grid>
-            <Grid item xs={12} lg={4}>
-              <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
-                <CardContent sx={{ p: 2 }}>
-                  <Typography variant="subtitle2" sx={{ color: 'text.secondary', mb: 1.5 }}>
-                    Live Metric Values
-                  </Typography>
-                  <Stack divider={<Divider flexItem />} spacing={1}>
-                    {totalPanels.map(series => {
-                      const stats = getSeriesStats(series)
-                      return (
-                        <Stack
-                          key={series.id}
-                          direction="row"
-                          alignItems="center"
-                          justifyContent="space-between"
-                          sx={{ py: 0.75 }}
-                        >
-                          <Typography variant="caption" sx={{ color: 'text.secondary', pr: 1 }}>
-                            {series.name}
-                          </Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {formatMetricValue(stats.last, series.unit)} {series.unit}
-                          </Typography>
-                        </Stack>
-                      )
-                    })}
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TimeSeriesPanel
-                title="Error Rate Trend"
-                seriesList={errorSeries}
-                xAxisWithSeconds
-                niceYAxis
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TimeSeriesPanel
-                title="Latency p95 (ms)"
-                seriesList={latencySeries}
-                xAxisWithSeconds
-                niceYAxis
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TimeSeriesPanel
-                title="Resource Usage (CPU/Memory)"
-                seriesList={resourceSeries}
-                xAxisWithSeconds
-                niceYAxis
-              />
-            </Grid>
-          </Grid>
-        </>
+        </Paper>
       )}
+
+      {/* 요청량 / 레이턴시 */}
+      <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
+        <SectionLabel>Request Rate / Latency</SectionLabel>
+        <Box sx={{ overflowX: 'auto', pb: 1 }}>
+          <Stack direction="row" spacing={1.5} sx={{ minWidth: 'min-content' }}>
+            {requestSeries.map(s => (
+              <Box key={s.id} sx={{ minWidth: 220, maxWidth: 260, flex: '0 0 auto' }}>
+                <MetricBigCard
+                  series={s}
+                  label={s.name}
+                  sublabel={s.service ?? 'all'}
+                  color={theme.palette.info.main}
+                />
+              </Box>
+            ))}
+            {errorSeries.map(s => (
+              <Box key={s.id} sx={{ minWidth: 220, maxWidth: 260, flex: '0 0 auto' }}>
+                <MetricBigCard
+                  series={s}
+                  label={s.name}
+                  sublabel={s.service ?? 'all'}
+                  color={theme.palette.error.main}
+                />
+              </Box>
+            ))}
+            {latencySeries.map(s => (
+              <Box key={s.id} sx={{ minWidth: 220, maxWidth: 260, flex: '0 0 auto' }}>
+                <MetricBigCard
+                  series={s}
+                  label={s.name}
+                  sublabel={s.service ?? 'all'}
+                  color={theme.palette.warning.main}
+                />
+              </Box>
+            ))}
+          </Stack>
+        </Box>
+      </Paper>
+
+      {/* 인프라 요약 */}
+      <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
+        <SectionLabel>Infrastructure Summary</SectionLabel>
+        <Box sx={{ overflowX: 'auto', pb: 1 }}>
+          <Stack direction="row" spacing={1.5} sx={{ minWidth: 'min-content' }}>
+            {cpuSeries.map(s => (
+              <Box key={s.id} sx={{ minWidth: 220, maxWidth: 260, flex: '0 0 auto' }}>
+                <InfraCard series={s} label="CONTAINER CPU (AVG)" color={theme.palette.success.main} />
+              </Box>
+            ))}
+            {memorySeries.map(s => (
+              <Box key={s.id} sx={{ minWidth: 220, maxWidth: 260, flex: '0 0 auto' }}>
+                <InfraCard series={s} label="CONTAINER MEMORY (AVG)" color={theme.palette.secondary.main} />
+              </Box>
+            ))}
+          </Stack>
+        </Box>
+      </Paper>
     </Box>
   )
 }

@@ -77,6 +77,26 @@ export const apiClient = {
       return []
     }
   },
+  async getMetricServices(): Promise<string[]> {
+    try {
+      const res = await fetch('/api/observability/metrics/services')
+      if (!res.ok) return []
+      const data = (await res.json()) as string[]
+      return Array.isArray(data) ? data : []
+    } catch {
+      return []
+    }
+  },
+  async getMetricHealth(): Promise<Array<{ service: string; envs: string[]; error_rate: number }>> {
+    try {
+      const res = await fetch('/api/observability/metrics/health')
+      if (!res.ok) return []
+      const data = (await res.json()) as Array<{ service: string; envs: string[]; error_rate: number }>
+      return Array.isArray(data) ? data : []
+    } catch {
+      return []
+    }
+  },
   async getMetrics(): Promise<MetricSeries[]> {
     try {
       // BFF → observability-service /v1/metrics
