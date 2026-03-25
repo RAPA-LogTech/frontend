@@ -57,7 +57,22 @@ export const getLogs = async ({
 }
 
 // 기존 방식도 유지 (호환성)
+export type OverviewData = {
+  kpi: { error_rate: number; latency_p95: number; throughput: number }
+  services: Array<{ service: string; envs: string[]; error_rate: number; latency_p95: number; throughput: number }>
+  recent_logs: LogEntry[]
+}
+
 export const apiClient = {
+  async getOverview(): Promise<OverviewData | null> {
+    try {
+      const res = await fetch('/api/observability/overview')
+      if (!res.ok) return null
+      return (await res.json()) as OverviewData
+    } catch {
+      return null
+    }
+  },
   async getDashboards(): Promise<Dashboard[]> {
     await simulateLatency()
     return mockDashboards
