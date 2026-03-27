@@ -91,7 +91,7 @@ export default function LogsPage() {
     queryFn: async () => {
       // OpenAPI 엔드포인트에 맞게 직접 fetch 사용
       const response = await fetch('/api/observability/logs/filters')
-      if (!response.ok) return undefined
+      if (!response.ok) return {}
       const data = await response.json()
       return data
     },
@@ -526,33 +526,62 @@ export default function LogsPage() {
   if (isLogsLoading) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2, md: 3 } }}>
-        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-          Logs
-        </Typography>
-        <LogFilters
-          query={query}
-          onQueryChange={setQuery}
-          onRefresh={refetch}
-          customFilters={customFilters}
-          onCustomFiltersChange={setCustomFilters}
-        />
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>Logs</Typography>
+          <Skeleton variant="rounded" width={80} height={28} />
+        </Box>
+        <Paper
+          variant="outlined"
+          sx={{ borderColor: 'divider', bgcolor: 'background.paper', overflow: 'hidden' }}
+        >
+          <Box sx={{ p: 1.5 }}>
+            <Skeleton variant="rounded" height={40} />
+          </Box>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', lg: '300px 1fr' },
+              minHeight: 520,
+            }}
+          >
+            {/* Field Explorer skeleton */}
+            <Box sx={{ borderRight: '1px solid', borderColor: 'divider', p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Skeleton variant="rounded" height={32} />
+              <Skeleton variant="rounded" height={32} />
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Skeleton variant="circular" width={8} height={8} />
+                  <Skeleton variant="text" width={`${60 + (i % 3) * 15}%`} height={18} />
+                </Box>
+              ))}
+            </Box>
+            {/* Main content skeleton */}
+            <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Skeleton variant="text" width={100} height={32} sx={{ mx: 'auto' }} />
+              <Skeleton variant="rounded" height={80} />
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <Box key={i} sx={{ display: 'grid', gridTemplateColumns: '160px 120px 80px 1fr', gap: 1.5, px: 1 }}>
+                    <Skeleton variant="text" height={18} />
+                    <Skeleton variant="text" height={18} />
+                    <Skeleton variant="rounded" width={50} height={18} />
+                    <Skeleton variant="text" height={18} />
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          </Box>
+        </Paper>
       </Box>
     )
   }
 
   if (isLogsFetched && logs?.length === 0) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2, md: 3 } }}>
-        <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+      <Box>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
           Logs
         </Typography>
-        <LogFilters
-          query={query}
-          onQueryChange={setQuery}
-          onRefresh={refetch}
-          customFilters={customFilters}
-          onCustomFiltersChange={setCustomFilters}
-        />
         <NoDataState title="No logs data" description="로그 데이터를 찾지 못했습니다." />
       </Box>
     )

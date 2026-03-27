@@ -26,7 +26,19 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material'
 import { GlobalFilterState, Environment, LogLevel } from '@/lib/types'
-import { globalFilterOptions } from '@/lib/mock'
+
+const globalFilterOptions = {
+  timeRanges: [
+    { label: 'Last 15m', value: '15m' },
+    { label: 'Last 1h', value: '1h' },
+    { label: 'Last 6h', value: '6h' },
+    { label: 'Last 24h', value: '24h' },
+    { label: 'Last 7d', value: '7d' },
+  ],
+  services: ['todolist', 'flask', 'thymeleaf', 'springboot', 'postgres'],
+  envs: ['prod', 'staging', 'dev'] as const,
+  clusters: ['apne2-a', 'apne2-b'],
+}
 
 interface GlobalFilterBarProps {
   value: GlobalFilterState

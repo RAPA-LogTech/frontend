@@ -11,6 +11,29 @@ export const revalidate = 0
 
 const oauthStateCookieName = 'slack_oauth_state'
 
+async function saveToSecretsManager(payload: {
+  bot_token: string
+  channel_id: string
+  channel_name: string
+  webhook_url: string
+  team_name: string
+}) {
+  const secretArn = process.env.SLACK_SECRET_ARN?.trim()
+  if (!secretArn) return
+
+  try {
+    const { SecretsManagerClient, PutSecretValueCommand } = await import('@aws-sdk/client-secrets-manager')
+    const client = new SecretsManagerClient({ region: process.env.AWS_REGION ?? 'ap-northeast-2' })
+    await client.send(new PutSecretValueCommand({
+      SecretId: secretArn,
+      SecretString: JSON.stringify(payload),
+    }))
+    console.log('[slack/callback] Secrets Manager 저장 완료')
+  } catch (e) {
+    console.error('[slack/callback] Secrets Manager 저장 실패:', e)
+  }
+}
+
 const getAppOrigin = (request: Request) => {
   const configuredRedirectUri = process.env.SLACK_REDIRECT_URI?.trim()
 
@@ -124,6 +147,14 @@ export async function GET(request: Request) {
   })
 
   await writePersistedSlackInstallation(installation)
+
+  await saveToSecretsManager({
+    bot_token: data.access_token ?? '',
+    channel_id: data.incoming_webhook?.channel_id ?? '',
+    channel_name: data.incoming_webhook?.channel ?? '',
+    webhook_url: webhookUrl ?? '',
+    team_name: data.team?.name ?? '',
+  })
 
   return redirectToIntegrationPage(request, 'connected')
 }

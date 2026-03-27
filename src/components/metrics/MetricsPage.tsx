@@ -240,6 +240,7 @@ function InfraCard({
 export default function MetricsPage() {
   const theme = useTheme()
   const [tab, setTab] = useState(0)
+  const [envFilter, setEnvFilter] = useState<'all' | 'dev' | 'prod'>('all')
 
   const { data: serviceList = [] } = useQuery({
     queryKey: ['metric-services'],
@@ -368,21 +369,57 @@ export default function MetricsPage() {
 
   const selectedService = tab === 0 ? null : tabs[tab]
 
+  const filterByEnv = (s: MetricSeries) => {
+    if (envFilter === 'all') return true
+    const env = (s as MetricSeries & { env?: string }).env
+    if (!env) return true
+    return env === envFilter
+  }
+
   const errorSeries = metricSeries.filter(
-    s => s.name.includes('error_rate') && (!selectedService || s.service === selectedService)
+    s => s.name.includes('error_rate') && !s.name.includes('4xx') && !s.name.includes('5xx') && (!selectedService || s.service === selectedService) && filterByEnv(s)
+  )
+  const error4xxSeries = metricSeries.filter(
+    s => s.name.includes('4xx') && (!selectedService || s.service === selectedService) && filterByEnv(s)
+  )
+  const error5xxSeries = metricSeries.filter(
+    s => s.name.includes('5xx') && (!selectedService || s.service === selectedService) && filterByEnv(s)
   )
   const requestSeries = metricSeries.filter(
-    s => s.name.includes('request_rate') && (!selectedService || s.service === selectedService)
+    s => s.name.includes('request_rate') && (!selectedService || s.service === selectedService) && filterByEnv(s)
   )
   const latencySeries = metricSeries.filter(
-    s => s.name.includes('latency_p95') && (!selectedService || s.service === selectedService)
+    s => s.name.includes('latency_p95') && (!selectedService || s.service === selectedService) && filterByEnv(s)
   )
   const cpuSeries = metricSeries.filter(
-    s => s.name.includes('cpu_usage') && (!selectedService || s.service === selectedService)
+    s => s.name.includes('cpu_usage') && (!selectedService || s.service === selectedService) && filterByEnv(s)
   )
   const memorySeries = metricSeries.filter(
-    s => s.name.includes('memory_usage') && (!selectedService || s.service === selectedService)
+    s => s.name.includes('memory_usage') && (!selectedService || s.service === selectedService) && filterByEnv(s)
   )
+  const rdsSeries = metricSeries.filter(
+    s => (s.name.includes('rds') || s.name.includes('db_connections') || s.name.includes('DatabaseConnections') || s.name.includes('CPUUtilization')) && filterByEnv(s)
+  )
+
+  // Route별 레이턴시: latency_p95 시리즈 중 route/http_route 속성 있는 것
+  type RouteRow = { service: string; env: string; route: string; value: number }
+  const routeRows: RouteRow[] = metricSeries
+    .filter(s => s.name.includes('latency_p95') && (!selectedService || s.service === selectedService))
+    .flatMap(s => {
+      const ext = s as MetricSeries & { env?: string; route?: string; http_route?: string }
+      const route = ext.route ?? ext.http_route
+      if (!route) return []
+      const env = ext.env ?? 'unknown'
+      if (envFilter !== 'all' && env !== envFilter) return []
+      return [{ service: s.service ?? '', env, route, value: getSeriesLast(s) }]
+    })
+
+  // 서비스별 route 그룹
+  const routeByService = routeRows.reduce<Record<string, RouteRow[]>>((acc, r) => {
+    if (!acc[r.service]) acc[r.service] = []
+    acc[r.service].push(r)
+    return acc
+  }, {})
 
   const services =
     serviceList.length > 0
@@ -402,23 +439,82 @@ export default function MetricsPage() {
   const reqSum = sumSeries(requestSeries, 'total_request_rate', 'req/s')
   const errSum = sumSeries(errorSeries, 'total_error_rate', '%')
   const latMax = latencySeries[0]
+  void reqSum
+  void errSum
+  void latMax
 
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2, md: 3 } }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Typography variant="h4" sx={{ fontWeight: 700 }}>
-            Metrics
-          </Typography>
+          <Typography variant="h4" sx={{ fontWeight: 700 }}>Metrics</Typography>
           <Skeleton variant="rounded" width={80} height={28} />
         </Stack>
-        <Grid container spacing={2}>
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Grid item xs={12} sm={6} md={3} key={i}>
-              <Skeleton variant="rounded" height={120} />
-            </Grid>
+        {/* Tabs skeleton */}
+        <Stack direction="row" gap={0.75}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} variant="rounded" width={80} height={36} />
           ))}
-        </Grid>
+        </Stack>
+        {/* Service Health skeleton */}
+        <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+            <Skeleton variant="rounded" width={3} height={16} />
+            <Skeleton variant="text" width={100} height={16} />
+          </Box>
+          <Grid container spacing={1.5}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Grid item xs={12} sm={6} md={3} key={i}>
+                <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider' }}>
+                  <Box sx={{ display: 'flex', gap: 0.75, mb: 0.5 }}>
+                    <Skeleton variant="text" width={80} height={16} />
+                    <Skeleton variant="rounded" width={36} height={18} />
+                    <Skeleton variant="rounded" width={36} height={18} />
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Skeleton variant="text" width={70} height={40} />
+                    <Skeleton variant="rounded" width={40} height={20} />
+                  </Box>
+                  <Skeleton variant="text" width="80%" height={14} />
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        </Paper>
+        {/* Request Rate / Latency skeleton */}
+        <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+            <Skeleton variant="rounded" width={3} height={16} />
+            <Skeleton variant="text" width={160} height={16} />
+          </Box>
+          <Stack direction="row" spacing={1.5}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Paper key={i} variant="outlined" sx={{ p: 2, borderColor: 'divider', minWidth: 220 }}>
+                <Skeleton variant="text" width="70%" height={14} sx={{ mb: 0.5 }} />
+                <Skeleton variant="text" width="50%" height={44} />
+                <Skeleton variant="text" width="60%" height={14} />
+                <Skeleton variant="rounded" height={48} sx={{ mt: 1 }} />
+              </Paper>
+            ))}
+          </Stack>
+        </Paper>
+        {/* Infrastructure Summary skeleton */}
+        <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+            <Skeleton variant="rounded" width={3} height={16} />
+            <Skeleton variant="text" width={160} height={16} />
+          </Box>
+          <Stack direction="row" spacing={1.5}>
+            {Array.from({ length: 2 }).map((_, i) => (
+              <Paper key={i} variant="outlined" sx={{ p: 2, borderColor: 'divider', minWidth: 220 }}>
+                <Skeleton variant="text" width="70%" height={14} sx={{ mb: 0.5 }} />
+                <Skeleton variant="text" width="50%" height={44} />
+                <Skeleton variant="text" width="80%" height={14} />
+                <Skeleton variant="rounded" height={48} sx={{ mt: 1 }} />
+              </Paper>
+            ))}
+          </Stack>
+        </Paper>
       </Box>
     )
   }
@@ -443,11 +539,27 @@ export default function MetricsPage() {
             Metrics
           </Typography>
         </Box>
-        <LiveButton
-          value={isLiveEnabled}
-          onChange={setIsLiveEnabled}
-          isStreaming={streamStatus === 'live'}
-        />
+        <Stack direction="row" gap={1} alignItems="center">
+          {/* DEV / PROD 환경 필터 */}
+          <Stack direction="row" gap={0.5}>
+            {(['all', 'dev', 'prod'] as const).map(e => (
+              <Chip
+                key={e}
+                label={e === 'all' ? 'ALL' : e.toUpperCase()}
+                size="small"
+                onClick={() => setEnvFilter(e)}
+                color={envFilter === e ? (e === 'prod' ? 'info' : e === 'dev' ? 'secondary' : 'default') : 'default'}
+                variant={envFilter === e ? 'filled' : 'outlined'}
+                sx={{ fontWeight: 700, fontSize: 11, cursor: 'pointer' }}
+              />
+            ))}
+          </Stack>
+          <LiveButton
+            value={isLiveEnabled}
+            onChange={setIsLiveEnabled}
+            isStreaming={streamStatus === 'live'}
+          />
+        </Stack>
       </Stack>
 
       {/* 탭 */}
@@ -490,21 +602,57 @@ export default function MetricsPage() {
         >
           <SectionLabel>Service Health</SectionLabel>
           <Grid container spacing={1.5}>
-            {serviceHealth.length > 0
-              ? serviceHealth.map(h => (
-                  <Grid item xs={12} sm={6} md={3} key={h.service}>
-                    <ServiceHealthCard service={h.service} envs={h.envs} errorRate={h.error_rate} />
-                  </Grid>
-                ))
-              : errorSeries.map(s => (
-                  <Grid item xs={12} sm={6} md={3} key={s.id}>
-                    <ServiceHealthCard
-                      service={s.service ?? s.id.split('_')[0]}
-                      envs={['prod']}
-                      errorRate={getSeriesLast(s)}
-                    />
-                  </Grid>
-                ))}
+            {(serviceHealth.length > 0 ? serviceHealth : errorSeries.map(s => ({
+              service: s.service ?? s.id.split('_')[0],
+              envs: ['prod'],
+              error_rate: getSeriesLast(s),
+            }))).map(h => (
+              <Grid item xs={12} sm={6} md={3} key={h.service}>
+                <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper', borderRadius: 1 }}>
+                  <Stack direction="row" spacing={0.75} alignItems="center" mb={0.5} flexWrap="wrap">
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 1 }}>
+                      {h.service.toUpperCase()}
+                    </Typography>
+                    {h.envs.filter(e => envFilter === 'all' || e === envFilter).map(env => (
+                      <EnvBadge key={env} env={env} />
+                    ))}
+                  </Stack>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Typography variant="h4" sx={{ fontWeight: 700 }}>{h.error_rate.toFixed(1)}%</Typography>
+                    <StatusBadge value={h.error_rate} />
+                  </Stack>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.25, display: 'block' }}>
+                    HTTP error ratio (5m)
+                  </Typography>
+                  {/* 4xx 에러율 */}
+                  {error4xxSeries.filter(s => s.service === h.service).slice(0, 1).map(s => (
+                    <Typography key={s.id} variant="caption" sx={{ color: 'warning.main', display: 'block', mt: 0.5 }}>
+                      4xx: {getSeriesLast(s).toFixed(1)}% · {s.name}
+                    </Typography>
+                  ))}
+                  {/* 5xx 에러율 */}
+                  {error5xxSeries.filter(s => s.service === h.service).slice(0, 1).map(s => (
+                    <Typography key={s.id} variant="caption" sx={{ color: 'error.main', display: 'block', mt: 0.25 }}>
+                      5xx: {getSeriesLast(s).toFixed(1)}% · {s.name}
+                    </Typography>
+                  ))}
+                </Paper>
+              </Grid>
+            ))}
+            {/* RDS 카드 — prod 필터이거나 all일 때 */}
+            {(envFilter === 'prod' || envFilter === 'all') && rdsSeries.map(s => (
+              <Grid item xs={12} sm={6} md={3} key={s.id}>
+                <Paper variant="outlined" sx={{ p: 2, borderColor: 'warning.dark', bgcolor: 'background.paper', borderRadius: 1 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 1, display: 'block', mb: 0.5 }}>
+                    {s.name.toUpperCase().replace(/_/g, ' ')} (PROD)
+                  </Typography>
+                  <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                    {getSeriesLast(s).toFixed(0)}{s.unit === '%' ? '%' : ''}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>CloudWatch AWS/RDS</Typography>
+                </Paper>
+              </Grid>
+            ))}
           </Grid>
         </Paper>
       )}
@@ -516,37 +664,59 @@ export default function MetricsPage() {
           <Stack direction="row" spacing={1.5} sx={{ minWidth: 'min-content' }}>
             {requestSeries.map(s => (
               <Box key={s.id} sx={{ minWidth: 220, maxWidth: 260, flex: '0 0 auto' }}>
-                <MetricBigCard
-                  series={s}
-                  label={s.name}
-                  sublabel={s.service ?? 'all'}
-                  color={theme.palette.info.main}
-                />
+                <MetricBigCard series={s} label={s.name} sublabel={s.service ?? 'all'} color={theme.palette.info.main} />
               </Box>
             ))}
             {errorSeries.map(s => (
               <Box key={s.id} sx={{ minWidth: 220, maxWidth: 260, flex: '0 0 auto' }}>
-                <MetricBigCard
-                  series={s}
-                  label={s.name}
-                  sublabel={s.service ?? 'all'}
-                  color={theme.palette.error.main}
-                />
+                <MetricBigCard series={s} label={s.name} sublabel={s.service ?? 'all'} color={theme.palette.error.main} />
+              </Box>
+            ))}
+            {error5xxSeries.map(s => (
+              <Box key={s.id} sx={{ minWidth: 220, maxWidth: 260, flex: '0 0 auto' }}>
+                <MetricBigCard series={s} label={s.name} sublabel={s.service ?? 'all'} color={theme.palette.error.dark} />
               </Box>
             ))}
             {latencySeries.map(s => (
               <Box key={s.id} sx={{ minWidth: 220, maxWidth: 260, flex: '0 0 auto' }}>
-                <MetricBigCard
-                  series={s}
-                  label={s.name}
-                  sublabel={s.service ?? 'all'}
-                  color={theme.palette.warning.main}
-                />
+                <MetricBigCard series={s} label={s.name} sublabel={s.service ?? 'all'} color={theme.palette.warning.main} />
               </Box>
             ))}
           </Stack>
         </Box>
       </Paper>
+
+      {/* Route별 레이턴시 테이블 */}
+      {Object.keys(routeByService).length > 0 && (
+        <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
+          <SectionLabel>Latency by Route (p95)</SectionLabel>
+          <Box sx={{ overflowX: 'auto' }}>
+            <Stack direction="row" spacing={2} sx={{ minWidth: 'min-content' }}>
+              {Object.entries(routeByService).map(([svc, rows]) => (
+                <Box key={svc} sx={{ minWidth: 240 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 0.5, display: 'block', mb: 1 }}>
+                    {svc.toUpperCase()}
+                  </Typography>
+                  <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '80px 1fr 60px', px: 1.5, py: 0.75, bgcolor: 'action.hover', borderBottom: '1px solid', borderColor: 'divider' }}>
+                      {['환경', 'http_route', 'p95'].map(h => (
+                        <Typography key={h} variant="caption" sx={{ fontWeight: 700 }}>{h}</Typography>
+                      ))}
+                    </Box>
+                    {rows.map((r, i) => (
+                      <Box key={i} sx={{ display: 'grid', gridTemplateColumns: '80px 1fr 60px', px: 1.5, py: 0.75, borderBottom: i < rows.length - 1 ? '1px solid' : 'none', borderColor: 'divider' }}>
+                        <Typography variant="caption" sx={{ color: r.env === 'prod' ? 'info.main' : 'secondary.main', fontWeight: 600 }}>{r.env}</Typography>
+                        <Typography variant="caption" sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{r.route}</Typography>
+                        <Typography variant="caption" sx={{ fontWeight: 600 }}>{r.value.toFixed(0)}ms</Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              ))}
+            </Stack>
+          </Box>
+        </Paper>
+      )}
 
       {/* 인프라 요약 */}
       <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>

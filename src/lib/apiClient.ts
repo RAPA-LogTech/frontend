@@ -1,4 +1,3 @@
-import { globalFilterOptions, mockAiConversation, mockDashboards } from './mock'
 import {
   Dashboard,
   LogEntry,
@@ -12,10 +11,6 @@ import {
   SlackTestMessageResponse,
   Trace,
 } from './types'
-
-const simulateLatency = async () => {
-  await new Promise(resolve => setTimeout(resolve, 150))
-}
 
 const readErrorMessage = async (response: Response, fallback: string) => {
   try {
@@ -74,8 +69,13 @@ export const apiClient = {
     }
   },
   async getDashboards(): Promise<Dashboard[]> {
-    await simulateLatency()
-    return mockDashboards
+    try {
+      const res = await fetch('/api/observability/dashboards')
+      if (!res.ok) return []
+      return (await res.json()) as Dashboard[]
+    } catch {
+      return []
+    }
   },
   async getLogsLegacy(timeRange?: '15m' | '1h' | '6h' | '24h' | 'all'): Promise<LogEntry[]> {
     try {
@@ -143,19 +143,21 @@ export const apiClient = {
     }
   },
   async getGlobalFilterOptions() {
-    await simulateLatency()
-    return globalFilterOptions
+    try {
+      const res = await fetch('/api/observability/filter-options')
+      if (!res.ok) return null
+      return await res.json()
+    } catch {
+      return null
+    }
   },
   async getAiMessages() {
-    await simulateLatency()
-    return mockAiConversation
+    return []
   },
   async getNotifications(): Promise<NotificationItem[]> {
-    await simulateLatency()
     return []
   },
   async getRunbooks(): Promise<RunbookItem[]> {
-    await simulateLatency()
     return []
   },
   async sendSlackTestMessage(payload: { text: string }) {
@@ -200,7 +202,6 @@ export const apiClient = {
   // ============ Reports ============
 
   async getReports(): Promise<ReportItem[]> {
-    await simulateLatency()
     return []
   },
 
@@ -212,8 +213,6 @@ export const apiClient = {
     periodTo: string
     services: string[]
   }): Promise<ReportItem> {
-    await simulateLatency()
-    // 실제 백엔드 없이 목 응답 반환
     const now = new Date().toISOString()
     return {
       id: `rpt-${Date.now()}`,
@@ -229,8 +228,6 @@ export const apiClient = {
   },
 
   async deleteReport(reportId: string): Promise<void> {
-    await simulateLatency()
-    // 실제 백엔드 없이 목 응답 (정상 삭제 처리)
     void reportId
   },
 }

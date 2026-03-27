@@ -37,8 +37,8 @@ export const HistogramTooltip = memo(function HistogramTooltip({
 
   let rangeLabel = ''
   if (item.bucketStart && item.bucketEnd) {
-    const formatTime = (d: number | string) => {
-      const date = new Date(d)
+    const formatTime = (d: number | string | Date) => {
+      const date = d instanceof Date ? d : new Date(d)
       return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
     }
     rangeLabel = `${formatTime(item.bucketStart)} ~ ${formatTime(item.bucketEnd)}`

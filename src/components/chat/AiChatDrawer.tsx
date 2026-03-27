@@ -20,7 +20,6 @@ import {
   Person as UserIcon,
 } from '@mui/icons-material'
 import { AiMessage, GlobalFilterState } from '@/lib/types'
-import { mockAiMessages } from '@/lib/mock'
 
 interface AiChatDrawerProps {
   open: boolean
@@ -31,7 +30,7 @@ interface AiChatDrawerProps {
 const aiDrawerWidth = 400
 
 export const AiChatDrawer: React.FC<AiChatDrawerProps> = ({ open, onClose, filters }) => {
-  const [messages, setMessages] = useState<AiMessage[]>(mockAiMessages)
+  const [messages, setMessages] = useState<AiMessage[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)

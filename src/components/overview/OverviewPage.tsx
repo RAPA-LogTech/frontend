@@ -20,6 +20,7 @@ import { ArrowRight as ArrowRightIcon } from '@mui/icons-material'
 import KPICard from '@/components/KPICard'
 import { formatTimestamp } from '@/lib/formatters'
 import { apiClient, OverviewData } from '@/lib/apiClient'
+import NoDataState from '@/components/common/NoDataState'
 
 // ─── Skeleton helpers ───
 
@@ -74,6 +75,17 @@ export default function OverviewPage() {
   useEffect(() => {
     fetchData()
   }, [fetchData])
+
+  if (!loading && data === null) {
+    return (
+      <Box>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
+          Dashboard Overview
+        </Typography>
+        <NoDataState title="No overview data" description="데이터를 불러오지 못했습니다." />
+      </Box>
+    )
+  }
 
   const kpi = data?.kpi
   const services = data?.services ?? []

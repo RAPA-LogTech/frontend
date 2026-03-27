@@ -67,7 +67,7 @@ export default function GlobalFilters() {
                   },
                 }}
               >
-                {(data?.timeRanges ?? []).map(item => (
+                {(data?.timeRanges ?? []).map((item: { value: string; label: string }) => (
                   <MenuItem key={item.value} value={item.value}>
                     {item.label}
                   </MenuItem>
@@ -107,7 +107,7 @@ export default function GlobalFilters() {
                   },
                 }}
               >
-                {(data?.services ?? []).map(value => (
+                {(data?.services ?? []).map((value: string) => (
                   <MenuItem key={value} value={value}>
                     {value}
                   </MenuItem>
@@ -147,7 +147,7 @@ export default function GlobalFilters() {
                   },
                 }}
               >
-                {(data?.envs ?? []).map(value => (
+                {(data?.envs ?? []).map((value: string) => (
                   <MenuItem key={value} value={value}>
                     {value}
                   </MenuItem>
@@ -187,7 +187,7 @@ export default function GlobalFilters() {
                   },
                 }}
               >
-                {(data?.clusters ?? []).map(value => (
+                {(data?.clusters ?? []).map((value: string) => (
                   <MenuItem key={value} value={value}>
                     {value}
                   </MenuItem>

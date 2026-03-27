@@ -1,0 +1,9 @@
+services:
+  dashboard:
+    image: gurururu/logtech-dashboard:latest
+    container_name: dashboard
+    restart: unless-stopped
+    ports:
+      - "80:3000"
+    env_file:
+      - dashboard.env.prod

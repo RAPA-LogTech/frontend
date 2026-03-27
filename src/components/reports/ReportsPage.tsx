@@ -533,9 +533,11 @@ export default function ReportsPage() {
         </Typography>
         <Stack direction="row" spacing={1}>
           <Tooltip title="새로고침">
+            <span>
             <IconButton onClick={() => refetch()} disabled={isRefetching} size="small">
               <RefreshIcon />
             </IconButton>
+            </span>
           </Tooltip>
           <Button
             variant="contained"

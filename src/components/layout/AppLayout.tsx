@@ -8,7 +8,6 @@ import TopBar from './TopBar'
 import GlobalFilterBar from './GlobalFilterBar'
 import AiChatDrawer from '../chat/AiChatDrawer'
 import { GlobalFilterState } from '@/lib/types'
-import { defaultGlobalFilter } from '@/lib/mock'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -23,7 +22,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
-  const [filters, setFilters] = useState<GlobalFilterState>(defaultGlobalFilter)
+  const [filters, setFilters] = useState<GlobalFilterState>({
+    timeRange: '1h',
+    startTime: Date.now() - 3600000,
+    endTime: Date.now(),
+    service: [],
+    env: ['prod'],
+    cluster: [],
+  })
   const [aiChatOpen, setAiChatOpen] = useState(false)
 
   const handleDrawerToggle = () => {
