@@ -69,14 +69,16 @@ export default function TracesPage() {
   const [selectedTraceId, setSelectedTraceId] = useState<string | null>(null)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [showDependencyGraph, setShowDependencyGraph] = useState(false)
-  const [scatterDomain, setScatterDomain] = useState<{
-    xMin: number
-    xMax: number
-    yMin: number
-    yMax: number
-  } | null>(null)
   const [filterService, setFilterService] = useState<string>('all')
   const [filterOperation, setFilterOperation] = useState<string>('all')
+  const [chartNow, setChartNow] = useState(() => Math.ceil(Date.now() / 60000) * 60000)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setChartNow(Math.ceil(Date.now() / 60000) * 60000)
+    }, 60000)
+    return () => clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     if (traces.length > 0) {
@@ -258,44 +260,6 @@ export default function TracesPage() {
     [hasTraces, sortedTraces]
   )
 
-  useEffect(() => {
-    if (!hasTraces) return
-
-    const observedXMin = minStart
-    const observedXMax = maxStart
-    const observedYMin = Math.max(0, minDuration * 0.9)
-    const observedYMax = maxDuration * 1.05
-
-    setScatterDomain(prev => {
-      if (!prev) {
-        return {
-          xMin: observedXMin,
-          xMax: observedXMax,
-          yMin: observedYMin,
-          yMax: observedYMax,
-        }
-      }
-
-      const next = {
-        xMin: Math.min(prev.xMin, observedXMin),
-        xMax: Math.max(prev.xMax, observedXMax),
-        yMin: Math.min(prev.yMin, observedYMin),
-        yMax: Math.max(prev.yMax, observedYMax),
-      }
-
-      if (
-        next.xMin === prev.xMin &&
-        next.xMax === prev.xMax &&
-        next.yMin === prev.yMin &&
-        next.yMax === prev.yMax
-      ) {
-        return prev
-      }
-
-      return next
-    })
-  }, [hasTraces, minStart, maxStart, minDuration, maxDuration])
-
   const handleSortChange = (event: SelectChangeEvent<SortKey>) => {
     setSortKey(event.target.value as SortKey)
   }
@@ -317,8 +281,7 @@ export default function TracesPage() {
     const date = new Date(value)
     const hours = String(date.getHours()).padStart(2, '0')
     const minutes = String(date.getMinutes()).padStart(2, '0')
-    const seconds = String(date.getSeconds()).padStart(2, '0')
-    return `${hours}:${minutes}:${seconds}`
+    return `${hours}:${minutes}`
   }
 
   const timeRange = Math.max(maxStart - minStart, 1)
@@ -451,9 +414,11 @@ export default function TracesPage() {
     URL.revokeObjectURL(url)
   }
 
-  const chartData = useMemo(
-    () =>
-      sortedTraces.map(trace => {
+  const chartData = useMemo(() => {
+    const xMin = chartNow - 10 * 60 * 1000
+    return sortedTraces
+      .filter(trace => trace.startTime >= xMin && trace.startTime <= chartNow)
+      .map(trace => {
         const normalized = (trace.duration - minDuration) / Math.max(durationRange, 1)
         const errorSpanCount = trace.spans.filter(span => span.status === 'error').length
         return {
@@ -468,16 +433,12 @@ export default function TracesPage() {
           statusCode: trace.status_code,
           color: getStatusColor(trace.status_code),
         }
-      }),
-    [durationRange, getStatusColor, minDuration, sortedTraces]
-  )
+      })
+  }, [chartNow, durationRange, getStatusColor, minDuration, sortedTraces])
 
-  const xDomain: [number, number] = scatterDomain
-    ? [scatterDomain.xMin, scatterDomain.xMax]
-    : [minStart, maxStart]
-  const yDomain: [number, number] = scatterDomain
-    ? [scatterDomain.yMin, scatterDomain.yMax]
-    : [Math.max(0, minDuration * 0.9), maxDuration * 1.05]
+  const xDomain: [number, number] = [chartNow - 10 * 60 * 1000, chartNow]
+  const xTicks = Array.from({ length: 11 }, (_, i) => chartNow - 10 * 60 * 1000 + i * 60 * 1000)
+  const yDomain: [number, number] = [Math.max(0, minDuration * 0.9), maxDuration * 1.05]
 
   if (isTracesLoading) {
     return (
@@ -681,6 +642,7 @@ export default function TracesPage() {
                   dataKey="startTime"
                   name="Time"
                   domain={xDomain}
+                  ticks={xTicks}
                   tickFormatter={(value: number) => formatTimeUnit(value)}
                   tick={{ fill: theme.palette.text.secondary, fontSize: 11 }}
                   tickLine={false}
@@ -745,7 +707,8 @@ export default function TracesPage() {
                           color="text.secondary"
                           sx={{ display: 'block', mb: 0.5 }}
                         >
-                          {formatTimeUnit(item.startTime ?? 0)} · {item.id}
+                          {new Date(item.startTime ?? 0).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+                          <br />{item.id}
                         </Typography>
                         <Typography variant="caption" sx={{ display: 'block' }}>
                           Duration: {formatDurationUnit(item.duration ?? 0)}

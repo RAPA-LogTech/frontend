@@ -125,7 +125,9 @@ export const apiClient = {
   },
   async getTraces(): Promise<Trace[]> {
     try {
-      const response = await fetch('/api/observability/traces')
+      const end = Date.now()
+      const start = end - 10 * 60 * 1000
+      const response = await fetch(`/api/observability/traces?start_time=${start}&end_time=${end}`)
       if (!response.ok) return []
       const data = (await response.json()) as { traces?: Trace[] }
       return Array.isArray(data.traces) ? data.traces : []
