@@ -38,12 +38,18 @@ function MetricCard({ series, label, unit, color }: { series?: MetricSeries; lab
 export default function JvmTab({ metricSeries, envFilter }: Props) {
   const theme = useTheme()
 
-  const jvmCpuSeries = filterSeries(metricSeries, 'jvm_cpu', envFilter)
-  const jvmMemSeries = filterSeries(metricSeries, 'jvm_memory', envFilter)
-  const jvmGcCountSeries = filterSeries(metricSeries, 'jvm_gc_count', envFilter)
-  const jvmGcDurSeries = filterSeries(metricSeries, 'jvm_gc_duration', envFilter)
+  // 메트릭 이름을 정확히 지정
+  const jvmCpuSeries = filterSeries(metricSeries, 'app_jvm_cpu_utilization_pct_avg_5m', envFilter)
+  const jvmMemSeries = filterSeries(metricSeries, 'app_jvm_memory_used_avg_5m', envFilter)
+  const jvmGcCountSeries = filterSeries(metricSeries, 'app_jvm_gc_count_5m', envFilter)
+  const jvmGcDurSeries = filterSeries(metricSeries, 'app_jvm_gc_duration_p95_5m', envFilter)
 
-  const services = [...new Set([...jvmCpuSeries, ...jvmMemSeries, ...jvmGcCountSeries].map(s => s.service).filter(Boolean))] as string[]
+  const services = [...new Set([
+    ...jvmCpuSeries,
+    ...jvmMemSeries,
+    ...jvmGcCountSeries,
+    ...jvmGcDurSeries
+  ].map(s => s.service).filter(Boolean))] as string[]
 
   if (services.length === 0) {
     return <NoDataState title="No JVM data" description="No JVM metrics available." />
@@ -60,10 +66,10 @@ export default function JvmTab({ metricSeries, envFilter }: Props) {
           <Paper key={svc} variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
             <SectionLabel>{svc.toUpperCase()}</SectionLabel>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-              {cpu && <Box sx={{ flex: '1 1 180px', minWidth: 0 }}><MetricCard series={cpu} label="CPU Utilization" unit="%" color={theme.palette.warning.main} /></Box>}
-              {mem && <Box sx={{ flex: '1 1 180px', minWidth: 0 }}><MetricCard series={mem} label="Memory Used" unit="%" color={theme.palette.info.main} /></Box>}
-              {gcCount && <Box sx={{ flex: '1 1 180px', minWidth: 0 }}><MetricCard series={gcCount} label="GC Count" unit="" color={theme.palette.secondary.main} /></Box>}
-              {gcDur && <Box sx={{ flex: '1 1 180px', minWidth: 0 }}><MetricCard series={gcDur} label="GC Duration p95" unit="ms" color={theme.palette.error.main} /></Box>}
+              {cpu && <Box sx={{ flex: '1 1 180px', minWidth: 0 }}><MetricCard series={cpu} label="JVM CPU(5m avg)" unit="%" color={theme.palette.warning.main} /></Box>}
+              {mem && <Box sx={{ flex: '1 1 180px', minWidth: 0 }}><MetricCard series={mem} label="JVM Memory(5m avg)" unit="MB" color={theme.palette.info.main} /></Box>}
+              {gcCount && <Box sx={{ flex: '1 1 180px', minWidth: 0 }}><MetricCard series={gcCount} label="GC Count(5m)" unit="회" color={theme.palette.secondary.main} /></Box>}
+              {gcDur && <Box sx={{ flex: '1 1 180px', minWidth: 0 }}><MetricCard series={gcDur} label="GC Duration p95(5m)" unit="ms" color={theme.palette.error.main} /></Box>}
             </Box>
           </Paper>
         )

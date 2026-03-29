@@ -38,10 +38,25 @@ function MetricCard({ series, label, unit, color }: { series?: MetricSeries; lab
 export default function DatabaseTab({ metricSeries, envFilter }: Props) {
   const theme = useTheme()
 
-  const usageSeries = filterSeries(metricSeries, 'db_connection_use', envFilter)
-  const waitSeries = filterSeries(metricSeries, 'db_connection_wait', envFilter)
+  // 기존 p95 시리즈
+  const useP95Series = filterSeries(metricSeries, 'db_connection_use', envFilter)
+  const waitP95Series = filterSeries(metricSeries, 'db_connection_wait', envFilter)
 
-  const services = [...new Set([...usageSeries, ...waitSeries].map(s => s.service).filter(Boolean))] as string[]
+  // db_client_connections_* 시리즈
+  const usageSeries = filterSeries(metricSeries, 'db_client_connections_usage', envFilter)
+  const pendingSeries = filterSeries(metricSeries, 'db_client_connections_pending_requests', envFilter)
+  const maxSeries = filterSeries(metricSeries, 'db_client_connections_max', envFilter)
+
+  // 서비스 목록 추출 (모든 시리즈에서)
+  const services = [
+    ...new Set([
+      ...useP95Series,
+      ...waitP95Series,
+      ...usageSeries,
+      ...pendingSeries,
+      ...maxSeries,
+    ].map(s => s.service).filter(Boolean))
+  ] as string[]
 
   if (services.length === 0) {
     return <NoDataState title="No Database data" description="No DB connection metrics available." />
@@ -50,14 +65,40 @@ export default function DatabaseTab({ metricSeries, envFilter }: Props) {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {services.map(svc => {
-        const use = usageSeries.find(s => s.service === svc)
-        const wait = waitSeries.find(s => s.service === svc)
+        const useP95 = useP95Series.find(s => s.service === svc)
+        const waitP95 = waitP95Series.find(s => s.service === svc)
+        const usage = usageSeries.find(s => s.service === svc)
+        const pending = pendingSeries.find(s => s.service === svc)
+        const max = maxSeries.find(s => s.service === svc)
         return (
           <Paper key={svc} variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
             <SectionLabel>{svc.toUpperCase()}</SectionLabel>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-              {use && <Box sx={{ flex: '1 1 200px', minWidth: 0 }}><MetricCard series={use} label="Connection Use p95" unit="ms" color={theme.palette.info.main} /></Box>}
-              {wait && <Box sx={{ flex: '1 1 200px', minWidth: 0 }}><MetricCard series={wait} label="Connection Wait p95" unit="ms" color={theme.palette.warning.main} /></Box>}
+              {usage && (
+                <Box sx={{ flex: '1 1 200px', minWidth: 0 }}>
+                  <MetricCard series={usage} label="Active Connections" unit="" color={theme.palette.info.main} />
+                </Box>
+              )}
+              {pending && (
+                <Box sx={{ flex: '1 1 200px', minWidth: 0 }}>
+                  <MetricCard series={pending} label="Pending Requests" unit="" color={theme.palette.warning.main} />
+                </Box>
+              )}
+              {max && (
+                <Box sx={{ flex: '1 1 200px', minWidth: 0 }}>
+                  <MetricCard series={max} label="Max Pool Size" unit="" color={theme.palette.success.main} />
+                </Box>
+              )}
+              {useP95 && (
+                <Box sx={{ flex: '1 1 200px', minWidth: 0 }}>
+                  <MetricCard series={useP95} label="Connection Use p95" unit="ms" color={theme.palette.info.light} />
+                </Box>
+              )}
+              {waitP95 && (
+                <Box sx={{ flex: '1 1 200px', minWidth: 0 }}>
+                  <MetricCard series={waitP95} label="Connection Wait p95" unit="ms" color={theme.palette.warning.light} />
+                </Box>
+              )}
             </Box>
           </Paper>
         )
