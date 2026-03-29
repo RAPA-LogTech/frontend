@@ -40,6 +40,16 @@ export default function MetricsPage() {
   })
   const metrics = metricsData ?? EMPTY_METRICS
 
+  // 인프라 메트릭 별도 패칭
+  const { data: infraMetricsData } = useQuery({
+    queryKey: ['infra-metrics'],
+    queryFn: apiClient.getInfraMetrics,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    placeholderData: (prev) => prev,
+  })
+  const infraMetrics = infraMetricsData ?? EMPTY_METRICS
+
   const [liveMetrics, setLiveMetrics] = useState<MetricSeries[]>([])
   const [isLiveEnabled, setIsLiveEnabled] = useState(true)
   const [streamStatus, setStreamStatus] = useState<'connecting' | 'live' | 'reconnecting' | 'offline'>('connecting')
@@ -194,7 +204,7 @@ export default function MetricsPage() {
       )}
       {tab === 3 && (
         <InfraTab
-          metricSeries={metricSeries}
+          metricSeries={infraMetrics}
           serviceHealth={serviceHealth}
           envFilter={envFilter}
         />

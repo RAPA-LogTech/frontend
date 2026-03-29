@@ -1,3 +1,13 @@
+  async getInfraMetrics(): Promise<MetricSeries[]> {
+    try {
+      const response = await fetch('/api/observability/metrics/infra')
+      if (!response.ok) return []
+      const data = (await response.json()) as MetricSeries[]
+      return Array.isArray(data) ? data : []
+    } catch {
+      return []
+    }
+  },
 import {
   Dashboard,
   LogEntry,
