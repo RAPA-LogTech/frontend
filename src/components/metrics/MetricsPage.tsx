@@ -181,6 +181,7 @@ export default function MetricsPage() {
           error4xxSeries={error4xxSeries}
           error5xxSeries={error5xxSeries}
           envFilter={envFilter}
+          metricSeries={metricSeries}
         />
       )}
       {tab === 1 && <JvmTab metricSeries={metricSeries} envFilter={envFilter} />}
