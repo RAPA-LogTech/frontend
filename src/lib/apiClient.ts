@@ -1,4 +1,25 @@
-  async getInfraMetrics(): Promise<MetricSeries[]> {
+export async function getContainerMetrics(): Promise<MetricSeries[]> {
+  try {
+    const response = await fetch('/api/observability/metrics/container')
+    if (!response.ok) return []
+    const data = (await response.json()) as MetricSeries[]
+    return Array.isArray(data) ? data : []
+  } catch {
+    return []
+  }
+}
+
+export async function getHostMetrics(): Promise<MetricSeries[]> {
+  try {
+    const response = await fetch('/api/observability/metrics/host')
+    if (!response.ok) return []
+    const data = (await response.json()) as MetricSeries[]
+    return Array.isArray(data) ? data : []
+  } catch {
+    return []
+  }
+}
+  export async function getInfraMetrics(): Promise<MetricSeries[]> {
     try {
       const response = await fetch('/api/observability/metrics/infra')
       if (!response.ok) return []
@@ -7,7 +28,7 @@
     } catch {
       return []
     }
-  },
+  }
 import {
   Dashboard,
   LogEntry,

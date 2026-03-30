@@ -119,7 +119,7 @@ export default function TracesPage() {
 
       try {
         for (let step = 0; step < 10; step += 1) {
-          const response = await fetch(`/api/traces/backlog?cursor=${cursor}&limit=${limit}`)
+          const response = await fetch(`/api/observability/traces/backlog?cursor=${cursor}&limit=${limit}`)
           if (!response.ok) return
 
           const data = (await response.json()) as {
@@ -151,7 +151,7 @@ export default function TracesPage() {
       await fetchBacklog()
       if (isUnmounted) return
 
-      eventSource = new EventSource('/api/traces/stream')
+      eventSource = new EventSource('/api/observability/traces/stream')
 
       eventSource.onopen = () => {
         retryAttempt = 0

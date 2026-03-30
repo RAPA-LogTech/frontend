@@ -90,7 +90,7 @@ export default function MetricsPage() {
       let cursor = lastCursorRef.current
       for (let i = 0; i < 10; i++) {
         try {
-          const res = await fetch(`/api/metrics/backlog?cursor=${cursor}&limit=200`)
+          const res = await fetch(`/api/observability/metrics/backlog?cursor=${cursor}&limit=200`)
           if (!res.ok) return
           const data = await res.json() as { events?: MetricStreamPayload[]; nextCursor?: number; hasMore?: boolean; latestCursor?: number }
           ;(data.events ?? []).forEach(apply)
@@ -106,7 +106,7 @@ export default function MetricsPage() {
       setStreamStatus(retry === 0 ? 'connecting' : 'reconnecting')
       await fetchBacklog()
       if (unmounted) return
-      es = new EventSource('/api/metrics/stream')
+      es = new EventSource('/api/observability/metrics/stream')
       es.onopen = () => { retry = 0; setStreamStatus('live') }
       es.addEventListener('metric', e => { try { apply(JSON.parse((e as MessageEvent<string>).data)) } catch {} })
       es.onerror = () => {

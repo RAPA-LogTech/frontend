@@ -162,7 +162,7 @@ export default function LogsPage() {
 
       try {
         for (let step = 0; step < 20; step += 1) {
-          const response = await fetch(`/api/logs/backlog?cursor=${cursor}&limit=${limit}`)
+          const response = await fetch(`/api/observability/logs/backlog?cursor=${cursor}&limit=${limit}`)
           if (!response.ok) return
 
           const data = (await response.json()) as {
@@ -191,7 +191,7 @@ export default function LogsPage() {
       await fetchBacklog()
       if (isUnmounted) return
 
-      eventSource = new EventSource('/api/logs/stream')
+      eventSource = new EventSource('/api/observability/logs/stream')
 
       eventSource.onopen = () => {
         retryAttempt = 0
