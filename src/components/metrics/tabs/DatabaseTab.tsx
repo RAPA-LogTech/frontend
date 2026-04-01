@@ -6,22 +6,13 @@ import NoDataState from '@/components/common/NoDataState'
 import { getSeriesLast, sliceLast5Min } from '../metricsUtils'
 import { MiniSparkline, SectionLabel } from '../MetricsShared'
 
-interface ServiceHealth {
-  service: string;
-  env?: string;
-  error_rate: number;
-  rds_cpu?: number;
-  rds_connections?: number;
-  rds_freeable_memory?: number;
-  rds_read_latency?: number;
-  rds_write_latency?: number;
-}
-
 interface Props {
   metricSeries: MetricSeries[];
+  rdsMetrics: MetricSeries[];
   envFilter: string;
-  serviceHealth: ServiceHealth[];
 }
+
+const BYTES_PER_MB = 1024 * 1024
 
 function filterSeries(series: MetricSeries[], name: string, envFilter: string) {
   return series.filter(s => {
@@ -47,7 +38,18 @@ function MetricCard({ series, label, unit, color }: { series?: MetricSeries; lab
   )
 }
 
-export default function DatabaseTab({ metricSeries, envFilter, serviceHealth }: Props) {
+function toMbSeries(series?: MetricSeries): MetricSeries | undefined {
+  if (!series) return undefined
+  return {
+    ...series,
+    points: series.points.map(point => ({
+      ...point,
+      value: point.value / BYTES_PER_MB,
+    })),
+  }
+}
+
+export default function DatabaseTab({ metricSeries, rdsMetrics, envFilter }: Props) {
   const theme = useTheme()
 
   // 기존 p95 시리즈
@@ -58,6 +60,13 @@ export default function DatabaseTab({ metricSeries, envFilter, serviceHealth }: 
   const usageSeries = filterSeries(metricSeries, 'db_client_connections_usage', envFilter)
   const pendingSeries = filterSeries(metricSeries, 'db_client_connections_pending_requests', envFilter)
   const maxSeries = filterSeries(metricSeries, 'db_client_connections_max', envFilter)
+  const rdsCpuSeries = rdsMetrics.find(s => s.name === 'rds_cpu_utilization')
+  const rdsConnectionsSeries = rdsMetrics.find(s => s.name === 'rds_database_connections')
+  const rdsFreeableMemorySeries = toMbSeries(rdsMetrics.find(s => s.name === 'rds_freeable_memory'))
+  const rdsReadLatencySeries = rdsMetrics.find(s => s.name === 'rds_read_latency')
+  const rdsWriteLatencySeries = rdsMetrics.find(s => s.name === 'rds_write_latency')
+
+  const getGroupKey = (series: MetricSeries) => series.service || 'UNKNOWN_SERVICE'
 
   // 서비스 목록 추출 (모든 시리즈에서)
   const services = [
@@ -67,28 +76,31 @@ export default function DatabaseTab({ metricSeries, envFilter, serviceHealth }: 
       ...usageSeries,
       ...pendingSeries,
       ...maxSeries,
-    ].map(s => s.service).filter(Boolean))
-  ] as string[]
+    ].map(getGroupKey))
+  ]
+  const hasRdsMetrics = Boolean(
+    rdsCpuSeries ||
+    rdsConnectionsSeries ||
+    rdsFreeableMemorySeries ||
+    rdsReadLatencySeries ||
+    rdsWriteLatencySeries
+  )
 
-
-  // RDS 정보 추출
-  const rdsList = serviceHealth.filter(h => h.rds_cpu !== undefined)
-
-  if (services.length === 0 && rdsList.length === 0) {
+  if (services.length === 0 && !hasRdsMetrics) {
     return <NoDataState title="No Database data" description="No DB connection or RDS metrics available." />
   }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {services.map(svc => {
-        const useP95 = useP95Series.find(s => s.service === svc)
-        const waitP95 = waitP95Series.find(s => s.service === svc)
-        const usage = usageSeries.find(s => s.service === svc)
-        const pending = pendingSeries.find(s => s.service === svc)
-        const max = maxSeries.find(s => s.service === svc)
+        const useP95 = useP95Series.find(s => getGroupKey(s) === svc)
+        const waitP95 = waitP95Series.find(s => getGroupKey(s) === svc)
+        const usage = usageSeries.find(s => getGroupKey(s) === svc)
+        const pending = pendingSeries.find(s => getGroupKey(s) === svc)
+        const max = maxSeries.find(s => getGroupKey(s) === svc)
         return (
           <Paper key={svc} variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
-            <SectionLabel>{svc.toUpperCase()}</SectionLabel>
+            <SectionLabel>{svc === 'UNKNOWN_SERVICE' ? 'DB CONNECTION POOL' : `DB CONNECTION POOL · ${svc.toUpperCase()}`}</SectionLabel>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
               {usage && (
                 <Box sx={{ flex: '1 1 200px', minWidth: 0 }}>
@@ -121,41 +133,35 @@ export default function DatabaseTab({ metricSeries, envFilter, serviceHealth }: 
       })}
 
       {/* RDS (CloudWatch) 메트릭 */}
-      {rdsList.length > 0 && (
+      {hasRdsMetrics && (
         <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
           <SectionLabel>RDS</SectionLabel>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-            {rdsList.map((h, idx) => (
-              <Box key={idx} sx={{ flex: '1 1 320px', minWidth: 0, maxWidth: 400 }}>
-                <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper', borderRadius: 1 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 1, display: 'block', mb: 1 }}>RDS</Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2 }}>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.success.main }}>{(h.rds_cpu as number)?.toFixed(1) ?? '-' }%</Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>CPU</Typography>
-                    </Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.info.main }}>{(h.rds_connections as number ?? 0).toFixed(0)}</Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>Connections</Typography>
-                    </Box>
-                  </Box>
-                  <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2, mt: 2 }}>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.warning.main }}>{(h.rds_freeable_memory as number)?.toLocaleString() ?? '-'}</Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>Freeable Memory (bytes)</Typography>
-                    </Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.secondary.main }}>{(h.rds_read_latency as number)?.toFixed(3) ?? '-'}</Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>Read Latency (s)</Typography>
-                    </Box>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.error.main }}>{(h.rds_write_latency as number)?.toFixed(3) ?? '-'}</Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>Write Latency (s)</Typography>
-                    </Box>
-                  </Box>
-                </Paper>
+            {rdsCpuSeries && (
+              <Box sx={{ flex: '1 1 220px', minWidth: 0, maxWidth: 320 }}>
+                <MetricCard series={rdsCpuSeries} label="CPUUtilization" unit="%" color={theme.palette.success.main} />
               </Box>
-            ))}
+            )}
+            {rdsConnectionsSeries && (
+              <Box sx={{ flex: '1 1 220px', minWidth: 0, maxWidth: 320 }}>
+                <MetricCard series={rdsConnectionsSeries} label="DatabaseConnections" unit="" color={theme.palette.info.main} />
+              </Box>
+            )}
+            {rdsFreeableMemorySeries && (
+              <Box sx={{ flex: '1 1 220px', minWidth: 0, maxWidth: 320 }}>
+                <MetricCard series={rdsFreeableMemorySeries} label="FreeableMemory" unit=" MB" color={theme.palette.warning.main} />
+              </Box>
+            )}
+            {rdsReadLatencySeries && (
+              <Box sx={{ flex: '1 1 220px', minWidth: 0, maxWidth: 320 }}>
+                <MetricCard series={rdsReadLatencySeries} label="ReadLatency" unit="s" color={theme.palette.secondary.main} />
+              </Box>
+            )}
+            {rdsWriteLatencySeries && (
+              <Box sx={{ flex: '1 1 220px', minWidth: 0, maxWidth: 320 }}>
+                <MetricCard series={rdsWriteLatencySeries} label="WriteLatency" unit="s" color={theme.palette.error.main} />
+              </Box>
+            )}
           </Box>
         </Paper>
       )}

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Box, Chip, Paper, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material'
 import type { MetricSeries } from '@/lib/types'
-import { apiClient, getContainerMetrics, getHostMetrics, getJvmMetrics } from '@/lib/apiClient'
+import { apiClient, getContainerMetrics, getDatabaseMetrics, getHostMetrics, getJvmMetrics, getRdsMetrics } from '@/lib/apiClient'
 import NoDataState from '@/components/common/NoDataState'
 import LiveButton from '@/components/logs/LogFilters/LiveButton'
 import { filterByEnv } from './metricsUtils'
@@ -54,6 +54,24 @@ export default function MetricsPage({ currentTab = 'overview' }: { currentTab?: 
     refetchInterval: 30_000,
     placeholderData: (prev) => prev,
     enabled: currentTab === 'jvm',
+  })
+
+  const { data: databaseMetricsData = EMPTY_METRICS } = useQuery({
+    queryKey: ['database-metrics'],
+    queryFn: getDatabaseMetrics,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    placeholderData: (prev) => prev,
+    enabled: currentTab === 'database',
+  })
+
+  const { data: rdsMetricsData = EMPTY_METRICS } = useQuery({
+    queryKey: ['rds-metrics'],
+    queryFn: getRdsMetrics,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    placeholderData: (prev) => prev,
+    enabled: currentTab === 'database',
   })
 
 
@@ -138,7 +156,12 @@ export default function MetricsPage({ currentTab = 'overview' }: { currentTab?: 
   }, [isLiveEnabled])
 
   const metricSeries = useMemo(() => (liveMetrics.length > 0 ? liveMetrics : metrics), [liveMetrics, metrics])
-  const activeMetricSeries = currentTab === 'jvm' ? (jvmMetricsData.length > 0 ? jvmMetricsData : metricSeries) : metricSeries
+  const activeMetricSeries =
+    currentTab === 'jvm'
+      ? (jvmMetricsData.length > 0 ? jvmMetricsData : metricSeries)
+      : currentTab === 'database'
+        ? (databaseMetricsData.length > 0 ? databaseMetricsData : metricSeries)
+        : metricSeries
 
   const error4xxSeries = activeMetricSeries.filter(s => s.name.includes('4xx_ratio') && filterByEnv(s, envFilter))
   const error5xxSeries = activeMetricSeries.filter(s => s.name.includes('5xx_ratio') && filterByEnv(s, envFilter))
@@ -156,15 +179,6 @@ export default function MetricsPage({ currentTab = 'overview' }: { currentTab?: 
         <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider' }}>
           <Skeleton variant="rounded" height={200} />
         </Paper>
-      </Box>
-    )
-  }
-
-  if (isFetched && activeMetricSeries.length === 0) {
-    return (
-      <Box>
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>Metrics</Typography>
-        <NoDataState title="No metrics data" description="No metrics data found." />
       </Box>
     )
   }
@@ -231,8 +245,8 @@ export default function MetricsPage({ currentTab = 'overview' }: { currentTab?: 
       {currentTab === 'database' && (
         <DatabaseTab
           metricSeries={activeMetricSeries}
+          rdsMetrics={rdsMetricsData}
           envFilter={envFilter}
-          serviceHealth={serviceHealth}
         />
       )}
       {currentTab === 'infra' && (

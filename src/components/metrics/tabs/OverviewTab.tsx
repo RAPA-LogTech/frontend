@@ -38,15 +38,19 @@ export default function OverviewTab(props: Props) {
   const hasInfrastructure = infraServices.length > 0 || rdsList.length > 0;
   const showGlobalNoData = !hasServiceHealth && !hasLatency && !hasInfrastructure;
 
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {showGlobalNoData && (
+  if (showGlobalNoData) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         <NoDataState
           title="No metric data"
           description="No data available for Service Health, Latency, and Infrastructure in the selected environment."
         />
-      )}
+      </Box>
+    )
+  }
 
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
       {/* Service Health */}
       <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
         <SectionLabel>Service Health</SectionLabel>

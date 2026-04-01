@@ -7,8 +7,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOY_DIR="$(dirname "$SCRIPT_DIR")"
 
 IMAGE="gurururu/logtech-dashboard:latest"
-SERVER_IP="3.34.10.158"
-SERVER="ubuntu@3.34.10.158"
+SERVER_IP="43.203.54.34"
+SERVER="ubuntu@43.203.54.34"
 SSH_KEY="$HOME/keys/log-platform-key-v5.pem"
 
 # 1. 빌드 + 푸시
