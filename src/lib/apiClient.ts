@@ -1,34 +1,3 @@
-export async function getContainerMetrics(): Promise<MetricSeries[]> {
-  try {
-    const response = await fetch('/api/observability/metrics/container')
-    if (!response.ok) return []
-    const data = (await response.json()) as MetricSeries[]
-    return Array.isArray(data) ? data : []
-  } catch {
-    return []
-  }
-}
-
-export async function getHostMetrics(): Promise<MetricSeries[]> {
-  try {
-    const response = await fetch('/api/observability/metrics/host')
-    if (!response.ok) return []
-    const data = (await response.json()) as MetricSeries[]
-    return Array.isArray(data) ? data : []
-  } catch {
-    return []
-  }
-}
-  export async function getInfraMetrics(): Promise<MetricSeries[]> {
-    try {
-      const response = await fetch('/api/observability/metrics/infra')
-      if (!response.ok) return []
-      const data = (await response.json()) as MetricSeries[]
-      return Array.isArray(data) ? data : []
-    } catch {
-      return []
-    }
-  }
 import {
   Dashboard,
   LogEntry,
@@ -42,6 +11,174 @@ import {
   SlackTestMessageResponse,
   Trace,
 } from './types'
+
+type PromRangeValue = [number | string, number | string]
+type PromRangeResult = {
+  metric?: Record<string, string>
+  values?: PromRangeValue[]
+}
+
+type ServiceHealthRow = {
+  service: string
+  env?: string
+  error_rate: number
+  rds_cpu?: number
+  rds_connections?: number
+  rds_freeable_memory?: number
+  rds_read_latency?: number
+  rds_write_latency?: number
+}
+
+const toNumber = (value: number | string) => {
+  if (typeof value === 'number') return value
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+const getServiceFromMetric = (metric: Record<string, string>) => {
+  const fromService = metric.service || metric.service_name
+  if (fromService) return fromService
+  const job = metric.job || ''
+  return job.includes('/') ? job.split('/').pop() || '' : job
+}
+
+const getEnvFromMetric = (metric: Record<string, string>) => {
+  return metric.deployment_environment || metric.environment || metric.namespace || 'all'
+}
+
+const getLatestValue = (row: PromRangeResult) => {
+  const values = row.values ?? []
+  if (values.length === 0) return 0
+  const last = values[values.length - 1]
+  return toNumber(last[1])
+}
+
+const normalizeServiceHealthPayload = (payload: unknown): ServiceHealthRow[] => {
+  if (Array.isArray(payload)) return payload as ServiceHealthRow[]
+  if (!payload || typeof payload !== 'object') return []
+
+  const obj = payload as {
+    err_4xx?: PromRangeResult[]
+    err_5xx?: PromRangeResult[]
+    error_4xx?: PromRangeResult[]
+    error_5xx?: PromRangeResult[]
+  }
+
+  const rows4xx = obj.err_4xx ?? obj.error_4xx ?? []
+  const rows5xx = obj.err_5xx ?? obj.error_5xx ?? []
+
+  const bucket = new Map<string, ServiceHealthRow>()
+
+  const upsert = (rows: PromRangeResult[], key: '4xx' | '5xx') => {
+    for (const row of rows) {
+      const metric = row.metric ?? {}
+      const service = getServiceFromMetric(metric) || 'unknown'
+      const env = getEnvFromMetric(metric)
+      const mapKey = `${service}::${env}`
+      const current = bucket.get(mapKey) ?? { service, env, error_rate: 0 }
+      const latest = getLatestValue(row)
+      current.error_rate += latest
+      bucket.set(mapKey, current)
+    }
+  }
+
+  upsert(rows4xx, '4xx')
+  upsert(rows5xx, '5xx')
+
+  return Array.from(bucket.values()).sort((a, b) => {
+    if (a.service === b.service) return (a.env ?? '').localeCompare(b.env ?? '')
+    return a.service.localeCompare(b.service)
+  })
+}
+
+const toMetricSeriesFromProm = (rows: PromRangeResult[], metricName: string, unit = '%'): MetricSeries[] => {
+  return rows
+    .map((row, idx) => {
+      const metric = row.metric ?? {}
+      const service = getServiceFromMetric(metric)
+      const instance = metric.instance
+      const points = (row.values ?? [])
+        .map(([ts, value]) => ({ ts: Math.round(toNumber(ts) * 1000), value: toNumber(value) }))
+        .filter((p) => Number.isFinite(p.ts) && Number.isFinite(p.value))
+
+      if (points.length === 0) return null
+      return {
+        id: `${service || instance || 'series'}_${metricName}_${idx}`,
+        name: metricName,
+        unit,
+        service: service || undefined,
+        instance: instance || undefined,
+        points,
+      } as MetricSeries
+    })
+    .filter((item): item is MetricSeries => item !== null)
+}
+
+export async function getContainerMetrics(): Promise<MetricSeries[]> {
+  try {
+    const response = await fetch('/api/observability/metrics/container')
+    if (!response.ok) return []
+    const data = await response.json() as unknown
+
+    if (Array.isArray(data)) return data as MetricSeries[]
+    if (!data || typeof data !== 'object') return []
+
+    const cpu = toMetricSeriesFromProm(
+      ((data as { cpu?: PromRangeResult[] }).cpu ?? []),
+      'app_container_cpu_utilization_avg_5m',
+      '%'
+    )
+    const memory = toMetricSeriesFromProm(
+      ((data as { memory?: PromRangeResult[] }).memory ?? []),
+      'app_container_memory_utilization_avg_5m',
+      '%'
+    )
+    return [...cpu, ...memory]
+  } catch {
+    return []
+  }
+}
+
+export async function getHostMetrics(): Promise<MetricSeries[]> {
+  try {
+    const response = await fetch('/api/observability/metrics/host')
+    if (!response.ok) return []
+    const data = await response.json() as unknown
+
+    if (Array.isArray(data)) return data as MetricSeries[]
+    if (!data || typeof data !== 'object') return []
+
+    const memory = toMetricSeriesFromProm(
+      ((data as { memory?: PromRangeResult[] }).memory ?? []),
+      'host_memory_usage_avg_5m',
+      '%'
+    )
+    const networkRx = toMetricSeriesFromProm(
+      ((data as { network_rx?: PromRangeResult[] }).network_rx ?? []),
+      'host_network_rx_bytes_5m',
+      'bytes'
+    )
+    const networkTx = toMetricSeriesFromProm(
+      ((data as { network_tx?: PromRangeResult[] }).network_tx ?? []),
+      'host_network_tx_bytes_5m',
+      'bytes'
+    )
+    return [...memory, ...networkRx, ...networkTx]
+  } catch {
+    return []
+  }
+}
+
+export async function getInfraMetrics(): Promise<MetricSeries[]> {
+  try {
+    const response = await fetch('/api/observability/metrics/infra')
+    if (!response.ok) return []
+    const data = (await response.json()) as MetricSeries[]
+    return Array.isArray(data) ? data : []
+  } catch {
+    return []
+  }
+}
 
 const readErrorMessage = async (response: Response, fallback: string) => {
   try {
@@ -133,12 +270,12 @@ export const apiClient = {
       return []
     }
   },
-  async getMetricHealth(): Promise<Array<{ service: string; env?: string; error_rate: number; rds_cpu?: number; rds_connections?: number }>> {
+  async getMetricServiceHealth(): Promise<ServiceHealthRow[]> {
     try {
-      const res = await fetch('/api/observability/metrics/health')
+      const res = await fetch('/api/observability/metrics/service-health')
       if (!res.ok) return []
-      const data = (await res.json()) as Array<{ service: string; envs: string[]; error_rate: number }>
-      return Array.isArray(data) ? data : []
+      const data = await res.json()
+      return normalizeServiceHealthPayload(data)
     } catch {
       return []
     }
@@ -148,8 +285,10 @@ export const apiClient = {
       // BFF → observability-service /v1/metrics
       const response = await fetch('/api/observability/metrics')
       if (!response.ok) return []
-      const data = (await response.json()) as MetricSeries[]
-      return Array.isArray(data) ? data : []
+      const data = await response.json()
+      if (Array.isArray(data)) return data as MetricSeries[]
+      if (data?.metrics && Array.isArray(data.metrics)) return data.metrics as MetricSeries[]
+      return []
     } catch {
       return []
     }

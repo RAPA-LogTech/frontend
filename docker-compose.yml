@@ -5,5 +5,6 @@ services:
     restart: unless-stopped
     ports:
       - "80:3000"
-    env_file:
-      - dashboard.env.prod
+    environment:
+      NODE_ENV: "production"
+      OBSERVABILITY_SERVICE_URL: "http://localhost:8081"

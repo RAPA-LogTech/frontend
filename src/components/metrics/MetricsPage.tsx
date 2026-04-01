@@ -28,7 +28,7 @@ export default function MetricsPage() {
 
   const { data: serviceHealth = [] } = useQuery({
     queryKey: ['metric-health'],
-    queryFn: apiClient.getMetricHealth,
+    queryFn: apiClient.getMetricServiceHealth,
     staleTime: 30_000,
     refetchInterval: 30_000,
     placeholderData: (prev) => prev,

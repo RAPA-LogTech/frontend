@@ -31,18 +31,26 @@ export default function OverviewTab(props: Props) {
   const cpuSeries = (metricSeries ?? []).filter((s: MetricSeries) => s.name.includes('cpu_usage') && filterByEnv(s, envFilter));
   const memorySeries = (metricSeries ?? []).filter((s: MetricSeries) => s.name.includes('memory_usage') && filterByEnv(s, envFilter));
   const infraServices = [...new Set([...cpuSeries, ...memorySeries].map((s: MetricSeries) => s.service).filter(Boolean))] as string[];
-
   // RDS
   const rdsList = serviceHealth.filter((h: ServiceHealth) => h.rds_cpu !== undefined);
+  const hasServiceHealth = filtered.length > 0;
+  const hasLatency = latencyServices.length > 0;
+  const hasInfrastructure = infraServices.length > 0 || rdsList.length > 0;
+  const showGlobalNoData = !hasServiceHealth && !hasLatency && !hasInfrastructure;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {showGlobalNoData && (
+        <NoDataState
+          title="No metric data"
+          description="No data available for Service Health, Latency, and Infrastructure in the selected environment."
+        />
+      )}
+
       {/* Service Health */}
       <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
         <SectionLabel>Service Health</SectionLabel>
-        {filtered.length === 0 ? (
-          <NoDataState title="No service health data" description="No data available for the selected environment." />
-        ) : (
+        {filtered.length > 0 ? (
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
             {filtered.map(h => {
               const s4xx = error4xxSeries.find(s => s.service === h.service)
@@ -92,15 +100,15 @@ export default function OverviewTab(props: Props) {
               )
             })}
           </Box>
+        ) : (
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>No service health data.</Typography>
         )}
       </Paper>
 
       {/* Latency */}
       <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
         <SectionLabel>Latency p95</SectionLabel>
-        {latencyServices.length === 0 ? (
-          <NoDataState title="No latency data" description="No latency metrics available." />
-        ) : (
+        {latencyServices.length > 0 ? (
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
             {latencyServices.map(svc => {
               const s = latencySeries.find(l => l.service === svc)
@@ -124,12 +132,17 @@ export default function OverviewTab(props: Props) {
               )
             })}
           </Box>
+        ) : (
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>No latency data.</Typography>
         )}
       </Paper>
 
       {/* Infrastructure Summary */}
       <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
         <SectionLabel>Infrastructure Summary</SectionLabel>
+        {hasInfrastructure ? null : (
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>No infrastructure data.</Typography>
+        )}
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
           {/* Container CPU/MEM */}
           {infraServices.map(svc => {
