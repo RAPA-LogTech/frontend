@@ -1,6 +1,6 @@
 'use client'
 
-import { Box, Paper, Stack, Typography, useTheme } from '@mui/material'
+import { Box, Paper, Typography, useTheme } from '@mui/material'
 import type { MetricSeries } from '@/lib/types'
 import NoDataState from '@/components/common/NoDataState'
 import { getSeriesLast, sliceLast5Min } from '../metricsUtils'
@@ -10,6 +10,8 @@ interface Props {
   metricSeries: MetricSeries[]
   envFilter: string
 }
+
+const BYTES_PER_MB = 1024 * 1024
 
 function filterSeries(series: MetricSeries[], name: string, envFilter: string) {
   return series.filter(s => {
@@ -36,6 +38,17 @@ function MetricCard({ series, label, unit, color }: { series?: MetricSeries; lab
   )
 }
 
+function toMbSeries(series?: MetricSeries): MetricSeries | undefined {
+  if (!series) return undefined
+  return {
+    ...series,
+    points: series.points.map(point => ({
+      ...point,
+      value: point.value / BYTES_PER_MB,
+    })),
+  }
+}
+
 export default function JvmTab({ metricSeries, envFilter }: Props) {
   const theme = useTheme()
 
@@ -60,7 +73,7 @@ export default function JvmTab({ metricSeries, envFilter }: Props) {
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {services.map(svc => {
         const cpu = jvmCpuSeries.find(s => s.service === svc)
-        const mem = jvmMemSeries.find(s => s.service === svc)
+        const mem = toMbSeries(jvmMemSeries.find(s => s.service === svc))
         const gcCount = jvmGcCountSeries.find(s => s.service === svc)
         const gcDur = jvmGcDurSeries.find(s => s.service === svc)
         return (
