@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   AppBar,
   Toolbar,
@@ -18,6 +19,9 @@ import {
   Divider,
   Stack,
   Button,
+  Alert,
+  Card,
+  CardContent,
 } from '@mui/material'
 import {
   Notifications as NotificationsIcon,
@@ -28,6 +32,7 @@ import {
 import { useColorMode } from '@/app/providers'
 import { apiClient } from '@/lib/apiClient'
 import { formatDateTime } from '@/lib/formatters'
+import { SlackIntegrationStatus } from '@/lib/types'
 
 const drawerWidth = 280
 const topBarHeight = 48
@@ -47,25 +52,34 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
     queryKey: ['topbar-notifications'],
     queryFn: apiClient.getNotifications,
   })
+  const slackIntegrationQuery = useQuery<SlackIntegrationStatus>({
+    queryKey: ['topbar-slack-integration'],
+    queryFn: apiClient.getSlackIntegration,
+  })
+  const disconnectSlackMutation = useMutation({
+    mutationFn: () => apiClient.disconnectSlackIntegration(),
+    onSuccess: () => {
+      slackIntegrationQuery.refetch()
+    },
+  })
+  const testSlackMutation = useMutation({
+    mutationFn: () =>
+      apiClient.sendSlackTestMessage({
+        text: '[TEST] 알림 연동 테스트',
+      }),
+  })
   const [notificationReadMap, setNotificationReadMap] = useState<Record<string, boolean>>({})
+  const effectiveNotificationReadMap = useMemo(() => {
+    const next: Record<string, boolean> = {}
 
-  React.useEffect(() => {
-    if (notifications.length === 0) {
-      return
-    }
-
-    setNotificationReadMap(prev => {
-      const next = { ...prev }
-      for (const notification of notifications) {
-        if (next[notification.id] === undefined) {
-          next[notification.id] = notification.read
-        }
-      }
-      return next
+    notifications.forEach(notification => {
+      next[notification.id] = notificationReadMap[notification.id] ?? notification.read
     })
-  }, [notifications])
 
-  const unreadCount = notifications.filter(item => !notificationReadMap[item.id]).length
+    return next
+  }, [notifications, notificationReadMap])
+
+  const unreadCount = notifications.filter(notification => !effectiveNotificationReadMap[notification.id]).length
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setUserAnchorEl(event.currentTarget)
@@ -265,124 +279,212 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
               },
             }}
           >
-            <Box sx={{ p: 1.5, pb: 1 }}>
-              <Stack
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-                sx={{ mb: 1 }}
-              >
-                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                  알림
-                </Typography>
-                <Button
-                  size="small"
-                  variant="text"
-                  component={Link}
-                  href="/notifications"
-                  onClick={handleNotificationMenuClose}
-                  sx={{ textTransform: 'none', fontSize: '0.75rem', px: 0.5, minWidth: 'auto' }}
-                >
-                  전체 알림으로 보기
-                </Button>
-              </Stack>
-
-              <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                <Chip
-                  label={`전체 ${notifications.length}`}
-                  size="small"
-                  sx={{ fontWeight: 700 }}
-                />
-                <Chip label={`미확인 ${unreadCount}`} size="small" variant="outlined" />
-              </Stack>
-            </Box>
-
-            <Divider />
-
-            <Box sx={{ maxHeight: 420, overflowY: 'auto', p: 1 }}>
-              {notifications.length === 0 ? (
-                <Typography variant="body2" color="text.secondary" sx={{ p: 1.5 }}>
-                  알림이 없습니다.
-                </Typography>
-              ) : (
-                notifications.map(notification => {
-                  const isUnread = !notificationReadMap[notification.id]
-                  const resolvedRoute = resolveNotificationRoute(notification)
-                  const accentColor = (theme: any) => {
-                    if (notification.severity === 'critical' || notification.severity === 'error') {
-                      return theme.palette.error.main
-                    }
-                    if (notification.severity === 'warning') {
-                      return theme.palette.warning.main
-                    }
-                    return theme.palette.info.main
-                  }
-
-                  return (
-                    <Box
-                      key={notification.id}
-                      component={Link}
-                      href={resolvedRoute}
-                      onClick={() => handleNotificationItemClick(notification.id)}
-                      sx={{
-                        display: 'block',
-                        textDecoration: 'none',
-                        color: 'inherit',
-                        p: 1.25,
-                        borderRadius: 1,
-                        mb: 0.75,
-                        cursor: 'pointer',
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        bgcolor: isUnread ? 'transparent' : 'action.hover',
-                        '&:hover': {
-                          bgcolor: 'action.hover',
-                        },
-                      }}
+            <Box>
+              {/* 슬랙 미연동 시: 슬랙 연동 UI 표시 */}
+              {!slackIntegrationQuery.data?.connected ? (
+                <>
+                  <Box sx={{ p: 1.5, pb: 1 }}>
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      justifyContent="space-between"
+                      sx={{ mb: 1 }}
                     >
-                      <Stack direction="row" spacing={1} alignItems="flex-start">
-                        <Box
-                          sx={{
-                            mt: 0.4,
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            bgcolor: accentColor,
-                            flexShrink: 0,
-                          }}
-                        />
-                        <Box sx={{ minWidth: 0, flex: 1 }}>
-                          <Stack direction="row" justifyContent="space-between" spacing={1}>
-                            <Typography
-                              variant="body2"
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                        알림 설정
+                      </Typography>
+                    </Stack>
+                  </Box>
+
+                  <Divider />
+
+                  <Box sx={{ p: 1.5 }}>
+                    <Stack spacing={2}>
+                      {/* Slack 연결 카드 */}
+                      <Card variant="outlined">
+                        <CardContent sx={{ p: 2 }}>
+                          <Stack spacing={1.5} alignItems="center" textAlign="center">
+                            <Box
                               sx={{
-                                fontWeight: isUnread ? 600 : 700,
-                                lineHeight: 1.35,
-                                pr: 1,
+                                width: 32,
+                                height: 32,
+                                position: 'relative',
                               }}
                             >
-                              {notification.title}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              sx={{ flexShrink: 0 }}
-                            >
-                              {formatDateTime(notification.timestamp)}
-                            </Typography>
+                              <Image
+                                src="/images/icons/slack.png"
+                                alt="Slack"
+                                fill
+                                sizes="32px"
+                                style={{ objectFit: 'contain' }}
+                              />
+                            </Box>
+
+                            <Box>
+                              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
+                                Slack 연동
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                슬랙을 연동하여 실시간 알림을 받을 수 있습니다.
+                              </Typography>
+                            </Box>
+
+                            <Box sx={{ mt: 0.5, width: '100%', display: 'flex', justifyContent: 'center' }}>
+                              <Button
+                                variant="contained"
+                                size="small"
+                                onClick={() => {
+                                  window.location.href = '/api/integrations/slack/connect'
+                                }}
+                                disabled={!slackIntegrationQuery.data?.oauthConfigured}
+                                sx={{ textTransform: 'none', width: 'fit-content' }}
+                              >
+                                Slack 연동하기
+                              </Button>
+                            </Box>
                           </Stack>
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ display: 'block', mt: 0.35, lineHeight: 1.35 }}
+                        </CardContent>
+                      </Card>
+
+                      {/* 에러/경고 메시지 */}
+                      {slackIntegrationQuery.isError && (
+                        <Alert severity="error" variant="outlined">
+                          {(slackIntegrationQuery.error as Error).message}
+                        </Alert>
+                      )}
+
+                      {!slackIntegrationQuery.data?.oauthConfigured && (
+                        <Alert severity="warning" variant="outlined">
+                          서버에 Slack OAuth 환경 변수가 설정되지 않았습니다.
+                        </Alert>
+                      )}
+                    </Stack>
+                  </Box>
+                </>
+              ) : (
+                /* 슬랙 연동 시: 기존 알림 목록 표시 */
+                <>
+                  <Box sx={{ p: 1.5, pb: 1 }}>
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      justifyContent="space-between"
+                      sx={{ mb: 1 }}
+                    >
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
+                        알림
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="text"
+                        component={Link}
+                        href="/notifications"
+                        onClick={handleNotificationMenuClose}
+                        sx={{ textTransform: 'none', fontSize: '0.75rem', px: 0.5, minWidth: 'auto' }}
+                      >
+                        전체 알림으로 보기
+                      </Button>
+                    </Stack>
+
+                    <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                      <Chip
+                        label={`전체 ${notifications.length}`}
+                        size="small"
+                        sx={{ fontWeight: 700 }}
+                      />
+                      <Chip label={`미확인 ${unreadCount}`} size="small" variant="outlined" />
+                    </Stack>
+                  </Box>
+
+                  <Divider />
+
+                  <Box sx={{ maxHeight: 420, overflowY: 'auto', p: 1 }}>
+                    {notifications.length === 0 ? (
+                      <Typography variant="body2" color="text.secondary" sx={{ p: 1.5 }}>
+                        알림이 없습니다.
+                      </Typography>
+                    ) : (
+                      notifications.map(notification => {
+                        const isUnread = !effectiveNotificationReadMap[notification.id]
+                        const resolvedRoute = resolveNotificationRoute(notification)
+                        const accentColor = (theme: any) => {
+                          if (notification.severity === 'critical' || notification.severity === 'error') {
+                            return theme.palette.error.main
+                          }
+                          if (notification.severity === 'warning') {
+                            return theme.palette.warning.main
+                          }
+                          return theme.palette.info.main
+                        }
+
+                        return (
+                          <Box
+                            key={notification.id}
+                            component={Link}
+                            href={resolvedRoute}
+                            onClick={() => handleNotificationItemClick(notification.id)}
+                            sx={{
+                              display: 'block',
+                              textDecoration: 'none',
+                              color: 'inherit',
+                              p: 1.25,
+                              borderRadius: 1,
+                              mb: 0.75,
+                              cursor: 'pointer',
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              bgcolor: isUnread ? 'transparent' : 'action.hover',
+                              '&:hover': {
+                                bgcolor: 'action.hover',
+                              },
+                            }}
                           >
-                            {notification.message}
-                          </Typography>
-                        </Box>
-                      </Stack>
-                    </Box>
-                  )
-                })
+                            <Stack direction="row" spacing={1} alignItems="flex-start">
+                              <Box
+                                sx={{
+                                  mt: 0.4,
+                                  width: 8,
+                                  height: 8,
+                                  borderRadius: '50%',
+                                  bgcolor: accentColor,
+                                  flexShrink: 0,
+                                }}
+                              />
+                              <Box sx={{ minWidth: 0, flex: 1 }}>
+                                <Stack direction="row" justifyContent="space-between" spacing={1}>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      fontWeight: isUnread ? 600 : 700,
+                                      lineHeight: 1.35,
+                                      pr: 1,
+                                    }}
+                                  >
+                                    {notification.title}
+                                  </Typography>
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                    sx={{ flexShrink: 0 }}
+                                  >
+                                    {formatDateTime(notification.timestamp)}
+                                  </Typography>
+                                </Stack>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{ display: 'block', mt: 0.35, lineHeight: 1.35 }}
+                                >
+                                  {notification.message}
+                                </Typography>
+                              </Box>
+                            </Stack>
+                          </Box>
+                        )
+                      })
+                    )}
+                  </Box>
+                </>
               )}
             </Box>
           </Menu>
