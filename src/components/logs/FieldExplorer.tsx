@@ -28,29 +28,36 @@ type LogSourceFilterOptions = {
 }
 
 interface FieldExplorerProps {
-  onAppendFieldFilter: (field: string) => void
+  onSectionChange: (prefix: string, values: string[]) => void
   filterOptions?: LogSourceFilterOptions
   timeRange: '15m' | '1h' | '6h' | '24h' | 'all'
   onTimeRangeChange: (value: '15m' | '1h' | '6h' | '24h' | 'all') => void
+  selectedIndexes: string[]
+  selectedServices: string[]
+  selectedEnvs: string[]
+  selectedLevels: string[]
+  selectedHosts: string[]
 }
 
 function FilterSection({
   label,
   items,
   prefix,
+  selected,
   onSelect,
 }: {
   label: string
   items: string[]
   prefix: string
-  onSelect: (values: string[]) => void
+  selected: string[]
+  onSelect: (prefix: string, values: string[]) => void
 }) {
   const [open, setOpen] = useState(true)
-  const [selected, setSelected] = useState<string[]>(items)
 
   if (items.length === 0) return null
 
-  const allChecked = items.every(i => selected.includes(i))
+  const normalizedSelected = selected.length > 0 ? selected : items
+  const allChecked = items.every(i => normalizedSelected.includes(i))
 
   const toggle = (item: string) => {
     let next: string[]
@@ -61,11 +68,12 @@ function FilterSection({
         // All 선택 상태에서 개별 클릭 → 그 값만 선택
         next = [item]
       } else {
-        next = selected.includes(item) ? selected.filter(s => s !== item) : [...selected, item]
+        next = normalizedSelected.includes(item)
+          ? normalizedSelected.filter(s => s !== item)
+          : [...normalizedSelected, item]
       }
     }
-    setSelected(next)
-    onSelect(next.map(v => `${prefix}:${v}`))
+    onSelect(prefix, next.length === items.length ? [] : next)
   }
 
   return (
@@ -84,7 +92,7 @@ function FilterSection({
               <ListItemIcon sx={{ minWidth: 32 }}>
                 <Checkbox
                   size="small"
-                  checked={item === 'All' ? allChecked : selected.includes(item)}
+                  checked={item === 'All' ? allChecked : normalizedSelected.includes(item)}
                   disableRipple
                   sx={{ p: 0 }}
                 />
@@ -100,10 +108,15 @@ function FilterSection({
 }
 
 export function FieldExplorer({
-  onAppendFieldFilter,
+  onSectionChange,
   filterOptions,
   timeRange,
   onTimeRangeChange,
+  selectedIndexes,
+  selectedServices,
+  selectedEnvs,
+  selectedLevels,
+  selectedHosts,
 }: FieldExplorerProps) {
   const app = filterOptions?.['logs-app']
   const host = filterOptions?.['logs-host']
@@ -114,8 +127,8 @@ export function FieldExplorer({
   const levels = [...new Set([...(app?.levels ?? []), ...(host?.levels ?? [])])]
   const hosts = [...new Set([...(app?.hosts ?? []), ...(host?.hosts ?? [])])]
 
-  const handleSelect = (values: string[]) => {
-    values.forEach(v => onAppendFieldFilter(v))
+  const handleSelect = (prefix: string, values: string[]) => {
+    onSectionChange(prefix, values)
   }
 
   return (
@@ -126,11 +139,41 @@ export function FieldExplorer({
         <TimeRangeSelect value={timeRange} onChange={onTimeRangeChange} />
       </Box>
       <List disablePadding>
-        <FilterSection label="INDEX" items={indexes} prefix="index" onSelect={handleSelect} />
-        <FilterSection label="SERVICE" items={services} prefix="service" onSelect={handleSelect} />
-        <FilterSection label="ENV" items={envs} prefix="env" onSelect={handleSelect} />
-        <FilterSection label="LEVEL" items={levels} prefix="level" onSelect={handleSelect} />
-        <FilterSection label="HOST" items={hosts} prefix="host" onSelect={handleSelect} />
+        <FilterSection
+          label="INDEX"
+          items={indexes}
+          prefix="index"
+          selected={selectedIndexes}
+          onSelect={handleSelect}
+        />
+        <FilterSection
+          label="SERVICE"
+          items={services}
+          prefix="service"
+          selected={selectedServices}
+          onSelect={handleSelect}
+        />
+        <FilterSection
+          label="ENV"
+          items={envs}
+          prefix="env"
+          selected={selectedEnvs}
+          onSelect={handleSelect}
+        />
+        <FilterSection
+          label="LEVEL"
+          items={levels}
+          prefix="level"
+          selected={selectedLevels}
+          onSelect={handleSelect}
+        />
+        <FilterSection
+          label="HOST"
+          items={hosts}
+          prefix="host"
+          selected={selectedHosts}
+          onSelect={handleSelect}
+        />
       </List>
     </Box>
   )

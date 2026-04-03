@@ -11,6 +11,7 @@ export type NotificationSeverity = 'info' | 'warning' | 'error' | 'critical'
 export type LogEntry = {
   id: string
   timestamp: string
+  source?: string
   service: string
   env: Environment | null
   level: LogLevel | null

@@ -1,6 +1,6 @@
 'use client'
 
-import { Chip, Box, SxProps, Theme } from '@mui/material'
+import { Chip, SxProps, Theme } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 
 interface FilterTagProps {
@@ -15,16 +15,18 @@ export default function FilterTag({ value, onDelete, sx }: FilterTagProps) {
 
   return (
     <Chip
-      label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>{value}</Box>}
+      label={value}
       onDelete={onDelete}
       deleteIcon={<CloseIcon sx={{ fontSize: 16 }} />}
       sx={{
+        display: 'inline-flex',
+        width: 'auto',
+        maxWidth: 'fit-content',
+        alignSelf: 'flex-start',
+        boxSizing: 'border-box',
         backgroundColor: isLuceneFormat ? 'warning.light' : 'info.light',
         color: isLuceneFormat ? 'warning.dark' : 'info.dark',
         borderColor: isLuceneFormat ? 'warning.main' : 'info.main',
-        '& .MuiChip-deleteIcon': {
-          'margin-right': 4,
-        },
         '&:hover': {
           backgroundColor: isLuceneFormat ? 'warning.light' : 'info.light',
         },

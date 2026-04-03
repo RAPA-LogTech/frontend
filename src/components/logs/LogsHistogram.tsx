@@ -55,14 +55,16 @@ export const LogsHistogram = memo(function LogsHistogram({
     <Card
       variant="outlined"
       sx={{
+        minWidth: 0,
+        width: '100%',
         p: 1,
         borderColor: 'divider',
         bgcolor: 'background.default',
         mb: 1.5,
       }}
     >
-      <CardContent sx={{ p: '8px !important' }}>
-        <Box sx={{ height: 220 }}>
+      <CardContent sx={{ p: '8px !important', minWidth: 0 }}>
+        <Box sx={{ height: 220, minWidth: 0, width: '100%' }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={histogramData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />

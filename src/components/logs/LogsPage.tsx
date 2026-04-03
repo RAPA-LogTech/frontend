@@ -1,7 +1,7 @@
 'use client'
 
 import { UIEvent, useEffect, useMemo, useRef, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import {
   Box,
   Skeleton,
@@ -96,28 +96,35 @@ export default function LogsPage() {
       return data
     },
   })
-  // 필터 상태 관리
-  const [selectedServices, setSelectedServices] = useState<string[]>(['All'])
-  const [selectedEnvs, setSelectedEnvs] = useState<string[]>(['All'])
-  const [selectedLevels, setSelectedLevels] = useState<string[]>(['All'])
-  const [selectedHosts, setSelectedHosts] = useState<string[]>(['All'])
   const [customFilters, setCustomFilters] = useState<string[]>([])
 
-  // customFilters에서 key:value 파싱 → API 파라미터 추출
-  const apiFilterParams = useMemo(() => {
-    const params: Record<string, string> = {}
-    for (const f of customFilters) {
-      const idx = f.indexOf(':')
-      if (idx === -1) continue
-      const key = f.slice(0, idx).trim()
-      const val = f.slice(idx + 1).trim()
-      if (key === 'service') params.service = val
-      else if (key === 'level') params.level = val
-      else if (key === 'env') params.env = val
-      else if (key === 'index') params.log_source = val === 'logs-app' ? 'app' : 'host'
-    }
-    return params
-  }, [customFilters])
+  const updateSectionFilters = (prefix: string, values: string[]) => {
+    const normalizedPrefix = `${prefix.toLowerCase()}:`
+
+    setCustomFilters(prev => {
+      const remaining = prev.filter(filter => !filter.toLowerCase().startsWith(normalizedPrefix))
+
+      if (values.length === 0) {
+        return remaining
+      }
+
+      const nextValues = values.map(value => `${prefix}:${value}`)
+      return Array.from(new Set([...remaining, ...nextValues]))
+    })
+  }
+
+  const getSectionFilters = (prefix: string) => {
+    const normalizedPrefix = `${prefix.toLowerCase()}:`
+    return customFilters
+      .filter(filter => filter.toLowerCase().startsWith(normalizedPrefix))
+      .map(filter => filter.slice(filter.indexOf(':') + 1))
+  }
+
+  const selectedServices = useMemo(() => getSectionFilters('service'), [customFilters])
+  const selectedEnvs = useMemo(() => getSectionFilters('env'), [customFilters])
+  const selectedLevels = useMemo(() => getSectionFilters('level'), [customFilters])
+  const selectedHosts = useMemo(() => getSectionFilters('host'), [customFilters])
+  const selectedIndexes = useMemo(() => getSectionFilters('index'), [customFilters])
 
   const {
     data: queryLogsData,
@@ -125,11 +132,10 @@ export default function LogsPage() {
     isLoading: isLogsLoading,
     isFetched: isLogsFetched,
   } = useQuery({
-    queryKey: ['logs', timeRange, apiFilterParams],
+    queryKey: ['logs'],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const params = new URLSearchParams({ limit: '1000' })
-      if (timeRange && timeRange !== 'all') params.append('timeRange', timeRange)
-      Object.entries(apiFilterParams).forEach(([k, v]) => params.append(k, v))
       const res = await fetch(`/api/observability/logs?${params.toString()}`)
       if (!res.ok) return []
       const data = (await res.json()) as { logs?: LogEntry[] }
@@ -241,10 +247,16 @@ export default function LogsPage() {
     const metadata = log.metadata ?? {}
     const tags = log.tags ?? {}
 
+    if (normalizedField === 'index' || normalizedField === 'source' || normalizedField === 'log_source') {
+      return log.source
+    }
     if (normalizedField === 'service') return log.service
     if (normalizedField === 'message') return log.message
     if (normalizedField === 'level') return log.level
     if (normalizedField === 'env') return log.env
+    if (normalizedField === 'host') {
+      return metadata.host ?? metadata.hostname ?? tags.host
+    }
     if (normalizedField === 'traceid') return metadata.traceId
     if (normalizedField === 'requestid') return metadata.requestId
     if (normalizedField.startsWith('tag.')) return tags[normalizedField.replace('tag.', '')]
@@ -255,6 +267,31 @@ export default function LogsPage() {
     if (metadataEntry) return metadataEntry[1]
 
     return undefined
+  }
+
+  const normalizeFilterField = (field: string) => {
+    const normalized = field.trim().toLowerCase()
+
+    if (normalized === 'environment') return 'env'
+    if (normalized === 'source' || normalized === 'log_source') return 'index'
+
+    return normalized
+  }
+
+  const isStructuredFilterKey = (field: string) => {
+    const normalized = normalizeFilterField(field)
+
+    return (
+      normalized === 'service' ||
+      normalized === 'message' ||
+      normalized === 'level' ||
+      normalized === 'env' ||
+      normalized === 'index' ||
+      normalized === 'host' ||
+      normalized === 'traceid' ||
+      normalized === 'requestid' ||
+      normalized.startsWith('tag.')
+    )
   }
 
   const luceneMatch = (log: LogEntry, rawQuery: string) => {
@@ -277,6 +314,60 @@ export default function LogsPage() {
         `${log.service} ${log.env} ${log.level} ${log.message} ${JSON.stringify(log.metadata ?? {})}`.toLowerCase()
       return searchable.includes(cleanedToken.toLowerCase())
     })
+  }
+
+  const groupedCustomFilters = useMemo(() => {
+    const grouped = new Map<string, string[]>()
+    const freeText: string[] = []
+
+    for (const filter of customFilters) {
+      const trimmed = filter.trim()
+      if (!trimmed) continue
+
+      const idx = trimmed.indexOf(':')
+      if (idx <= 0) {
+        freeText.push(trimmed)
+        continue
+      }
+
+      const rawField = trimmed.slice(0, idx)
+      if (!isStructuredFilterKey(rawField)) {
+        freeText.push(trimmed)
+        continue
+      }
+
+      const field = normalizeFilterField(rawField)
+      const value = trimmed.slice(idx + 1).trim().replace(/^"|"$/g, '')
+      if (!value) continue
+
+      const existing = grouped.get(field) ?? []
+      grouped.set(field, [...existing, value])
+    }
+
+    return { grouped, freeText }
+  }, [customFilters])
+
+  const matchesLogFilters = (log: LogEntry) => {
+    const queryText = query.trim()
+    if (queryText && !luceneMatch(log, queryText)) {
+      return false
+    }
+
+    // free text filters are combined with AND semantics.
+    if (!groupedCustomFilters.freeText.every(expression => luceneMatch(log, expression))) {
+      return false
+    }
+
+    // Same-field filters use OR semantics; different fields remain AND.
+    for (const [field, values] of groupedCustomFilters.grouped.entries()) {
+      const actual = String(getFieldValue(log, field) ?? '').toLowerCase()
+      const matched = values.some(value => actual.includes(value.toLowerCase()))
+      if (!matched) {
+        return false
+      }
+    }
+
+    return true
   }
 
   const baseFiltered = useMemo(() => {
@@ -304,55 +395,8 @@ export default function LogsPage() {
       return new Date(log.timestamp).getTime() >= cutoff
     })
 
-    const byQuery = byTime.filter(log => {
-      // customFilters 적용
-      if (customFilters.length > 0) {
-        return customFilters.every(filter => {
-          const lowerFilter = filter.toLowerCase()
-          const logText =
-            `${log.service} ${log.message} ${log.level} ${JSON.stringify(log.metadata ?? {})}`.toLowerCase()
-
-          // lucene 형태 (key:value) 체크
-          if (lowerFilter.includes(':')) {
-            const [key, value] = lowerFilter.split(':')
-            if (key === 'service') {
-              return log.service.toLowerCase().includes(value)
-            }
-            if (key === 'env' || key === 'environment') {
-              return log?.env?.toLowerCase().includes(value)
-            }
-            if (key === 'level') {
-              return log.level?.toLowerCase().includes(value) ?? false
-            }
-            // metadata 필드 검색
-            const metadata = log.metadata ?? {}
-            const metaValue = String(metadata[key] ?? '').toLowerCase()
-            return metaValue.includes(value)
-          }
-
-          // 일반 텍스트 검색
-          return logText.includes(lowerFilter)
-        })
-      }
-
-      // query 기반 검색 (기존 로직 유지)
-      if (!query.trim()) return true
-
-      return `${log.service} ${log.message} ${log.level} ${JSON.stringify(log.metadata ?? {})}`
-        .toLowerCase()
-        .includes(query.toLowerCase())
-    })
-
-    return byQuery
+    return byTime.filter(matchesLogFilters)
   }, [logs, query, timeRange, customFilters])
-
-  const appendFieldFilter = (field: string) => {
-    setQuery(prev => {
-      const token = `${field}:`
-      if (prev.includes(token)) return prev
-      return prev.trim() ? `${prev} ${token}` : token
-    })
-  }
 
   const histogram = useMemo((): InternalHistogramBucket[] => {
     if (baseFiltered.length === 0) return []
@@ -523,7 +567,7 @@ export default function LogsPage() {
     setVisibleCount(PAGE_SIZE)
   }, [query, timeRange, selectedBucketKey])
 
-  if (isLogsLoading) {
+  if (isLogsLoading && !queryLogsData) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2, md: 3 } }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -540,7 +584,7 @@ export default function LogsPage() {
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr', lg: '300px 1fr' },
+              gridTemplateColumns: { xs: '1fr', lg: '300px minmax(0, 1fr)' },
               minHeight: 520,
             }}
           >
@@ -556,7 +600,7 @@ export default function LogsPage() {
               ))}
             </Box>
             {/* Main content skeleton */}
-            <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <Box sx={{ p: 1.5, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               <Skeleton variant="text" width={100} height={32} sx={{ mx: 'auto' }} />
               <Skeleton variant="rounded" height={80} />
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
@@ -623,18 +667,23 @@ export default function LogsPage() {
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', lg: '300px 1fr' },
+            gridTemplateColumns: { xs: '1fr', lg: '300px minmax(0, 1fr)' },
             minHeight: 520,
           }}
         >
           <FieldExplorer
-            onAppendFieldFilter={appendFieldFilter}
+            onSectionChange={updateSectionFilters}
             filterOptions={filterOptions}
             timeRange={timeRange}
             onTimeRangeChange={setTimeRange}
+            selectedIndexes={selectedIndexes}
+            selectedServices={selectedServices}
+            selectedEnvs={selectedEnvs}
+            selectedLevels={selectedLevels}
+            selectedHosts={selectedHosts}
           />
 
-          <Box sx={{ p: 1.5 }}>
+          <Box sx={{ p: 1.5, minWidth: 0 }}>
             <Typography variant="h5" sx={{ fontWeight: 700, textAlign: 'center', mb: 1 }}>
               {filtered.length.toLocaleString()} hits
             </Typography>
@@ -664,6 +713,7 @@ export default function LogsPage() {
                 <Box
                   onScroll={handleTableScroll}
                   sx={{
+                    minWidth: 0,
                     maxHeight: 420,
                     overflowY: 'auto',
                   }}
