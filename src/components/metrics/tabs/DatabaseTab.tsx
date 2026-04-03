@@ -1,6 +1,6 @@
 'use client'
 
-import { Box, Paper, Typography, useTheme } from '@mui/material'
+import { Box, Paper, Skeleton, Typography, useTheme } from '@mui/material'
 import type { MetricSeries } from '@/lib/types'
 import NoDataState from '@/components/common/NoDataState'
 import { getSeriesLast, sliceLast5Min } from '../metricsUtils'
@@ -10,6 +10,7 @@ interface Props {
   metricSeries: MetricSeries[];
   rdsMetrics: MetricSeries[];
   envFilter: string;
+  isLoading?: boolean;
 }
 
 const BYTES_PER_MB = 1024 * 1024
@@ -49,8 +50,23 @@ function toMbSeries(series?: MetricSeries): MetricSeries | undefined {
   }
 }
 
-export default function DatabaseTab({ metricSeries, rdsMetrics, envFilter }: Props) {
+export default function DatabaseTab({ metricSeries, rdsMetrics, envFilter, isLoading }: Props) {
   const theme = useTheme()
+
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
+          <Skeleton variant="text" width={180} height={24} />
+          <Skeleton variant="rounded" height={180} sx={{ mt: 1 }} />
+        </Paper>
+        <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
+          <Skeleton variant="text" width={120} height={24} />
+          <Skeleton variant="rounded" height={180} sx={{ mt: 1 }} />
+        </Paper>
+      </Box>
+    )
+  }
 
   // 기존 p95 시리즈
   const useP95Series = filterSeries(metricSeries, 'db_connection_use', envFilter)

@@ -1,6 +1,6 @@
 'use client'
 
-import { Box, Paper, Stack, Typography, useTheme } from '@mui/material'
+import { Box, Paper, Skeleton, Stack, Typography, useTheme } from '@mui/material'
 import { Line, LineChart, ResponsiveContainer, Tooltip, YAxis } from 'recharts'
 import type { MetricSeries } from '@/lib/types'
 import NoDataState from '@/components/common/NoDataState'
@@ -33,11 +33,30 @@ interface Props {
   error5xxSeries: MetricSeries[]
   envFilter: string
   metricSeries?: MetricSeries[] // latency, infra용
+  isLoading?: boolean
 }
 
 export default function OverviewTab(props: Props) {
-  const { serviceHealth, error4xxSeries, error5xxSeries, envFilter, metricSeries } = props;
+  const { serviceHealth, error4xxSeries, error5xxSeries, envFilter, metricSeries, isLoading } = props;
   const theme = useTheme();
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
+          <Skeleton variant="text" width={160} height={28} />
+          <Skeleton variant="rounded" height={160} sx={{ mt: 1 }} />
+        </Paper>
+        <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
+          <Skeleton variant="text" width={120} height={28} />
+          <Skeleton variant="rounded" height={160} sx={{ mt: 1 }} />
+        </Paper>
+        <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
+          <Skeleton variant="text" width={180} height={28} />
+          <Skeleton variant="rounded" height={160} sx={{ mt: 1 }} />
+        </Paper>
+      </Box>
+    )
+  }
   // Service Health (RDS 제외)
   const filtered = serviceHealth.filter((h: ServiceHealth) => (envFilter === 'all' || h.env === envFilter) && h.rds_cpu === undefined);
 

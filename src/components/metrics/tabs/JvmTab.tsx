@@ -1,6 +1,6 @@
 'use client'
 
-import { Box, Paper, Typography, useTheme } from '@mui/material'
+import { Box, Paper, Skeleton, Typography, useTheme } from '@mui/material'
 import type { MetricSeries } from '@/lib/types'
 import NoDataState from '@/components/common/NoDataState'
 import { getSeriesLast, sliceLast5Min } from '../metricsUtils'
@@ -9,6 +9,7 @@ import { MiniSparkline, SectionLabel } from '../MetricsShared'
 interface Props {
   metricSeries: MetricSeries[]
   envFilter: string
+  isLoading?: boolean
 }
 
 const BYTES_PER_MB = 1024 * 1024
@@ -49,8 +50,27 @@ function toMbSeries(series?: MetricSeries): MetricSeries | undefined {
   }
 }
 
-export default function JvmTab({ metricSeries, envFilter }: Props) {
+export default function JvmTab({ metricSeries, envFilter, isLoading }: Props) {
   const theme = useTheme()
+
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {[0, 1, 2].map(idx => (
+          <Paper key={idx} variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
+            <Skeleton variant="text" width={140} height={24} />
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mt: 1 }}>
+              {[0, 1, 2, 3].map(cardIdx => (
+                <Box key={cardIdx} sx={{ flex: '1 1 180px', minWidth: 0 }}>
+                  <Skeleton variant="rounded" height={120} />
+                </Box>
+              ))}
+            </Box>
+          </Paper>
+        ))}
+      </Box>
+    )
+  }
 
   // 메트릭 이름을 정확히 지정
   const jvmCpuSeries = filterSeries(metricSeries, 'app_jvm_cpu_utilization_pct_avg_5m', envFilter)

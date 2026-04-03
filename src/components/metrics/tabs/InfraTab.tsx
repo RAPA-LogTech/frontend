@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { Box, Paper, Stack, Typography, useTheme } from '@mui/material'
+import { Box, Paper, Skeleton, Stack, Typography, useTheme } from '@mui/material'
 import type { MetricSeries } from '@/lib/types'
 import { getContainerMetrics, getHostMetrics } from '@/lib/apiClient'
 import NoDataState from '@/components/common/NoDataState'
@@ -38,7 +38,11 @@ function filterSeries(series: MetricSeries[], name: string, envFilter: string) {
 export default function InfraTab({ envFilter }: Props) {
   const theme = useTheme();
 
-  const { data: containerMetrics = [], isLoading: isContainerLoading } = useQuery({
+  const {
+    data: containerMetrics = [],
+    isLoading: isContainerLoading,
+    isFetching: isContainerFetching,
+  } = useQuery({
     queryKey: ['container-metrics'],
     queryFn: getContainerMetrics,
     staleTime: 30_000,
@@ -46,7 +50,11 @@ export default function InfraTab({ envFilter }: Props) {
     refetchOnMount: 'always',
   })
 
-  const { data: hostMetrics = [], isLoading: isHostLoading } = useQuery({
+  const {
+    data: hostMetrics = [],
+    isLoading: isHostLoading,
+    isFetching: isHostFetching,
+  } = useQuery({
     queryKey: ['host-metrics'],
     queryFn: getHostMetrics,
     staleTime: 30_000,
@@ -69,8 +77,19 @@ export default function InfraTab({ envFilter }: Props) {
     ...hostNetTxSeries
   ].map(getHostKey).filter(Boolean))] as string[];
 
-  if (isContainerLoading || isHostLoading) {
-    return <NoDataState title="Loading Infra metrics" description="Fetching infrastructure metrics..." />;
+  if (isContainerLoading || isHostLoading || isContainerFetching || isHostFetching) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
+          <Skeleton variant="text" width={180} height={24} />
+          <Skeleton variant="rounded" height={180} sx={{ mt: 1 }} />
+        </Paper>
+        <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
+          <Skeleton variant="text" width={140} height={24} />
+          <Skeleton variant="rounded" height={180} sx={{ mt: 1 }} />
+        </Paper>
+      </Box>
+    );
   }
 
   if (containerServices.length === 0 && hostInstances.length === 0) {

@@ -32,7 +32,7 @@ const TAB_ITEMS: Array<{ key: MetricTabKey; label: string; href: string }> = [
 export default function MetricsPage({ currentTab = 'overview' }: { currentTab?: MetricTabKey }) {
   const [envFilter, setEnvFilter] = useState<'all' | 'dev' | 'prod'>('all')
 
-  const { data: serviceHealth = [] } = useQuery({
+  const { data: serviceHealth = [], isLoading: isServiceHealthLoading } = useQuery({
     queryKey: ['metric-health'],
     queryFn: apiClient.getMetricServiceHealth,
     staleTime: 30_000,
@@ -40,13 +40,13 @@ export default function MetricsPage({ currentTab = 'overview' }: { currentTab?: 
     placeholderData: (prev) => prev,
   })
 
-  const { data: metricsData, isLoading } = useQuery({
+  const { data: metricsData, isLoading: isMetricsLoading } = useQuery({
     queryKey: ['metrics'],
     queryFn: apiClient.getMetrics,
   })
   const metrics = metricsData ?? EMPTY_METRICS
 
-  const { data: jvmMetricsData = EMPTY_METRICS } = useQuery({
+  const { data: jvmMetricsData = EMPTY_METRICS, isLoading: isJvmMetricsLoading } = useQuery({
     queryKey: ['jvm-metrics'],
     queryFn: getJvmMetrics,
     staleTime: 30_000,
@@ -55,7 +55,7 @@ export default function MetricsPage({ currentTab = 'overview' }: { currentTab?: 
     enabled: currentTab === 'jvm',
   })
 
-  const { data: databaseMetricsData = EMPTY_METRICS } = useQuery({
+  const { data: databaseMetricsData = EMPTY_METRICS, isLoading: isDatabaseMetricsLoading } = useQuery({
     queryKey: ['database-metrics'],
     queryFn: getDatabaseMetrics,
     staleTime: 30_000,
@@ -64,7 +64,7 @@ export default function MetricsPage({ currentTab = 'overview' }: { currentTab?: 
     enabled: currentTab === 'database',
   })
 
-  const { data: rdsMetricsData = EMPTY_METRICS } = useQuery({
+  const { data: rdsMetricsData = EMPTY_METRICS, isLoading: isRdsMetricsLoading } = useQuery({
     queryKey: ['rds-metrics'],
     queryFn: getRdsMetrics,
     staleTime: 30_000,
@@ -150,7 +150,7 @@ export default function MetricsPage({ currentTab = 'overview' }: { currentTab?: 
   const error4xxSeries = activeMetricSeries.filter(s => s.name.includes('4xx_ratio') && filterByEnv(s, envFilter))
   const error5xxSeries = activeMetricSeries.filter(s => s.name.includes('5xx_ratio') && filterByEnv(s, envFilter))
 
-  if (isLoading) {
+  if (isMetricsLoading) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between">
@@ -223,14 +223,22 @@ export default function MetricsPage({ currentTab = 'overview' }: { currentTab?: 
           error5xxSeries={error5xxSeries}
           envFilter={envFilter}
           metricSeries={activeMetricSeries}
+          isLoading={isMetricsLoading || isServiceHealthLoading}
         />
       )}
-      {currentTab === 'jvm' && <JvmTab metricSeries={activeMetricSeries} envFilter={envFilter} />}
+      {currentTab === 'jvm' && (
+        <JvmTab
+          metricSeries={activeMetricSeries}
+          envFilter={envFilter}
+          isLoading={isJvmMetricsLoading}
+        />
+      )}
       {currentTab === 'database' && (
         <DatabaseTab
           metricSeries={activeMetricSeries}
           rdsMetrics={rdsMetricsData}
           envFilter={envFilter}
+          isLoading={isDatabaseMetricsLoading || isRdsMetricsLoading}
         />
       )}
       {currentTab === 'infra' && <InfraTab envFilter={envFilter} />}
