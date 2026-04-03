@@ -395,7 +395,6 @@ export default function NotificationsPage() {
                               onClick={() => {
                                 window.location.href = '/api/integrations/slack/connect'
                               }}
-                              disabled={!integrationQuery.data?.oauthConfigured}
                               sx={{
                                 textTransform: 'none',
                                 width: '100%',
@@ -412,11 +411,6 @@ export default function NotificationsPage() {
                               버튼을 누르면 Slack 권한 승인 화면으로 이동합니다.
                             </Typography>
 
-                            {!integrationQuery.data?.oauthConfigured && (
-                              <Alert severity="warning" variant="outlined" sx={{ mt: 1.5 }}>
-                                서버에 Slack OAuth 환경 변수가 설정되지 않았습니다.
-                              </Alert>
-                            )}
 
                             {integrationQuery.isError && (
                               <Alert severity="error" variant="outlined" sx={{ mt: 1.5 }}>

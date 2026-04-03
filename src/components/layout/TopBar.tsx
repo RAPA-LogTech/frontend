@@ -336,7 +336,6 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
                                 onClick={() => {
                                   window.location.href = '/api/integrations/slack/connect'
                                 }}
-                                disabled={!slackIntegrationQuery.data?.oauthConfigured}
                                 sx={{ textTransform: 'none', width: 'fit-content' }}
                               >
                                 Slack 연동하기
@@ -353,11 +352,6 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
                         </Alert>
                       )}
 
-                      {!slackIntegrationQuery.data?.oauthConfigured && (
-                        <Alert severity="warning" variant="outlined">
-                          서버에 Slack OAuth 환경 변수가 설정되지 않았습니다.
-                        </Alert>
-                      )}
                     </Stack>
                   </Box>
                 </>

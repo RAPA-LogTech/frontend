@@ -62,7 +62,7 @@ export default function SlackIntegrationPage() {
     if (oauthStatus === 'not-configured') {
       return {
         severity: 'error' as const,
-        message: '서버에 Slack OAuth 환경 변수가 설정되지 않았습니다.',
+        message: 'Slack 연동을 사용하려면 관리자에게 문의해주세요.',
       }
     }
 
@@ -73,7 +73,6 @@ export default function SlackIntegrationPage() {
   }, [oauthDetails, oauthStatus])
 
   const connected = integrationQuery.data?.connected ?? false
-  const oauthConfigured = integrationQuery.data?.oauthConfigured ?? false
   const canTest = connected && !testMutation.isPending
 
   const statusLabel = connected ? '연동 완료' : '연동 전'
@@ -179,7 +178,6 @@ export default function SlackIntegrationPage() {
                 onClick={() => {
                   window.location.href = '/api/integrations/slack/connect'
                 }}
-                disabled={!oauthConfigured}
                 sx={{ textTransform: 'none' }}
               >
                 Slack 연동하기
@@ -242,12 +240,6 @@ export default function SlackIntegrationPage() {
               </Alert>
             )}
 
-            {!oauthConfigured && (
-              <Alert severity="warning" variant="outlined">
-                서버에 SLACK_CLIENT_ID, SLACK_CLIENT_SECRET, SLACK_SIGNING_SECRET 환경 변수를
-                설정해야 연동이 동작합니다.
-              </Alert>
-            )}
 
             {integrationQuery.isError && (
               <Alert severity="error" variant="outlined">
