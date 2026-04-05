@@ -32,16 +32,22 @@ export async function GET(request: Request) {
       )
     }
 
-    if (!code || !state) {
+    if (!code) {
       return Response.redirect(
         new URL('/notifications?slack=missing-code', origin).toString()
       )
     }
 
+    if (!state) {
+      console.warn('[slackCallback] Missing OAuth state; proceeding for backward compatibility')
+    }
+
     // alert-service의 OAuth callback 엔드포인트 호출
     const callbackUrl = new URL(`${ALERT_SERVICE_URL}/v1/slack/oauth/callback`)
     callbackUrl.searchParams.set('code', code)
-    callbackUrl.searchParams.set('state', state)
+    if (state) {
+      callbackUrl.searchParams.set('state', state)
+    }
 
     const response = await fetch(callbackUrl.toString(), {
       method: 'GET',
