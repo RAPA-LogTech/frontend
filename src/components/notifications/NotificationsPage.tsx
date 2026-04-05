@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -11,16 +10,17 @@ import {
   Card,
   CardContent,
   Chip,
-  Divider,
-  Link as MuiLink,
   Skeleton,
   Stack,
   Typography,
 } from '@mui/material'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { apiClient } from '@/lib/apiClient'
-import { formatDateTime } from '@/lib/formatters'
-import NoDataState from '@/components/common/NoDataState'
+import SlackConnectionStatusPanel from '@/components/notifications/SlackConnectionStatusPanel'
+import SlackIncidentHistoryPanel from '@/components/notifications/SlackIncidentHistoryPanel'
+import NotificationFeedPanel from '@/components/notifications/NotificationFeedPanel'
+
+type IncidentFilter = 'all' | 'ongoing' | 'analyzed' | 'resolved'
 
 export default function NotificationsPage() {
   const router = useRouter()
@@ -90,6 +90,15 @@ export default function NotificationsPage() {
   const notifications = notificationsQuery.data ?? []
   const [readMap, setReadMap] = useState<Record<string, boolean>>({})
   const [filter, setFilter] = useState<'all' | 'unread'>('all')
+  const [incidentFilter, setIncidentFilter] = useState<IncidentFilter>('all')
+
+  const incidentsQuery = useQuery({
+    queryKey: ['slack-incidents', incidentFilter],
+    queryFn: () => apiClient.getSlackIncidents({ status: incidentFilter, limit: 80 }),
+  })
+
+  const incidentItems = incidentsQuery.data?.items ?? []
+  const hasIncidentHistory = incidentItems.length > 0
 
   const effectiveReadMap = useMemo(() => {
     const next: Record<string, boolean> = {}
@@ -121,7 +130,14 @@ export default function NotificationsPage() {
   const isLoading = notificationsQuery.isLoading || integrationQuery.isLoading
   const isBaseEmpty = notifications.length === 0
   const showIntegrationGuide = !isLoading && filter === 'all' && !isIntegrationConnected
-  const showNoDataEmpty = !isLoading && filter === 'all' && isBaseEmpty && isIntegrationConnected
+  const showNoDataEmpty =
+    !isLoading &&
+    filter === 'all' &&
+    isBaseEmpty &&
+    isIntegrationConnected &&
+    !incidentsQuery.isLoading &&
+    !incidentsQuery.isError &&
+    !hasIncidentHistory
   const slackActionState = (() => {
     if (integrationQuery.isError) {
       return {
@@ -176,6 +192,24 @@ export default function NotificationsPage() {
     if (severity === 'critical' || severity === 'error') return 'error.main'
     if (severity === 'warning') return 'warning.main'
     return 'info.main'
+  }
+
+
+  const toSlackMessagePermalink = (slackTs?: string | null, slackChannel?: string | null) => {
+    const teamDomainRaw = (integrationQuery.data?.teamDomain || '').trim().toLowerCase()
+    const channelId = (slackChannel || '').trim() || integrationQuery.data?.channelId
+    if (!channelId) return null
+    if (!teamDomainRaw || !/^[a-z0-9-]+$/.test(teamDomainRaw)) return null
+
+    const ts = (slackTs || '').trim()
+    const hasMessageTs = /^\d+\.\d+$/.test(ts)
+
+    if (!hasMessageTs) return `https://${teamDomainRaw}.slack.com/archives/${channelId}`
+
+    const [secondsPart, microsPartRaw] = ts.split('.')
+    const microsPart = (microsPartRaw || '').padEnd(6, '0').slice(0, 6)
+    const permalinkToken = `p${secondsPart}${microsPart}`
+    return `https://${teamDomainRaw}.slack.com/archives/${channelId}/${permalinkToken}`
   }
 
   const resolveNotificationRoute = (notification: { route?: string; source?: string }) => {
@@ -284,7 +318,7 @@ export default function NotificationsPage() {
             </Stack>
           ) : (
             <>
-              {showIntegrationGuide && (
+              {!isIntegrationConnected && showIntegrationGuide && (
                 <Box
                   sx={{
                     width: '100%',
@@ -523,222 +557,73 @@ export default function NotificationsPage() {
               )}
 
               {isIntegrationConnected && !isLoading && filter === 'all' && (
-                <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-                  <Stack direction="row" spacing={1.25} justifyContent="space-between" alignItems="center">
-                    <Stack direction="row" spacing={1.25} alignItems="center">
-                      <Box
-                        sx={{
-                          width: 24,
-                          height: 24,
-                          position: 'relative',
-                        }}
-                      >
-                        <Image
-                          src="/images/icons/slack.png"
-                          alt="Slack"
-                          fill
-                          sizes="24px"
-                          style={{ objectFit: 'contain' }}
-                        />
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          Slack 연동됨
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'inline-flex', gap: 0.5, alignItems: 'center' }}>
-                          <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                            {integrationQuery.data?.teamName || integrationQuery.data?.teamId || '워크스페이스'}
-                          </Box>
-                          <Box component="span">·</Box>
-                          {integrationQuery.data?.teamId && integrationQuery.data?.channelId ? (
-                            <MuiLink
-                              href={`https://app.slack.com/client/${integrationQuery.data.teamId}/${integrationQuery.data.channelId}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              sx={{ textDecoration: 'underline' }}
-                            >
-                              {integrationQuery.data?.channelName || integrationQuery.data?.channelId}
-                            </MuiLink>
-                          ) : (
-                            integrationQuery.data?.channelName || integrationQuery.data?.channelId || '채널 미설정'
-                          )}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                    <Stack direction="row" spacing={0.5}>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => testSlackMutation.mutate()}
-                        disabled={testSlackMutation.isPending}
-                        sx={{ textTransform: 'none' }}
-                      >
-                        {testSlackMutation.isPending ? '전송 중...' : '테스트'}
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => {
-                          if (window.confirm('연동을 초기화하고 새로 연동하시겠습니까?')) {
-                            disconnectSlackMutation.mutate()
-                            setTimeout(() => {
-                              window.location.href = '/api/integrations/slack/connect'
-                            }, 500)
-                          }
-                        }}
-                        disabled={disconnectSlackMutation.isPending}
-                        sx={{ textTransform: 'none' }}
-                      >
-                        {disconnectSlackMutation.isPending ? '수정 중...' : '채널 수정'}
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        color="error"
-                        onClick={() => disconnectSlackMutation.mutate()}
-                        disabled={disconnectSlackMutation.isPending}
-                        sx={{ textTransform: 'none' }}
-                      >
-                        {disconnectSlackMutation.isPending ? '해제 중...' : '해제'}
-                      </Button>
-                    </Stack>
-                    {disconnectSlackMutation.isError && (
-                      <Alert severity="error" sx={{ mt: 1 }}>
-                        {disconnectSlackMutation.error instanceof Error
-                          ? disconnectSlackMutation.error.message
-                          : 'Slack 연동 해제에 실패했습니다.'}
-                      </Alert>
-                    )}
-                    {disconnectSlackMutation.isSuccess && (
-                      <Alert severity="success" sx={{ mt: 1 }}>
-                        Slack 연동이 해제되었습니다.
-                      </Alert>
-                    )}
-                  </Stack>
-                </Box>
+                <SlackConnectionStatusPanel
+                  integration={integrationQuery.data}
+                  onTest={() => testSlackMutation.mutate()}
+                  onReconnect={() => {
+                    if (window.confirm('연동을 초기화하고 새로 연동하시겠습니까?')) {
+                      disconnectSlackMutation.mutate()
+                      setTimeout(() => {
+                        window.location.href = '/api/integrations/slack/connect'
+                      }, 500)
+                    }
+                  }}
+                  onDisconnect={() => disconnectSlackMutation.mutate()}
+                  testPending={testSlackMutation.isPending}
+                  reconnectPending={disconnectSlackMutation.isPending}
+                  disconnectPending={disconnectSlackMutation.isPending}
+                  disconnectErrorMessage={
+                    disconnectSlackMutation.isError
+                      ? disconnectSlackMutation.error instanceof Error
+                        ? disconnectSlackMutation.error.message
+                        : 'Slack 연동 해제에 실패했습니다.'
+                      : null
+                  }
+                  disconnectSuccess={disconnectSlackMutation.isSuccess}
+                />
               )}
 
-              {filteredNotifications.length === 0 ? (
-                showNoDataEmpty ? (
-                  <Box sx={{ p: 2 }}>
-                    <NoDataState
-                      title="알림 데이터가 없습니다"
-                      description="아직 수집된 알림이 없습니다. 알림 이벤트가 발생하면 여기에 표시됩니다."
-                    />
-                  </Box>
-                ) : filter === 'unread' ? (
-                  <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
-                    미확인 알림이 없습니다.
-                  </Typography>
-                ) : null
-              ) : (
-                filteredNotifications.map((notification, index) => {
-                  const isUnread = !effectiveReadMap[notification.id]
-                  const resolvedRoute = resolveNotificationRoute(notification)
+              {isIntegrationConnected && !isLoading && filter === 'all' && (
+                <SlackIncidentHistoryPanel
+                  incidentFilter={incidentFilter}
+                  onIncidentFilterChange={setIncidentFilter}
+                  incidents={incidentItems}
+                  incidentsLoading={incidentsQuery.isLoading}
+                  incidentsErrorMessage={
+                    incidentsQuery.isError
+                      ? incidentsQuery.error instanceof Error
+                        ? incidentsQuery.error.message
+                        : 'Slack 알람 이력 조회에 실패했습니다.'
+                      : null
+                  }
+                  onOpenSlackMessage={(incident) => {
+                    const permalink =
+                      toSlackMessagePermalink(incident.slack_ts, incident.slack_channel)
+                    if (!permalink) {
+                      window.alert('Slack 링크를 만들 수 없습니다. teamDomain 또는 channelId를 확인해 주세요.')
+                      return
+                    }
 
-                  return (
-                    <Box key={notification.id}>
-                      <Box
-                        component={Link}
-                        href={resolvedRoute}
-                        sx={{
-                          display: 'block',
-                          textDecoration: 'none',
-                          color: 'inherit',
-                          p: 2,
-                          bgcolor: isUnread ? 'transparent' : 'action.hover',
-                          cursor: 'pointer',
-                          '&:hover': {
-                            bgcolor: 'action.hover',
-                          },
-                        }}
-                        onClick={() => {
-                          setReadMap(prev => ({ ...prev, [notification.id]: true }))
-                        }}
-                      >
-                        <Stack direction="row" spacing={1.25} alignItems="flex-start">
-                          <Box
-                            sx={{
-                              mt: 0.6,
-                              width: 9,
-                              height: 9,
-                              borderRadius: '50%',
-                              bgcolor: getSeverityColor(notification.severity),
-                              flexShrink: 0,
-                            }}
-                          />
-                          <Box sx={{ minWidth: 0, flex: 1 }}>
-                            <Stack
-                              direction={{ xs: 'column', sm: 'row' }}
-                              justifyContent="space-between"
-                              gap={0.5}
-                            >
-                              <Typography
-                                variant="subtitle2"
-                                sx={{
-                                  fontWeight: isUnread ? 700 : 800,
-                                  lineHeight: 1.35,
-                                  pr: 1,
-                                }}
-                              >
-                                {notification.title}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                                sx={{ flexShrink: 0 }}
-                              >
-                                {formatDateTime(notification.timestamp)}
-                              </Typography>
-                            </Stack>
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              sx={{ display: 'block', mt: 0.5, lineHeight: 1.35 }}
-                            >
-                              {notification.message}
-                            </Typography>
-                            <Stack direction="row" spacing={1} sx={{ mt: 1.25 }}>
-                              {notification.source ? (
-                                <Box
-                                  sx={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    px: 1,
-                                    py: 0.25,
-                                    borderRadius: 999,
-                                    border: '1px solid',
-                                    borderColor: 'divider',
-                                    fontSize: '0.75rem',
-                                    color: 'text.secondary',
-                                    lineHeight: 1.4,
-                                  }}
-                                >
-                                  {notification.source}
-                                </Box>
-                              ) : null}
-                              <Button
-                                size="small"
-                                variant="text"
-                                sx={{ textTransform: 'none', px: 0.5, minWidth: 'auto' }}
-                                onClick={event => {
-                                  event.preventDefault()
-                                  event.stopPropagation()
-                                  setReadMap(prev => ({ ...prev, [notification.id]: true }))
-                                  router.push(resolvedRoute)
-                                }}
-                              >
-                                이동
-                              </Button>
-                            </Stack>
-                          </Box>
-                        </Stack>
-                      </Box>
-                      {index < filteredNotifications.length - 1 ? <Divider /> : null}
-                    </Box>
-                  )
-                })
+                    window.open(permalink, '_blank', 'noopener,noreferrer')
+                  }}
+                />
               )}
+
+              <NotificationFeedPanel
+                filteredNotifications={filteredNotifications}
+                effectiveReadMap={effectiveReadMap}
+                showNoDataEmpty={showNoDataEmpty}
+                filter={filter}
+                getSeverityColor={getSeverityColor}
+                resolveNotificationRoute={resolveNotificationRoute}
+                onMarkRead={(notificationId) => {
+                  setReadMap(prev => ({ ...prev, [notificationId]: true }))
+                }}
+                onMove={(route, notificationId) => {
+                  setReadMap(prev => ({ ...prev, [notificationId]: true }))
+                  router.push(route)
+                }}
+              />
             </>
           )}
         </CardContent>

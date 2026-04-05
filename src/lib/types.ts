@@ -239,6 +239,8 @@ export type SlackIntegrationStatus = {
   connected: boolean
   teamId?: string
   teamName?: string
+  teamDomain?: string
+  teamImage?: string
   channelId?: string
   channelName?: string
   webhookUrlMasked?: string
@@ -278,6 +280,33 @@ export type SlackChannelListResponse = {
   ok: boolean
   channels: SlackChannelListItem[]
   error?: string
+}
+
+export type SlackIncidentStatus = 'ongoing' | 'analyzed' | 'resolved'
+
+export type SlackIncidentSummary = {
+  incident_id: string
+  alert_name?: string | null
+  severity?: string | null
+  status?: SlackIncidentStatus | null
+  service_info?: string | null
+  created_at?: string | null
+  last_notified_at?: string | null
+  resolved_at?: string | null
+  slack_url?: string | null
+  slack_ts?: string | null
+  slack_channel?: string | null
+  s3_key?: string | null
+}
+
+export type SlackIncidentListResponse = {
+  items: SlackIncidentSummary[]
+  next_cursor?: string | null
+}
+
+export type SlackIncidentDetailResponse = {
+  summary: SlackIncidentSummary
+  detail: Record<string, unknown>
 }
 
 // ============ AI Chat ============

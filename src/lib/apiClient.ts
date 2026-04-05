@@ -12,6 +12,9 @@ import {
   SlackChannelUpdateResponse,
   SlackChannelListItem,
   SlackChannelListResponse,
+  SlackIncidentDetailResponse,
+  SlackIncidentListResponse,
+  SlackIncidentStatus,
   SlackTestMessageResponse,
   Trace,
   TraceFilterOptions,
@@ -458,6 +461,41 @@ export const apiClient = {
       ok: boolean
       disconnectedAt: string
     }
+  },
+
+  async getSlackIncidents(params?: {
+    status?: 'all' | SlackIncidentStatus
+    limit?: number
+    cursor?: string
+  }) {
+    const query = new URLSearchParams()
+    query.set('status', params?.status ?? 'all')
+    query.set('limit', String(params?.limit ?? 50))
+    if (params?.cursor) {
+      query.set('cursor', params.cursor)
+    }
+
+    const response = await fetch(`/api/incidents?${query.toString()}`, {
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      throw new Error(await readErrorMessage(response, 'Slack 인시던트 목록 조회에 실패했습니다.'))
+    }
+
+    return (await response.json()) as SlackIncidentListResponse
+  },
+
+  async getSlackIncidentDetail(incidentId: string) {
+    const response = await fetch(`/api/incidents/${encodeURIComponent(incidentId)}`, {
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      throw new Error(await readErrorMessage(response, 'Slack 인시던트 상세 조회에 실패했습니다.'))
+    }
+
+    return (await response.json()) as SlackIncidentDetailResponse
   },
 
   // ============ Reports ============

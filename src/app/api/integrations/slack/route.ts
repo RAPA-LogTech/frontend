@@ -22,6 +22,8 @@ export async function GET() {
       connected: Boolean(data.isConnected),
       teamId: data.teamId ?? null,
       teamName: data.teamName ?? null,
+      teamDomain: data.teamDomain ?? null,
+      teamImage: data.teamImage ?? null,
       channelId: data.channelId ?? null,
       channelName: data.channelName ?? null,
       webhookUrlMasked: data.webhookUrlMasked ?? null,
