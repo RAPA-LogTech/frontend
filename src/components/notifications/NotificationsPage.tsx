@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Box, Button, Card, CardContent, Typography } from '@mui/material'
 import { apiClient } from '@/lib/apiClient'
 import SlackIncidentHistoryPanel from '@/components/notifications/SlackIncidentHistoryPanel'
@@ -16,6 +16,9 @@ export default function NotificationsPage() {
   })
 
   const [incidentFilter, setIncidentFilter] = useState<IncidentFilter>('ongoing')
+  const queryClient = useQueryClient()
+  const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set())
+  const [autoOpenReportId, setAutoOpenReportId] = useState<string | null>(null)
 
   const incidentsQuery = useQuery({
     queryKey: ['slack-incidents', incidentFilter],
@@ -25,6 +28,33 @@ export default function NotificationsPage() {
   })
 
   const incidentItems = incidentsQuery.data?.items ?? []
+
+  useQuery({
+    queryKey: ['slack-incident-analyzing', [...analyzingIds].join(',')],
+    queryFn: async () => {
+      const results = await Promise.all(
+        [...analyzingIds].map(id => apiClient.getSlackIncidentDetail(id))
+      )
+      results.forEach(r => {
+        if (r.summary.status !== 'ongoing') {
+          setAnalyzingIds(prev => { const next = new Set(prev); next.delete(r.summary.incident_id); return next })
+          setAutoOpenReportId(r.summary.incident_id)
+          queryClient.invalidateQueries({ queryKey: ['slack-incidents'] })
+        }
+      })
+      return results
+    },
+    enabled: analyzingIds.size > 0,
+    refetchInterval: 5_000,
+    staleTime: 0,
+  })
+
+  const handleAnalyzeRequest = (incidentId: string) => {
+    setAnalyzingIds(prev => new Set(prev).add(incidentId))
+    setTimeout(() => {
+      setAnalyzingIds(prev => { const next = new Set(prev); next.delete(incidentId); return next })
+    }, 5 * 60 * 1000)
+  }
 
   const toSlackMessagePermalink = (slackTs?: string | null, slackChannel?: string | null) => {
     const teamDomainRaw = (integrationQuery.data?.teamDomain || '').trim().toLowerCase()
@@ -70,6 +100,10 @@ export default function NotificationsPage() {
               onIncidentFilterChange={setIncidentFilter}
               incidents={incidentItems}
               incidentsLoading={incidentsQuery.isLoading}
+              analyzingIds={analyzingIds}
+              onAnalyzeRequest={handleAnalyzeRequest}
+              autoOpenReportId={autoOpenReportId}
+              onAutoOpenReportClear={() => setAutoOpenReportId(null)}
               incidentsErrorMessage={
                 incidentsQuery.isError
                   ? incidentsQuery.error instanceof Error
