@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   Box,
@@ -35,6 +35,8 @@ type SlackIncidentHistoryPanelProps = {
   onAnalyzeRequest?: (incidentId: string) => void
   autoOpenReportId?: string | null
   onAutoOpenReportClear?: () => void
+  focusId?: string | null
+  onFocusClear?: () => void
 }
 
 const getIncidentSeverityColor = (severity: string | null | undefined) => {
@@ -49,11 +51,11 @@ const getIncidentSeverityBorderColor = (severity: string | null | undefined) => 
   return 'info.main'
 }
 
-const getIncidentStatusChipProps = (status: string | null | undefined) => {
-  if (status === 'ongoing') return { label: '진행 중', variant: 'outlined' as const, sx: { borderColor: 'error.main', color: 'error.main' } }
-  if (status === 'analyzed') return { label: '분석 완료', variant: 'outlined' as const, sx: { borderColor: 'warning.main', color: 'warning.main' } }
-  if (status === 'resolved') return { label: '해결 완료', variant: 'outlined' as const, sx: { borderColor: 'success.main', color: 'success.main' } }
-  return { label: 'unknown', variant: 'outlined' as const, sx: {} }
+const getIncidentStatusChipProps = (status: string | null | undefined): { label: string; variant: 'outlined'; sx: Record<string, string> } => {
+  if (status === 'ongoing') return { label: '진행 중', variant: 'outlined', sx: { borderColor: 'error.main', color: 'error.main' } }
+  if (status === 'analyzed') return { label: '분석 완료', variant: 'outlined', sx: { borderColor: 'warning.main', color: 'warning.main' } }
+  if (status === 'resolved') return { label: '해결 완료', variant: 'outlined', sx: { borderColor: 'success.main', color: 'success.main' } }
+  return { label: 'unknown', variant: 'outlined', sx: {} }
 }
 
 const getIncidentStatusBorderColor = (status: string | null | undefined) => {
@@ -92,20 +94,23 @@ function ReportModal({ incidentId, onClose }: { incidentId: string; onClose: () 
         ) : !analysis ? (
           <Typography variant="body2" color="text.secondary">이 인시던트는 AI 분석 없이 해결되었습니다.</Typography>
         ) : (
-          <Stack spacing={2}>
-            {summary && (
-              <Stack direction="row" spacing={1} flexWrap="wrap">
-                <Chip size="small" color={getIncidentSeverityColor(summary.severity)} label={summary.severity || 'unknown'} />
-                <Chip size="small" {...getIncidentStatusChipProps(summary.status)} />
-              </Stack>
-            )}
-            {analysis.incident_summary && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {summary ? (() => {
+              const p = getIncidentStatusChipProps(summary.status)
+              return (
+                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+                  <Chip size="small" color={getIncidentSeverityColor(summary.severity)} label={summary.severity || 'unknown'} />
+                  <Chip size="small" label={p.label} variant={p.variant} sx={p.sx} />
+                </Stack>
+              )
+            })() : null}
+            {analysis.incident_summary ? (
               <Box>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>장애 요약</Typography>
                 <Typography variant="body2" sx={{ mt: 0.5 }}>{String(analysis.incident_summary)}</Typography>
               </Box>
-            )}
-            {Array.isArray(analysis.likely_root_causes) && analysis.likely_root_causes.length > 0 && (
+            ) : null}
+            {Array.isArray(analysis.likely_root_causes) && analysis.likely_root_causes.length > 0 ? (
               <Box>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>추정 원인</Typography>
                 <Stack spacing={0.5} sx={{ mt: 0.5 }}>
@@ -114,14 +119,14 @@ function ReportModal({ incidentId, onClose }: { incidentId: string; onClose: () 
                   ))}
                 </Stack>
               </Box>
-            )}
-            {analysis.impact && (
+            ) : null}
+            {analysis.impact ? (
               <Box>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>영향 범위</Typography>
                 <Typography variant="body2" sx={{ mt: 0.5 }}>{String(analysis.impact)}</Typography>
               </Box>
-            )}
-            {Array.isArray(analysis.immediate_actions) && analysis.immediate_actions.length > 0 && (
+            ) : null}
+            {Array.isArray(analysis.immediate_actions) && analysis.immediate_actions.length > 0 ? (
               <Box>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>즉시 조치</Typography>
                 <Stack spacing={0.5} sx={{ mt: 0.5 }}>
@@ -130,8 +135,8 @@ function ReportModal({ incidentId, onClose }: { incidentId: string; onClose: () 
                   ))}
                 </Stack>
               </Box>
-            )}
-            {Array.isArray(analysis.evidence_summary) && analysis.evidence_summary.length > 0 && (
+            ) : null}
+            {Array.isArray(analysis.evidence_summary) && analysis.evidence_summary.length > 0 ? (
               <Box>
                 <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>핵심 근거</Typography>
                 <Stack spacing={0.5} sx={{ mt: 0.5 }}>
@@ -140,8 +145,8 @@ function ReportModal({ incidentId, onClose }: { incidentId: string; onClose: () 
                   ))}
                 </Stack>
               </Box>
-            )}
-          </Stack>
+            ) : null}
+          </Box>
         )}
       </DialogContent>
     </Dialog>
@@ -159,8 +164,12 @@ export default function SlackIncidentHistoryPanel({
   onAnalyzeRequest,
   autoOpenReportId,
   onAutoOpenReportClear,
+  focusId,
+  onFocusClear,
 }: SlackIncidentHistoryPanelProps) {
   const [reportIncidentId, setReportIncidentId] = useState<string | null>(autoOpenReportId ?? null)
+  const itemRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const [highlightId, setHighlightId] = useState<string | null>(null)
 
   useEffect(() => {
     if (autoOpenReportId) {
@@ -168,6 +177,20 @@ export default function SlackIncidentHistoryPanel({
       onAutoOpenReportClear?.()
     }
   }, [autoOpenReportId])
+
+  useEffect(() => {
+    if (!focusId || incidentsLoading) return
+    const el = itemRefs.current[focusId]
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setHighlightId(focusId)
+      const t = setTimeout(() => {
+        setHighlightId(null)
+        onFocusClear?.()
+      }, 2500)
+      return () => clearTimeout(t)
+    }
+  }, [focusId, incidentsLoading])
 
   const analyzeMutation = useMutation({
     mutationFn: (incidentId: string) =>
@@ -237,26 +260,37 @@ export default function SlackIncidentHistoryPanel({
             const hasAnalysis = item.status === 'analyzed' || item.status === 'resolved'
             const isAnalyzing = analyzingIds.has(item.incident_id) || (analyzeMutation.isPending && analyzeMutation.variables === item.incident_id)
             const analyzeSuccess = !isAnalyzing && analyzeMutation.isSuccess && analyzeMutation.variables === item.incident_id
+            const isHighlighted = highlightId === item.incident_id
 
             return (
               <Box
                 key={item.incident_id}
+                ref={el => { itemRefs.current[item.incident_id] = el as HTMLDivElement | null }}
                 sx={{
                   border: '1px solid',
-                  borderColor: 'divider',
+                  borderColor: isHighlighted ? 'primary.main' : 'divider',
                   borderLeft: '4px solid',
-                  borderLeftColor: getIncidentStatusBorderColor(item.status),
+                  borderLeftColor: isHighlighted ? 'primary.main' : getIncidentStatusBorderColor(item.status),
                   borderRadius: 1.5,
                   p: 1.25,
                   pl: 2,
+                  cursor: 'pointer',
+                  transition: 'box-shadow 0.15s, border-color 0.3s',
+                  boxShadow: isHighlighted
+                    ? theme => `0 0 0 3px ${theme.palette.primary.main}33`
+                    : theme => theme.palette.mode === 'dark'
+                      ? '0 1px 4px rgba(0,0,0,0.4)'
+                      : '0 1px 4px rgba(0,0,0,0.08)',
+                  '&:hover': {
+                    boxShadow: 'none',
+                    bgcolor: theme => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                  },
                 }}
+                onClick={() => onOpenSlackMessage(item)}
               >
                 <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={1}>
-                  <Box
-                    sx={{ minWidth: 0, flex: 1, cursor: 'pointer' }}
-                    onClick={() => onOpenSlackMessage(item)}
-                  >
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }} noWrap>
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: getIncidentSeverityBorderColor(item.severity) }} noWrap>
                       {item.alert_name || '(알람 이름 없음)'}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
@@ -281,7 +315,7 @@ export default function SlackIncidentHistoryPanel({
                         size="small"
                         variant="outlined"
                         sx={{ textTransform: 'none' }}
-                        onClick={() => setReportIncidentId(item.incident_id)}
+                        onClick={e => { e.stopPropagation(); setReportIncidentId(item.incident_id) }}
                       >
                         보고서
                       </Button>
@@ -292,7 +326,7 @@ export default function SlackIncidentHistoryPanel({
                         color="warning"
                         disabled={isAnalyzing || analyzeSuccess}
                         sx={{ textTransform: 'none', minWidth: 80 }}
-                        onClick={() => analyzeMutation.mutate(item.incident_id)}
+                        onClick={e => { e.stopPropagation(); analyzeMutation.mutate(item.incident_id) }}
                       >
                         {isAnalyzing ? <CircularProgress size={14} color="inherit" /> : analyzeSuccess ? '요청됨' : '분석 요청'}
                       </Button>

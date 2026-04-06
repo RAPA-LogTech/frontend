@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Box, Button, Card, CardContent, Typography } from '@mui/material'
 import { apiClient } from '@/lib/apiClient'
@@ -9,16 +10,44 @@ import NoDataState from '@/components/common/NoDataState'
 
 type IncidentFilter = 'all' | 'ongoing' | 'analyzed' | 'resolved'
 
+const VALID_FILTERS: IncidentFilter[] = ['all', 'ongoing', 'analyzed', 'resolved']
+
 export default function NotificationsPage() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  const initialFilter = (searchParams.get('status') ?? 'ongoing') as IncidentFilter
+  const initialFocusId = searchParams.get('id')
+
   const integrationQuery = useQuery({
     queryKey: ['notifications-slack-integration-status'],
     queryFn: apiClient.getSlackIntegration,
   })
 
-  const [incidentFilter, setIncidentFilter] = useState<IncidentFilter>('ongoing')
+  const [incidentFilter, setIncidentFilter] = useState<IncidentFilter>(
+    VALID_FILTERS.includes(initialFilter) ? initialFilter : 'ongoing'
+  )
+  const [focusId, setFocusId] = useState<string | null>(initialFocusId)
   const queryClient = useQueryClient()
   const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set())
   const [autoOpenReportId, setAutoOpenReportId] = useState<string | null>(null)
+
+  // URL 쿼리 파라미터 변경 시 동기화
+  useEffect(() => {
+    const status = searchParams.get('status') as IncidentFilter | null
+    const id = searchParams.get('id')
+    if (status && VALID_FILTERS.includes(status)) setIncidentFilter(status)
+    if (id) setFocusId(id)
+  }, [searchParams])
+
+  const handleFilterChange = (filter: IncidentFilter) => {
+    setIncidentFilter(filter)
+    setFocusId(null)
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('status', filter)
+    params.delete('id')
+    router.replace(`/notifications?${params.toString()}`, { scroll: false })
+  }
 
   const incidentsQuery = useQuery({
     queryKey: ['slack-incidents', incidentFilter],
@@ -97,13 +126,15 @@ export default function NotificationsPage() {
           <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
             <SlackIncidentHistoryPanel
               incidentFilter={incidentFilter}
-              onIncidentFilterChange={setIncidentFilter}
+              onIncidentFilterChange={handleFilterChange}
               incidents={incidentItems}
               incidentsLoading={incidentsQuery.isLoading}
               analyzingIds={analyzingIds}
               onAnalyzeRequest={handleAnalyzeRequest}
               autoOpenReportId={autoOpenReportId}
               onAutoOpenReportClear={() => setAutoOpenReportId(null)}
+              focusId={focusId}
+              onFocusClear={() => setFocusId(null)}
               incidentsErrorMessage={
                 incidentsQuery.isError
                   ? incidentsQuery.error instanceof Error

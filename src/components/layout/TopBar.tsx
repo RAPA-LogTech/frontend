@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -19,9 +19,6 @@ import {
   Divider,
   Stack,
   Button,
-  Alert,
-  Card,
-  CardContent,
 } from '@mui/material'
 import {
   Notifications as NotificationsIcon,
@@ -48,10 +45,13 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [userAnchorEl, setUserAnchorEl] = useState<null | HTMLElement>(null)
   const [notificationAnchorEl, setNotificationAnchorEl] = useState<null | HTMLElement>(null)
-  const { data: notifications = [] } = useQuery({
-    queryKey: ['topbar-notifications'],
-    queryFn: apiClient.getNotifications,
+  const { data: allIncidents } = useQuery({
+    queryKey: ['topbar-all-incidents'],
+    queryFn: () => apiClient.getSlackIncidents({ status: 'all', limit: 50 }),
+    refetchInterval: 30_000,
   })
+  const incidents = allIncidents?.items ?? []
+  const ongoingCount = incidents.filter(i => i.status === 'ongoing').length
   const slackIntegrationQuery = useQuery<SlackIntegrationStatus>({
     queryKey: ['topbar-slack-integration'],
     queryFn: apiClient.getSlackIntegration,
@@ -60,36 +60,10 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
     queryKey: ['topbar-slack-config'],
     queryFn: async () => {
       const response = await fetch('/api/integrations/slack/config', { cache: 'no-store' })
-      if (!response.ok) {
-        throw new Error('Slack OAuth 설정 조회에 실패했습니다.')
-      }
+      if (!response.ok) throw new Error('Slack OAuth 설정 조회에 실패했습니다.')
       return (await response.json()) as { configured: boolean; message?: string }
     },
   })
-  const disconnectSlackMutation = useMutation({
-    mutationFn: () => apiClient.disconnectSlackIntegration(),
-    onSuccess: () => {
-      slackIntegrationQuery.refetch()
-    },
-  })
-  const testSlackMutation = useMutation({
-    mutationFn: () =>
-      apiClient.sendSlackTestMessage({
-        text: '[TEST] 알림 연동 테스트',
-      }),
-  })
-  const [notificationReadMap, setNotificationReadMap] = useState<Record<string, boolean>>({})
-  const effectiveNotificationReadMap = useMemo(() => {
-    const next: Record<string, boolean> = {}
-
-    notifications.forEach(notification => {
-      next[notification.id] = notificationReadMap[notification.id] ?? notification.read
-    })
-
-    return next
-  }, [notifications, notificationReadMap])
-
-  const unreadCount = notifications.filter(notification => !effectiveNotificationReadMap[notification.id]).length
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setUserAnchorEl(event.currentTarget)
@@ -109,35 +83,9 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
     setNotificationAnchorEl(null)
   }
 
-  const handleNotificationItemClick = (notificationId: string) => {
-    setNotificationReadMap(prev => ({
-      ...prev,
-      [notificationId]: true,
-    }))
-    handleNotificationMenuClose()
-  }
-
-  const resolveNotificationRoute = (notification: { route?: string; source?: string }) => {
-    if (notification.route) {
-      return notification.route
-    }
-
-    if (notification.source === 'metrics') return '/metrics'
-    if (notification.source === 'logs' || notification.source === 'alerts') return '/logs'
-    if (notification.source === 'traces') return '/traces'
-    if (notification.source === 'integrations') return '/notifications'
-    if (notification.source === 'deploy') return '/dashboards'
-
-    return '/'
-  }
-
-  React.useEffect(() => {
-    const routes = new Set<string>(['/notifications'])
-    notifications.forEach(notification => {
-      routes.add(resolveNotificationRoute(notification))
-    })
-    routes.forEach(route => router.prefetch(route))
-  }, [notifications, router])
+React.useEffect(() => {
+    router.prefetch('/notifications')
+  }, [router])
 
   return (
     <AppBar
@@ -263,7 +211,7 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
                 },
               }}
             >
-              <Badge badgeContent={unreadCount} color="error">
+              <Badge badgeContent={ongoingCount || undefined} color="error">
                 <NotificationsIcon />
               </Badge>
             </IconButton>
@@ -280,7 +228,7 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
                 bgcolor: theme => theme.palette.background.paper,
                 color: theme => theme.palette.text.primary,
                 mt: 1,
-                width: 460,
+                width: 380,
                 maxWidth: 'calc(100vw - 24px)',
                 borderRadius: 1.5,
                 border: '1px solid',
@@ -290,212 +238,125 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
             }}
           >
             <Box>
-              {/* 슬랙 미연동 시: 슬랙 연동 UI 표시 */}
+              {/* 헤더 */}
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                sx={{ px: 2, py: 1.5 }}
+              >
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                  알림
+                </Typography>
+                <Button
+                  size="small"
+                  variant="text"
+                  component={Link}
+                  href="/notifications"
+                  onClick={handleNotificationMenuClose}
+                  sx={{ textTransform: 'none', fontSize: '0.75rem', px: 0, minWidth: 'auto', color: 'text.secondary' }}
+                >
+                  전체 보기
+                </Button>
+              </Stack>
+
+              <Divider />
+
+              {/* 슬랙 미연동 */}
               {!slackIntegrationQuery.data?.connected ? (
-                <>
-                  <Box sx={{ p: 1.5, pb: 1 }}>
-                    <Stack
-                      direction="row"
-                      alignItems="center"
-                      justifyContent="space-between"
-                      sx={{ mb: 1 }}
-                    >
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                        알림 설정
+                <Box sx={{ p: 2 }}>
+                  <Stack spacing={1.5} alignItems="center" textAlign="center">
+                    <Box sx={{ width: 28, height: 28, position: 'relative' }}>
+                      <Image src="/images/icons/slack.png" alt="Slack" fill sizes="28px" style={{ objectFit: 'contain' }} />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>Slack 미연동</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        슬랙을 연동하면 알림을 받을 수 있습니다.
                       </Typography>
-                    </Stack>
-                  </Box>
-
-                  <Divider />
-
-                  <Box sx={{ p: 1.5 }}>
-                    <Stack spacing={2}>
-                      {/* Slack 연결 카드 */}
-                      <Card variant="outlined">
-                        <CardContent sx={{ p: 2 }}>
-                          <Stack spacing={1.5} alignItems="center" textAlign="center">
-                            <Box
-                              sx={{
-                                width: 32,
-                                height: 32,
-                                position: 'relative',
-                              }}
-                            >
-                              <Image
-                                src="/images/icons/slack.png"
-                                alt="Slack"
-                                fill
-                                sizes="32px"
-                                style={{ objectFit: 'contain' }}
-                              />
-                            </Box>
-
-                            <Box>
-                              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
-                                Slack 연동
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                슬랙을 연동하여 실시간 알림을 받을 수 있습니다.
-                              </Typography>
-                            </Box>
-
-                            <Box sx={{ mt: 0.5, width: '100%', display: 'flex', justifyContent: 'center' }}>
-                              <Button
-                                variant="contained"
-                                size="small"
-                                disabled={!slackConfigQuery.data?.configured}
-                                onClick={() => {
-                                  window.location.href = '/api/integrations/slack/connect'
-                                }}
-                                sx={{ textTransform: 'none', width: 'fit-content' }}
-                              >
-                                Slack 연동하기
-                              </Button>
-                            </Box>
-
-                            {!slackConfigQuery.data?.configured && (
-                              <Typography variant="caption" color="warning.main" sx={{ mt: 0.75 }}>
-                                {slackConfigQuery.data?.message || 'Slack OAuth 설정이 없어 연동을 시작할 수 없습니다.'}
-                              </Typography>
-                            )}
-                          </Stack>
-                        </CardContent>
-                      </Card>
-
-                      {/* 에러/경고 메시지 */}
-                      {slackIntegrationQuery.isError && (
-                        <Alert severity="error" variant="outlined">
-                          {(slackIntegrationQuery.error as Error).message}
-                        </Alert>
-                      )}
-
-                    </Stack>
-                  </Box>
-                </>
+                    </Box>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      disabled={!slackConfigQuery.data?.configured}
+                      onClick={() => { window.location.href = '/api/integrations/slack/connect' }}
+                      sx={{ textTransform: 'none' }}
+                    >
+                      Slack 연동하기
+                    </Button>
+                    {!slackConfigQuery.data?.configured && (
+                      <Typography variant="caption" color="warning.main">
+                        {slackConfigQuery.data?.message || 'Slack OAuth 설정이 없습니다.'}
+                      </Typography>
+                    )}
+                  </Stack>
+                </Box>
               ) : (
-                /* 슬랙 연동 시: 기존 알림 목록 표시 */
-                <>
-                  <Box sx={{ p: 1.5, pb: 1 }}>
-                    <Stack
-                      direction="row"
-                      alignItems="center"
-                      justifyContent="space-between"
-                      sx={{ mb: 1 }}
-                    >
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                        알림
-                      </Typography>
-                      <Button
-                        size="small"
-                        variant="text"
-                        component={Link}
-                        href="/notifications"
-                        onClick={handleNotificationMenuClose}
-                        sx={{ textTransform: 'none', fontSize: '0.75rem', px: 0.5, minWidth: 'auto' }}
-                      >
-                        전체 알림으로 보기
-                      </Button>
-                    </Stack>
-
-                    <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                      <Chip
-                        label={`전체 ${notifications.length}`}
-                        size="small"
-                        sx={{ fontWeight: 700 }}
-                      />
-                      <Chip label={`미확인 ${unreadCount}`} size="small" variant="outlined" />
-                    </Stack>
-                  </Box>
-
-                  <Divider />
-
-                  <Box sx={{ maxHeight: 420, overflowY: 'auto', p: 1 }}>
-                    {notifications.length === 0 ? (
-                      <Typography variant="body2" color="text.secondary" sx={{ p: 1.5 }}>
-                        알림이 없습니다.
-                      </Typography>
-                    ) : (
-                      notifications.map(notification => {
-                        const isUnread = !effectiveNotificationReadMap[notification.id]
-                        const resolvedRoute = resolveNotificationRoute(notification)
-                        const accentColor = (theme: any) => {
-                          if (notification.severity === 'critical' || notification.severity === 'error') {
-                            return theme.palette.error.main
-                          }
-                          if (notification.severity === 'warning') {
-                            return theme.palette.warning.main
-                          }
-                          return theme.palette.info.main
-                        }
-
-                        return (
+                /* 인시던트 목록 */
+                <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
+                  {incidents.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
+                      알림이 없습니다.
+                    </Typography>
+                  ) : (
+                    incidents.map((incident, idx) => {
+                      const isOngoing = incident.status === 'ongoing'
+                      return (
+                        <Box key={incident.incident_id}>
                           <Box
-                            key={notification.id}
                             component={Link}
-                            href={resolvedRoute}
-                            onClick={() => handleNotificationItemClick(notification.id)}
+                            href={`/notifications?status=${incident.status ?? 'all'}&id=${encodeURIComponent(incident.incident_id)}`}
+                            onClick={handleNotificationMenuClose}
                             sx={{
-                              display: 'block',
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: 1.25,
+                              px: 2,
+                              py: 1.25,
                               textDecoration: 'none',
                               color: 'inherit',
-                              p: 1.25,
-                              borderRadius: 1,
-                              mb: 0.75,
-                              cursor: 'pointer',
-                              border: '1px solid',
-                              borderColor: 'divider',
-                              bgcolor: isUnread ? 'transparent' : 'action.hover',
-                              '&:hover': {
-                                bgcolor: 'action.hover',
-                              },
+                              '&:hover': { bgcolor: 'action.hover' },
                             }}
                           >
-                            <Stack direction="row" spacing={1} alignItems="flex-start">
-                              <Box
-                                sx={{
-                                  mt: 0.4,
-                                  width: 8,
-                                  height: 8,
-                                  borderRadius: '50%',
-                                  bgcolor: accentColor,
-                                  flexShrink: 0,
-                                }}
-                              />
-                              <Box sx={{ minWidth: 0, flex: 1 }}>
-                                <Stack direction="row" justifyContent="space-between" spacing={1}>
-                                  <Typography
-                                    variant="body2"
-                                    sx={{
-                                      fontWeight: isUnread ? 600 : 700,
-                                      lineHeight: 1.35,
-                                      pr: 1,
-                                    }}
-                                  >
-                                    {notification.title}
-                                  </Typography>
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                    sx={{ flexShrink: 0 }}
-                                  >
-                                    {formatDateTime(notification.timestamp)}
-                                  </Typography>
-                                </Stack>
+                            {/* 점 */}
+                            <Box
+                              sx={{
+                                mt: '5px',
+                                width: 8,
+                                height: 8,
+                                borderRadius: '50%',
+                                flexShrink: 0,
+                                bgcolor: isOngoing ? 'error.main' : 'transparent',
+                                border: isOngoing ? 'none' : '1.5px solid',
+                                borderColor: 'text.disabled',
+                              }}
+                            />
+                            <Box sx={{ minWidth: 0, flex: 1 }}>
+                              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
                                 <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                  sx={{ display: 'block', mt: 0.35, lineHeight: 1.35 }}
+                                  variant="body2"
+                                  sx={{ fontWeight: isOngoing ? 700 : 400, lineHeight: 1.4, color: isOngoing ? 'text.primary' : 'text.secondary' }}
+                                  noWrap
                                 >
-                                  {notification.message}
+                                  {incident.alert_name ?? incident.incident_id}
                                 </Typography>
-                              </Box>
-                            </Stack>
+                                {incident.severity && (
+                                  <Typography variant="caption" color="text.disabled" sx={{ flexShrink: 0 }}>
+                                    {incident.severity}
+                                  </Typography>
+                                )}
+                              </Stack>
+                              <Typography variant="caption" color="text.disabled">
+                                {incident.created_at ? formatDateTime(incident.created_at) : ''}
+                              </Typography>
+                            </Box>
                           </Box>
-                        )
-                      })
-                    )}
-                  </Box>
-                </>
+                          {idx < incidents.length - 1 && <Divider />}
+                        </Box>
+                      )
+                    })
+                  )}
+                </Box>
               )}
             </Box>
           </Menu>
@@ -540,7 +401,7 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
             <MenuItem onClick={handleMenuClose}>Profile</MenuItem>
             <MenuItem onClick={handleMenuClose}>Settings</MenuItem>
             <MenuItem
-              onClick={handleMenuClose}
+              onClick={() => { window.location.href = '/api/auth/cognito/logout' }}
               sx={{
                 color: '#ff6b6b',
               }}

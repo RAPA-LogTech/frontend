@@ -11,6 +11,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\""
   },
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.1025.0",
     "@aws-sdk/client-secrets-manager": "^3.1016.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",

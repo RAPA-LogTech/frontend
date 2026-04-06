@@ -26,6 +26,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     setMobileDrawerOpen(!mobileDrawerOpen)
   }
 
+  if (pathname === '/login') return <>{children}</>
   return (
     <Box
       sx={{
