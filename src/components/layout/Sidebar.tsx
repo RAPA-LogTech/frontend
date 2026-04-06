@@ -23,6 +23,7 @@ import {
   Notifications as NotificationsIcon,
   MenuBook as RunbookIcon,
   Settings as SettingsIcon,
+  Extension as IntegrationIcon,
 } from '@mui/icons-material'
 
 export const drawerWidth = 280
@@ -49,6 +50,7 @@ const navGroups = [
     items: [
       { label: 'Runbooks', href: '/runbooks', icon: RunbookIcon },
       { label: 'Notifications', href: '/notifications', icon: NotificationsIcon },
+      { label: 'Integrations', href: '/settings/integrations', icon: IntegrationIcon },
     ],
   },
 ]

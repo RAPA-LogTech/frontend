@@ -57,15 +57,6 @@ export default function SlackIncidentHistoryPanel({
         spacing={1}
         sx={{ mb: 1.5 }}
       >
-        <Box>
-          <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-            Slack 알람 이력
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Slack으로 전달된 알람 이력을 확인하고 상세 내용을 볼 수 있습니다.
-          </Typography>
-        </Box>
-
         <Stack direction="row" spacing={0.75}>
           {([
             { key: 'all', label: '전체' },
