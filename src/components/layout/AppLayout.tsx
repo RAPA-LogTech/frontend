@@ -14,13 +14,13 @@ interface AppLayoutProps {
 
 const drawerWidth = 280
 const topBarHeight = 48
-const aiDrawerWidth = 400
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname()
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
+  const [aiChatOpen, setAiChatOpen] = useState(false)
   const [filters] = useState<GlobalFilterState>({
     timeRange: '1h',
     startTime: Date.now() - 3600000,
@@ -29,7 +29,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
     env: [],
     cluster: [],
   })
-  const [aiChatOpen, setAiChatOpen] = useState(false)
 
   const handleDrawerToggle = () => {
     setMobileDrawerOpen(!mobileDrawerOpen)
@@ -41,7 +40,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         display: 'flex',
         height: '100vh',
         overflow: 'hidden',
-        bgcolor: 'background.default', // ← dynamic (dark: #0a0f1a, light: #f8fafc)
+        bgcolor: 'background.default',
         width: '100%',
       }}
     >
@@ -104,9 +103,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
             sx={{
               display: 'flex',
               flexDirection: 'column',
+              flexGrow: 1,
               maxWidth: '1400px',
               mx: 'auto',
               width: '100%',
+              minHeight: 0,
             }}
           >
             {children}

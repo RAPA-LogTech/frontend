@@ -1,5 +1,8 @@
 import {
+  AiConversation,
+  AiMessage,
   Dashboard,
+  GlobalFilterState,
   LogEntry,
   MetricSeries,
   NotificationItem,
@@ -7,14 +10,14 @@ import {
   ReportItem,
   ReportType,
   RunbookItem,
-  SlackIntegrationStatus,
-  SlackChannelUpdatePayload,
-  SlackChannelUpdateResponse,
   SlackChannelListItem,
   SlackChannelListResponse,
+  SlackChannelUpdatePayload,
+  SlackChannelUpdateResponse,
   SlackIncidentDetailResponse,
   SlackIncidentListResponse,
   SlackIncidentStatus,
+  SlackIntegrationStatus,
   SlackTestMessageResponse,
   Trace,
   TraceFilterOptions,
@@ -389,6 +392,75 @@ export const apiClient = {
   },
   async getAiMessages() {
     return []
+  },
+
+  // ============ AI Conversations ============
+
+  async getConversations(): Promise<AiConversation[]> {
+    try {
+      const response = await fetch('/api/ai/conversations')
+      if (!response.ok) return []
+      return (await response.json()) as AiConversation[]
+    } catch {
+      return []
+    }
+  },
+
+  async getConversation(conversationId: string): Promise<AiConversation | null> {
+    try {
+      const response = await fetch(`/api/ai/conversations/${conversationId}`)
+      if (!response.ok) return null
+      return (await response.json()) as AiConversation
+    } catch {
+      return null
+    }
+  },
+
+  async createConversation(payload: {
+    title?: string
+    firstMessage: string
+    context?: GlobalFilterState
+  }): Promise<AiConversation | null> {
+    try {
+      const response = await fetch('/api/ai/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!response.ok) return null
+      return (await response.json()) as AiConversation
+    } catch {
+      return null
+    }
+  },
+
+  async sendMessage(payload: {
+    conversationId: string
+    content: string
+    attachContext?: boolean
+  }): Promise<AiMessage | null> {
+    try {
+      const response = await fetch('/api/ai/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!response.ok) return null
+      return (await response.json()) as AiMessage
+    } catch {
+      return null
+    }
+  },
+
+  async deleteConversation(conversationId: string): Promise<boolean> {
+    try {
+      const response = await fetch(`/api/ai/conversations/${conversationId}`, {
+        method: 'DELETE',
+      })
+      return response.ok
+    } catch {
+      return false
+    }
   },
   async getNotifications(): Promise<NotificationItem[]> {
     return []

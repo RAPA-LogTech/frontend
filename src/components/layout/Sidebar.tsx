@@ -9,7 +9,6 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Divider,
   Button,
   Typography,
   ListSubheader,
@@ -20,9 +19,10 @@ import {
   CallSplit as TracesIcon,
   BarChart as BarChartIcon,
   Chat as ChatIcon,
+  SmartToy as AIIcon,
   Notifications as NotificationsIcon,
   MenuBook as RunbookIcon,
-  Assessment as ReportsIcon,
+  Settings as SettingsIcon,
 } from '@mui/icons-material'
 
 export const drawerWidth = 280
@@ -38,6 +38,13 @@ const navGroups = [
     ],
   },
   {
+    label: 'AI',
+    items: [
+      { label: 'Chat', href: '/ai/chat', icon: ChatIcon },
+      { label: 'Settings', href: '/ai/settings', icon: SettingsIcon },
+    ],
+  },
+  {
     label: 'Configuration',
     items: [
       { label: 'Runbooks', href: '/runbooks', icon: RunbookIcon },
@@ -47,7 +54,7 @@ const navGroups = [
 ]
 
 interface SidebarProps {
-  onOpenAiChat: () => void
+  onOpenAiChat?: () => void
   variant?: 'permanent' | 'temporary'
   openMobile?: boolean
   onCloseMobile?: () => void
@@ -70,7 +77,6 @@ export default function Sidebar({
 
   const sidebarContent = (
     <>
-      {/* Navigation */}
       <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
         {navGroups.map((group, idx) => (
           <Box key={group.label} sx={{ mb: 2 }}>
@@ -132,27 +138,28 @@ export default function Sidebar({
         ))}
       </Box>
 
-      {/* AI Chat Button */}
-      <Box sx={{ p: 2, borderTop: '1px solid', borderColor: theme => theme.palette.divider }}>
-        <Button
-          fullWidth
-          variant="contained"
-          startIcon={<ChatIcon />}
-          onClick={onOpenAiChat}
-          sx={{
-            bgcolor: '#9333ea',
-            color: '#ffffff',
-            textTransform: 'none',
-            fontSize: '0.875rem',
-            '&:hover': {
-              bgcolor: '#7e22ce',
+      {onOpenAiChat && (
+        <Box sx={{ p: 2, borderTop: '1px solid', borderColor: theme => theme.palette.divider }}>
+          <Button
+            fullWidth
+            variant="contained"
+            startIcon={<AIIcon />}
+            onClick={onOpenAiChat}
+            sx={{
+              bgcolor: theme => theme.palette.primary.main,
               color: '#ffffff',
-            },
-          }}
-        >
-          AI Assistant
-        </Button>
-      </Box>
+              textTransform: 'none',
+              fontSize: '0.875rem',
+              '&:hover': {
+                bgcolor: theme => theme.palette.primary.dark,
+                color: '#ffffff',
+              },
+            }}
+          >
+            AI Assistant
+          </Button>
+        </Box>
+      )}
     </>
   )
 

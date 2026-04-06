@@ -1,5 +1,5 @@
-import AiPage from '@/components/ai/AiPage'
+import { redirect } from 'next/navigation'
 
 export default function Page() {
-  return <AiPage />
+  redirect('/ai/chat')
 }
