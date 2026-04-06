@@ -56,6 +56,13 @@ const getIncidentStatusChipProps = (status: string | null | undefined) => {
   return { label: 'unknown', variant: 'outlined' as const, sx: {} }
 }
 
+const getIncidentStatusBorderColor = (status: string | null | undefined) => {
+  if (status === 'ongoing') return 'error.main'
+  if (status === 'analyzed') return 'warning.main'
+  if (status === 'resolved') return 'success.main'
+  return 'info.main'
+}
+
 function ReportModal({ incidentId, onClose }: { incidentId: string; onClose: () => void }) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['incident-detail', incidentId],
@@ -238,7 +245,7 @@ export default function SlackIncidentHistoryPanel({
                   border: '1px solid',
                   borderColor: 'divider',
                   borderLeft: '4px solid',
-                  borderLeftColor: getIncidentSeverityBorderColor(item.severity),
+                  borderLeftColor: getIncidentStatusBorderColor(item.status),
                   borderRadius: 1.5,
                   p: 1.25,
                   pl: 2,
