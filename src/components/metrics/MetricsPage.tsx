@@ -5,11 +5,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Box, Chip, Paper, Skeleton, Stack, Tab, Tabs, Typography } from '@mui/material'
 import type { MetricSeries } from '@/lib/types'
-import { apiClient, getDatabaseMetrics, getJvmMetrics, getRdsMetrics } from '@/lib/apiClient'
+import { apiClient, getDatabaseMetrics, getRdsMetrics } from '@/lib/apiClient'
 import LiveButton from '@/components/logs/LogFilters/LiveButton'
 import { filterByEnv, sliceLast5Min } from './metricsUtils'
 import OverviewTab from './tabs/OverviewTab'
-import JvmTab from './tabs/JvmTab'
 import DatabaseTab from './tabs/DatabaseTab'
 import InfraTab from './tabs/InfraTab'
 
@@ -19,12 +18,11 @@ type MetricStreamPayload = {
   points: Array<{ id: string; ts: number; value: number }>
 }
 
-type MetricTabKey = 'overview' | 'jvm' | 'database' | 'infra'
+type MetricTabKey = 'overview' | 'database' | 'infra'
 
 const EMPTY_METRICS: MetricSeries[] = []
 const TAB_ITEMS: Array<{ key: MetricTabKey; label: string; href: string }> = [
   { key: 'overview', label: 'Overview', href: '/metrics/overview' },
-  { key: 'jvm', label: 'JVM', href: '/metrics/jvm' },
   { key: 'database', label: 'Database', href: '/metrics/database' },
   { key: 'infra', label: 'Infra', href: '/metrics/infra' },
 ]
@@ -45,15 +43,6 @@ export default function MetricsPage({ currentTab = 'overview' }: { currentTab?: 
     queryFn: apiClient.getMetrics,
   })
   const metrics = metricsData ?? EMPTY_METRICS
-
-  const { data: jvmMetricsData = EMPTY_METRICS, isLoading: isJvmMetricsLoading } = useQuery({
-    queryKey: ['jvm-metrics'],
-    queryFn: getJvmMetrics,
-    staleTime: 30_000,
-    refetchInterval: 30_000,
-    placeholderData: (prev) => prev,
-    enabled: currentTab === 'jvm',
-  })
 
   const { data: databaseMetricsData = EMPTY_METRICS, isLoading: isDatabaseMetricsLoading } = useQuery({
     queryKey: ['database-metrics'],
@@ -141,11 +130,9 @@ export default function MetricsPage({ currentTab = 'overview' }: { currentTab?: 
 
   const metricSeries = useMemo(() => (liveMetrics.length > 0 ? liveMetrics : metrics), [liveMetrics, metrics])
   const activeMetricSeries =
-    currentTab === 'jvm'
-      ? (jvmMetricsData.length > 0 ? jvmMetricsData : metricSeries)
-      : currentTab === 'database'
-        ? (databaseMetricsData.length > 0 ? databaseMetricsData : metricSeries)
-        : metricSeries
+    currentTab === 'database'
+      ? (databaseMetricsData.length > 0 ? databaseMetricsData : metricSeries)
+      : metricSeries
 
   const error4xxSeries = activeMetricSeries.filter(s => s.name.includes('4xx_ratio') && filterByEnv(s, envFilter))
   const error5xxSeries = activeMetricSeries.filter(s => s.name.includes('5xx_ratio') && filterByEnv(s, envFilter))
@@ -224,13 +211,6 @@ export default function MetricsPage({ currentTab = 'overview' }: { currentTab?: 
           envFilter={envFilter}
           metricSeries={activeMetricSeries}
           isLoading={isMetricsLoading || isServiceHealthLoading}
-        />
-      )}
-      {currentTab === 'jvm' && (
-        <JvmTab
-          metricSeries={activeMetricSeries}
-          envFilter={envFilter}
-          isLoading={isJvmMetricsLoading}
         />
       )}
       {currentTab === 'database' && (

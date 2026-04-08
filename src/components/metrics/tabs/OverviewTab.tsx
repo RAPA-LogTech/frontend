@@ -139,7 +139,7 @@ export default function OverviewTab(props: Props) {
                                 isAnimationActive={false}
                                 labelFormatter={(label, payload) => formatTooltipTime(label, payload as Array<{ payload?: { ts?: number } }>)}
                                 formatter={(value, name) => [
-                                  `${Number(value ?? 0).toFixed(2)}%`,
+                                  `${(Number(value ?? 0) * 100).toFixed(2)}%`,
                                   name,
                                 ]}
                                 {...compactTooltipSx}

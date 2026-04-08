@@ -4,12 +4,24 @@ import { useQuery } from '@tanstack/react-query'
 import { Box, Paper, Skeleton, Stack, Typography, useTheme } from '@mui/material'
 import type { MetricSeries } from '@/lib/types'
 import { getContainerMetrics, getHostMetrics } from '@/lib/apiClient'
+
+async function getJvmMetrics(): Promise<MetricSeries[]> {
+  try {
+    const res = await fetch('/api/observability/metrics/jvm')
+    if (!res.ok) return []
+    const data = await res.json()
+    if (Array.isArray(data)) return data as MetricSeries[]
+    if (data?.metrics && Array.isArray(data.metrics)) return data.metrics as MetricSeries[]
+    return []
+  } catch {
+    return []
+  }
+}
 import NoDataState from '@/components/common/NoDataState'
 import { getSeriesLast, sliceLast5Min, filterByEnv } from '../metricsUtils'
 import { MiniSparkline, SectionLabel } from '../MetricsShared'
 
-
-
+const BYTES_PER_MB = 1024 * 1024
 
 interface Props {
   envFilter: string;
@@ -33,6 +45,20 @@ function filterSeries(series: MetricSeries[], name: string, envFilter: string) {
     if (!s.name.includes(name)) return false;
     return filterByEnv(s, envFilter);
   });
+}
+
+function filterJvmSeries(series: MetricSeries[], name: string, envFilter: string) {
+  return series.filter(s => {
+    if (!(s.name.includes(name) || s.name.endsWith(name.replace('app_', '')))) return false
+    if (envFilter === 'all') return true
+    const env = (s as MetricSeries & { env?: string }).env
+    return env ? env === envFilter : false
+  })
+}
+
+function toMbSeries(series?: MetricSeries): MetricSeries | undefined {
+  if (!series) return undefined
+  return { ...series, points: series.points.map(p => ({ ...p, value: p.value / BYTES_PER_MB })) }
 }
 
 export default function InfraTab({ envFilter }: Props) {
@@ -62,6 +88,27 @@ export default function InfraTab({ envFilter }: Props) {
     refetchOnMount: 'always',
   })
 
+  const {
+    data: jvmMetrics = [],
+    isLoading: isJvmLoading,
+    isFetching: isJvmFetching,
+  } = useQuery({
+    queryKey: ['jvm-metrics'],
+    queryFn: getJvmMetrics,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    refetchOnMount: 'always',
+  })
+
+  // JVM metrics
+  const jvmCpuSeries = filterJvmSeries(jvmMetrics, 'app_jvm_cpu_utilization_pct_avg_5m', envFilter)
+  const jvmMemSeries = filterJvmSeries(jvmMetrics, 'app_jvm_memory_used_avg_5m', envFilter)
+  const jvmGcCountSeries = filterJvmSeries(jvmMetrics, 'app_jvm_gc_count_5m', envFilter)
+  const jvmGcDurSeries = filterJvmSeries(jvmMetrics, 'app_jvm_gc_duration_p95_5m', envFilter)
+  const jvmServices = [...new Set([
+    ...jvmCpuSeries, ...jvmMemSeries, ...jvmGcCountSeries, ...jvmGcDurSeries
+  ].map(s => s.service).filter(Boolean))] as string[]
+
   // 서비스별 컨테이너 CPU/MEM
   const containerCpuSeries = filterSeries(containerMetrics, 'app_container_cpu_utilization_avg_5m', envFilter);
   const containerMemSeries = filterSeries(containerMetrics, 'app_container_memory_utilization_avg_5m', envFilter);
@@ -77,7 +124,7 @@ export default function InfraTab({ envFilter }: Props) {
     ...hostNetTxSeries
   ].map(getHostKey).filter(Boolean))] as string[];
 
-  if (isContainerLoading || isHostLoading || isContainerFetching || isHostFetching) {
+  if (isContainerLoading || isHostLoading || isJvmLoading || isContainerFetching || isHostFetching || isJvmFetching) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
@@ -92,7 +139,7 @@ export default function InfraTab({ envFilter }: Props) {
     );
   }
 
-  if (containerServices.length === 0 && hostInstances.length === 0) {
+  if (containerServices.length === 0 && hostInstances.length === 0 && jvmServices.length === 0) {
     return <NoDataState title="No Infra data" description="No infrastructure metrics available." />;
   }
 
@@ -167,6 +214,59 @@ export default function InfraTab({ envFilter }: Props) {
                   </Paper>
                 </Box>
               );
+            })}
+          </Box>
+        </Paper>
+      )}
+      {/* JVM metrics */}
+      {jvmServices.length > 0 && (
+        <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
+          <SectionLabel>JVM metrics</SectionLabel>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+            {jvmServices.map(svc => {
+              const cpu = jvmCpuSeries.find(s => s.service === svc)
+              const mem = toMbSeries(jvmMemSeries.find(s => s.service === svc))
+              const gcCount = jvmGcCountSeries.find(s => s.service === svc)
+              const gcDur = jvmGcDurSeries.find(s => s.service === svc)
+              return (
+                <Box key={svc} sx={{ flex: '1 1 220px', minWidth: 0 }}>
+                  <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper', borderRadius: 1 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 1, display: 'block', mb: 1 }}>
+                      {svc.toUpperCase()}
+                    </Typography>
+                    <Stack spacing={1}>
+                      {cpu && (
+                        <Box>
+                          <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.warning.main }}>{getSeriesLast(cpu).toFixed(2)}%</Typography>
+                          <Typography variant="caption" color="text.secondary">JVM CPU (5m avg)</Typography>
+                          <MiniSparkline series={{ ...cpu, points: sliceLast5Min(cpu.points) }} color={theme.palette.warning.main} />
+                        </Box>
+                      )}
+                      {mem && (
+                        <Box>
+                          <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.info.main }}>{getSeriesLast(mem).toFixed(2)} MB</Typography>
+                          <Typography variant="caption" color="text.secondary">JVM Memory (5m avg)</Typography>
+                          <MiniSparkline series={{ ...mem, points: sliceLast5Min(mem.points) }} color={theme.palette.info.main} />
+                        </Box>
+                      )}
+                      {gcCount && (
+                        <Box>
+                          <Typography variant="h5" sx={{ fontWeight: 700, color: theme.palette.secondary.main }}>{getSeriesLast(gcCount).toFixed(0)}회</Typography>
+                          <Typography variant="caption" color="text.secondary">GC Count (5m)</Typography>
+                          <MiniSparkline series={{ ...gcCount, points: sliceLast5Min(gcCount.points) }} color={theme.palette.secondary.main} />
+                        </Box>
+                      )}
+                      {gcDur && (
+                        <Box>
+                          <Typography variant="h5" sx={{ fontWeight: 700, color: theme.palette.error.main }}>{getSeriesLast(gcDur).toFixed(2)} ms</Typography>
+                          <Typography variant="caption" color="text.secondary">GC Duration p95 (5m)</Typography>
+                          <MiniSparkline series={{ ...gcDur, points: sliceLast5Min(gcDur.points) }} color={theme.palette.error.main} />
+                        </Box>
+                      )}
+                    </Stack>
+                  </Paper>
+                </Box>
+              )
             })}
           </Box>
         </Paper>

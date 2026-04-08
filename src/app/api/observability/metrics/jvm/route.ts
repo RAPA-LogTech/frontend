@@ -1,6 +1,3 @@
-// BFF 프록시: GET /api/observability/metrics/jvm
-// dashboard → observability-service /v1/metrics/jvm
-
 const BASE_URL = process.env.OBSERVABILITY_SERVICE_URL ?? ''
 
 export const dynamic = 'force-dynamic'
@@ -21,21 +18,14 @@ export async function GET(request: Request) {
 
     if (!res.ok) {
       let errorBody: unknown = { detail: 'Upstream observability service request failed' }
-      try {
-        errorBody = await res.json()
-      } catch {
-        // Keep default message when upstream body is not JSON.
-      }
+      try { errorBody = await res.json() } catch {}
       return Response.json(errorBody, { status: res.status })
     }
 
-    const data = await res.json()
-    return Response.json(data)
+    return Response.json(await res.json())
   } catch (error) {
     return Response.json(
-      {
-        detail: error instanceof Error ? error.message : 'Failed to connect observability service',
-      },
+      { detail: error instanceof Error ? error.message : 'Failed to connect observability service' },
       { status: 503 }
     )
   }
