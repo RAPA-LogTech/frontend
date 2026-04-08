@@ -111,7 +111,7 @@ export default function StatusBanner({ serviceHealth, isLoading, onRefresh, last
 
       <Stack direction="row" alignItems="center" gap={1.5}>
         {elapsed !== null && (
-          <Typography variant="caption" sx={{ color: '#64748b', whiteSpace: 'nowrap' }}>
+          <Typography variant="caption" sx={{ color: '#fff', whiteSpace: 'nowrap' }}>
             Updated {elapsed < 60 ? `${elapsed}s` : `${Math.floor(elapsed / 60)}m`} ago
           </Typography>
         )}
