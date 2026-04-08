@@ -1,20 +1,8 @@
 'use client'
 
 import { memo } from 'react'
-
-import {
-  TableContainer,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  Chip,
-  Paper,
-  Box,
-  Typography,
-} from '@mui/material'
-import { LogEntry } from '@/lib/types'
+import { Box, Chip, Typography } from '@mui/material'
+import type { LogEntry } from '@/lib/types'
 import { formatDateTime } from '@/lib/formatters'
 
 type LogsTableProps = {
@@ -24,223 +12,151 @@ type LogsTableProps = {
   compact?: boolean
 }
 
-const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const LEVEL_CONFIG: Record<string, { color: string; bg: string; border: string }> = {
+  ERROR:   { color: '#f87171', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.3)' },
+  WARN:    { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)',  border: 'rgba(251,191,36,0.3)' },
+  INFO:    { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)',  border: 'rgba(96,165,250,0.3)' },
+  DEBUG:   { color: '#34d399', bg: 'rgba(52,211,153,0.12)',  border: 'rgba(52,211,153,0.3)' },
+  UNKNOWN: { color: '#94a3b8', bg: 'rgba(148,163,184,0.12)', border: 'rgba(148,163,184,0.3)' },
+}
 
-const highlightText = (text: string, query?: string) => {
+const escapeRegExp = (v: string) => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+function highlight(text: string, query?: string) {
   if (!query?.trim()) return <>{text}</>
-
   const term = query.includes(':')
     ? query.split(':').slice(1).join(':').replace(/^"|"$/g, '').trim()
     : query.trim()
   if (!term) return <>{text}</>
-
-  const regex = new RegExp(`(${escapeRegExp(term)})`, 'ig')
-  const parts = text.split(regex)
-
+  const parts = text.split(new RegExp(`(${escapeRegExp(term)})`, 'ig'))
   return (
     <>
-      {parts.map((part, index) =>
-        part.toLowerCase() === term.toLowerCase() ? (
-          <Box
-            key={`${part}-${index}`}
-            component="span"
-            sx={{ bgcolor: '#ffe45c', color: '#000000', px: 0.25, borderRadius: 0.25 }}
-          >
-            {part}
-          </Box>
-        ) : (
-          <Box key={`${part}-${index}`} component="span">
-            {part}
-          </Box>
-        )
+      {parts.map((p, i) =>
+        p.toLowerCase() === term.toLowerCase()
+          ? <Box key={i} component="span" sx={{ bgcolor: '#ffe45c', color: '#000', px: 0.25, borderRadius: 0.25 }}>{p}</Box>
+          : <span key={i}>{p}</span>
       )}
     </>
   )
 }
 
-function LogsTableComponent({ logs, onSelect, query, compact = false }: LogsTableProps) {
-  const getLevelColor = (level: string | null) => {
-    switch (level) {
-      case 'ERROR':
-        return { bgcolor: 'rgba(239, 68, 68, 0.1)', textColor: '#ef4444' }
-      case 'WARN':
-        return { bgcolor: 'rgba(240, 153, 75, 0.1)', textColor: '#f59e0b' }
-      case 'INFO':
-        return { bgcolor: 'rgba(59, 130, 246, 0.1)', textColor: '#3b82f6' }
-      case 'DEBUG':
-        return { bgcolor: 'rgba(16, 185, 129, 0.1)', textColor: '#10b981' }
-      default:
-        return { bgcolor: 'rgba(148, 163, 184, 0.1)', textColor: '#94a3b8' }
-    }
-  }
+function LogRow({ log, onSelect, query }: { log: LogEntry; onSelect: (l: LogEntry) => void; query?: string }) {
+  const levelKey = (log.level ?? 'UNKNOWN').toUpperCase()
+  const cfg = LEVEL_CONFIG[levelKey] ?? LEVEL_CONFIG.UNKNOWN
 
   return (
-    <TableContainer
-      component={Paper}
+    <Box
+      onClick={() => onSelect(log)}
       sx={{
-        bgcolor: theme => (theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff'),
-        border: '1px solid',
-        borderColor: theme => theme.palette.divider,
-        overflow: 'visible',
+        display: 'grid',
+        gridTemplateColumns: '168px 100px 52px 80px 1fr',
+        alignItems: 'center',
+        gap: 0,
+        px: 1.5,
+        py: 0.6,
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        cursor: 'pointer',
+        borderLeft: `3px solid ${levelKey === 'ERROR' || levelKey === 'WARN' ? cfg.color : 'transparent'}`,
+        transition: 'background 0.1s',
+        '&:hover': { bgcolor: 'action.hover' },
       }}
     >
-      <Table sx={{ minWidth: 650 }}>
-        <TableHead
-          sx={{ bgcolor: theme => (theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff'), position: 'sticky', top: 0, zIndex: 1 }}
-        >
-          <TableRow sx={{ borderBottom: '1px solid', borderColor: theme => theme.palette.divider }}>
-            <TableCell
-              sx={{
-                color: theme => theme.palette.text.primary,
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                padding: '10px 12px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Timestamp
-            </TableCell>
-            <TableCell
-              sx={{
-                color: theme => theme.palette.text.primary,
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                padding: '10px 12px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Service
-            </TableCell>
-            <TableCell
-              sx={{
-                color: theme => theme.palette.text.primary,
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                padding: '10px 12px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Env
-            </TableCell>
-            <TableCell
-              sx={{
-                color: theme => theme.palette.text.primary,
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                padding: '10px 12px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Level
-            </TableCell>
-            <TableCell
-              sx={{
-                color: theme => theme.palette.text.primary,
-                fontWeight: 700,
-                fontSize: '0.85rem',
-                padding: '10px 12px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Message
-            </TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {logs.map(row => (
-            <TableRow
-              key={row.id}
-              onClick={() => onSelect(row)}
-              sx={{
-                borderBottom: '1px solid',
-                borderColor: theme => theme.palette.divider,
-                cursor: 'pointer',
-                '&:hover': {
-                  bgcolor: theme => (theme.palette.mode === 'dark' ? '#1e293b' : '#f1f5f9'),
-                },
-              }}
-            >
-              <TableCell
-                sx={{
-                  color: theme => theme.palette.text.secondary,
-                  fontSize: '0.85rem',
-                  fontWeight: 500,
-                  padding: '10px 12px',
-                  fontFamily: 'monospace',
-                }}
-              >
-                {formatDateTime(row.timestamp)}
-              </TableCell>
-              <TableCell
-                sx={{
-                  color: theme => theme.palette.text.primary,
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  padding: '10px 12px',
-                }}
-              >
-                {row.service}
-              </TableCell>
-              <TableCell
-                sx={{
-                  color: theme => theme.palette.text.primary,
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  padding: '10px 12px',
-                }}
-              >
-                {row.env}
-              </TableCell>
-              <TableCell sx={{ fontSize: '0.875rem', padding: '10px 12px' }}>
-                {(() => {
-                  const color = getLevelColor(row.level)
-                  return (
-                    <Chip
-                      label={row.level ?? 'UNKNOWN'}
-                      size="small"
-                      sx={{
-                        bgcolor: color.bgcolor,
-                        color: color.textColor,
-                        fontWeight: 600,
-                        fontSize: '0.75rem',
-                      }}
-                    />
-                  )
-                })()}
-              </TableCell>
-              <TableCell
-                sx={{
-                  color: theme => theme.palette.text.primary,
-                  fontSize: '0.85rem',
-                  maxWidth: compact ? 620 : 280,
-                  padding: '10px 12px',
-                }}
-              >
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontFamily: compact ? 'monospace' : 'inherit',
-                    whiteSpace: compact ? 'normal' : 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {compact
-                    ? highlightText(
-                        `{ "level": "${row.level?.toLowerCase() ?? 'unknown'}", "service": "${row.service}", "msg": "${row.message}", "traceId": "${row.metadata?.traceId ?? row.traceId ?? '-'}" }`,
-                        query
-                      )
-                    : highlightText(row.message, query)}
-                </Typography>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+      {/* Timestamp */}
+      <Typography
+        variant="caption"
+        sx={{ fontFamily: 'monospace', color: 'text.secondary', fontSize: 11, whiteSpace: 'nowrap', pr: 1.5 }}
+      >
+        {formatDateTime(log.timestamp)}
+      </Typography>
+
+      {/* Service */}
+      <Typography
+        variant="caption"
+        sx={{ fontWeight: 700, color: 'text.primary', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', pr: 1 }}
+      >
+        {log.service}
+      </Typography>
+
+      {/* Env */}
+      <Typography
+        variant="caption"
+        sx={{ color: 'text.secondary', fontSize: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', pr: 1 }}
+      >
+        {log.env ?? '—'}
+      </Typography>
+
+      {/* Level */}
+      <Box sx={{ pr: 1 }}>
+        <Chip
+          label={levelKey}
+          size="small"
+          sx={{
+            height: 18,
+            fontSize: 10,
+            fontWeight: 700,
+            bgcolor: cfg.bg,
+            color: cfg.color,
+            border: `1px solid ${cfg.border}`,
+            '& .MuiChip-label': { px: 0.75 },
+          }}
+        />
+      </Box>
+
+      {/* Message */}
+      <Typography
+        variant="caption"
+        sx={{
+          fontFamily: 'monospace',
+          fontSize: 11,
+          color: levelKey === 'ERROR' ? '#fca5a5' : levelKey === 'WARN' ? '#fde68a' : 'text.primary',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {highlight(log.message, query)}
+      </Typography>
+    </Box>
+  )
+}
+
+function LogsTableComponent({ logs, onSelect, query }: LogsTableProps) {
+  return (
+    <Box sx={{
+      border: '1px solid',
+      borderColor: 'divider',
+      borderRadius: 1,
+      overflow: 'visible',
+      bgcolor: 'background.default',
+    }}>
+      {/* 헤더 */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: '168px 100px 52px 80px 1fr',
+        px: 1.5, py: 0.75,
+        borderBottom: '2px solid',
+        borderColor: 'divider',
+        bgcolor: 'action.hover',
+        borderLeft: '3px solid transparent',
+        position: 'sticky',
+        top: 0,
+        zIndex: 1,
+      }}>
+        {['TIMESTAMP', 'SERVICE', 'ENV', 'LEVEL', 'MESSAGE'].map(h => (
+          <Typography key={h} variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', fontSize: 10, letterSpacing: 0.5 }}>
+            {h}
+          </Typography>
+        ))}
+      </Box>
+
+      {/* 로그 행 */}
+      {logs.map(log => (
+        <LogRow key={log.id} log={log} onSelect={onSelect} query={query} />
+      ))}
+    </Box>
   )
 }
 
 const LogsTable = memo(LogsTableComponent)
-
 export default LogsTable

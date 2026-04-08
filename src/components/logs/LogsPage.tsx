@@ -1,6 +1,6 @@
 'use client'
 
-import { UIEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { UIEvent, useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import {
   Box,
@@ -80,7 +80,7 @@ export default function LogsPage() {
   const lastLogCursorRef = useRef(0)
   const [query, setQuery] = useState('')
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null)
-  const [timeRange, setTimeRange] = useState<'15m' | '1h' | '6h' | '24h' | 'all'>('15m')
+  const [timeRange] = useState<'all'>('all')
   const [logSource, setLogSource] = useState<LogSource>('all')
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [fieldSearch, setFieldSearch] = useState('')
@@ -378,8 +378,22 @@ export default function LogsPage() {
 
     if (sortedByTime.length === 0) return []
 
-    // Use wall-clock time for ranges like "Last 1h" so stale historical data
-    // does not shift the window and histogram captions unexpectedly.
+    return sortedByTime.filter(matchesLogFilters)
+  }, [logs, query, customFilters])
+
+  // 버킷 캐시: key → bucket (한번 집계된 버킷은 카운트를 줄이지 않음)
+  const bucketCacheRef = useRef<Map<number, InternalHistogramBucket>>(new Map())
+  const processedLogIdsRef = useRef<Set<string>>(new Set())
+  const lastTimeRangeRef = useRef<typeof timeRange>(timeRange)
+  const lastIntervalRef = useRef<number>(0)
+
+  const histogram = useMemo((): InternalHistogramBucket[] => {
+    if (baseFiltered.length === 0) {
+      bucketCacheRef.current.clear()
+      processedLogIdsRef.current.clear()
+      return []
+    }
+
     const nowTs = Date.now()
     const rangeMsMap: Record<typeof timeRange, number> = {
       '15m': 15 * 60 * 1000,
@@ -388,118 +402,91 @@ export default function LogsPage() {
       '24h': 24 * 60 * 60 * 1000,
       all: Number.MAX_SAFE_INTEGER,
     }
-
-    const cutoff = nowTs - rangeMsMap[timeRange]
-
-    const byTime = sortedByTime.filter(log => {
-      if (timeRange === 'all') return true
-      return new Date(log.timestamp).getTime() >= cutoff
-    })
-
-    return byTime.filter(matchesLogFilters)
-  }, [logs, query, timeRange, customFilters])
-
-  const histogram = useMemo((): InternalHistogramBucket[] => {
-    if (baseFiltered.length === 0) return []
+    const intervalByRange: Record<typeof timeRange, number> = {
+      '15m': 60 * 1000,
+      '1h': 5 * 60 * 1000,
+      '6h': 15 * 60 * 1000,
+      '24h': 60 * 60 * 1000,
+      all: 0,
+    }
 
     const timestamps = baseFiltered.map(item => new Date(item.timestamp).getTime())
     const latestTs = Math.max(...timestamps)
     const earliestTs = Math.min(...timestamps)
-
-    // timeRange에 따른 범위 계산
-    const nowTs = Date.now()
-    const rangeMsMap: Record<typeof timeRange, number> = {
-      '15m': 15 * 60 * 1000,
-      '1h': 60 * 60 * 1000,
-      '6h': 6 * 60 * 60 * 1000,
-      '24h': 24 * 60 * 60 * 1000,
-      all: Number.MAX_SAFE_INTEGER,
-    }
-
     const durationMs = timeRange === 'all' ? latestTs - earliestTs : rangeMsMap[timeRange]
 
-    // timeRange에 따른 버킷 사이즈
-    const intervalByRange: Record<typeof timeRange, number> = {
-      '15m': 60 * 1000, // 1분
-      '1h': 5 * 60 * 1000, // 5분
-      '6h': 15 * 60 * 1000, // 15분
-      '24h': 60 * 60 * 1000, // 1시간
-      all: 0,
-    }
-
-    let interval
+    let interval: number
     if (timeRange === 'all') {
       const rawInterval = Math.max(Math.ceil(durationMs / 30), 1000)
-      const niceSteps = [
-        1000,
-        5000,
-        10000,
-        30000,
-        60000,
-        5 * 60000,
-        10 * 60000,
-        30 * 60000,
-        60 * 60000,
-        2 * 60 * 60000,
-        6 * 60 * 60000,
-        12 * 60 * 60000,
-        24 * 60 * 60000,
-      ]
+      const niceSteps = [1000, 5000, 10000, 30000, 60000, 5 * 60000, 10 * 60000, 30 * 60000, 60 * 60000, 2 * 60 * 60000, 6 * 60 * 60000, 12 * 60 * 60000, 24 * 60 * 60000]
       interval = niceSteps.find(step => step >= rawInterval) ?? rawInterval
     } else {
       interval = intervalByRange[timeRange]
     }
 
+    // timeRange나 interval이 바뀌면 캐시 초기화
+    if (lastTimeRangeRef.current !== timeRange || lastIntervalRef.current !== interval) {
+      bucketCacheRef.current.clear()
+      processedLogIdsRef.current.clear()
+      lastTimeRangeRef.current = timeRange
+      lastIntervalRef.current = interval
+    }
+
+    const cache = bucketCacheRef.current
+    const processed = processedLogIdsRef.current
+
+    // 새로 추가된 로그만 증분 집계
+    for (const item of baseFiltered) {
+      if (processed.has(item.id)) continue
+      processed.add(item.id)
+
+      const ts = new Date(item.timestamp).getTime()
+      const bucketKey = Math.floor(ts / interval) * interval
+
+      if (!cache.has(bucketKey)) {
+        cache.set(bucketKey, {
+          key: bucketKey,
+          label: new Date(bucketKey),
+          count: 0, debug: 0, info: 0, warn: 0, error: 0, unknown: 0,
+          interval,
+          bucketStart: new Date(bucketKey),
+          bucketEnd: new Date(bucketKey + interval),
+        })
+      }
+
+      const bucket = cache.get(bucketKey)!
+      bucket.count += 1
+      if (item.level === 'ERROR') bucket.error += 1
+      else if (item.level === 'WARN') bucket.warn += 1
+      else if (item.level === 'DEBUG') bucket.debug += 1
+      else if (item.level === 'INFO') bucket.info += 1
+      else bucket.unknown += 1
+    }
+
+    // 화면에 표시할 시간 범위 계산
     const bucketCount = timeRange === 'all' ? 30 : Math.min(Math.ceil(durationMs / interval), 60)
-
     const alignedLatest = Math.ceil(latestTs / interval) * interval
-    const start =
-      timeRange === 'all'
-        ? Math.floor(earliestTs / interval) * interval
-        : alignedLatest - bucketCount * interval
-    const totalBuckets =
-      timeRange === 'all' ? Math.max(1, Math.ceil((alignedLatest - start) / interval)) : bucketCount
+    const windowStart = timeRange === 'all'
+      ? Math.floor(earliestTs / interval) * interval
+      : alignedLatest - bucketCount * interval
+    const windowEnd = alignedLatest
 
-    const buckets = Array.from({ length: totalBuckets }, (_, idx) => {
-      const bucketStartTs = start + idx * interval
-      return {
+    // 윈도우 안에 있는 버킷만 반환 (밖으로 나간 버킷은 자연스럽게 제외)
+    const totalBuckets = timeRange === 'all'
+      ? Math.max(1, Math.ceil((windowEnd - windowStart) / interval))
+      : bucketCount
+
+    return Array.from({ length: totalBuckets }, (_, idx) => {
+      const bucketStartTs = windowStart + idx * interval
+      return cache.get(bucketStartTs) ?? {
         key: bucketStartTs,
         label: new Date(bucketStartTs),
-        count: 0,
-        debug: 0,
-        info: 0,
-        warn: 0,
-        error: 0,
-        unknown: 0,
+        count: 0, debug: 0, info: 0, warn: 0, error: 0, unknown: 0,
         interval,
         bucketStart: new Date(bucketStartTs),
         bucketEnd: new Date(bucketStartTs + interval),
       }
     })
-
-    const bucketMap = new Map(buckets.map(bucket => [bucket.key, bucket]))
-
-    for (const item of baseFiltered) {
-      const ts = new Date(item.timestamp).getTime()
-      const bucketKey = Math.floor(ts / interval) * interval
-      const bucket = bucketMap.get(bucketKey)
-      if (!bucket) continue
-
-      bucket.count += 1
-      if (item.level === 'ERROR') {
-        bucket.error += 1
-      } else if (item.level === 'WARN') {
-        bucket.warn += 1
-      } else if (item.level === 'DEBUG') {
-        bucket.debug += 1
-      } else if (item.level === 'INFO') {
-        bucket.info += 1
-      } else {
-        bucket.unknown += 1
-      }
-    }
-
-    return buckets
   }, [baseFiltered, timeRange])
 
   const filtered = useMemo(() => {
@@ -569,7 +556,7 @@ export default function LogsPage() {
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
-  }, [query, timeRange, selectedBucketKey])
+  }, [query, selectedBucketKey])
 
   if (isLogsLoading && !queryLogsData) {
     return (
@@ -668,8 +655,6 @@ export default function LogsPage() {
           <FieldExplorer
             onSectionChange={updateSectionFilters}
             filterOptions={filterOptions}
-            timeRange={timeRange}
-            onTimeRangeChange={setTimeRange}
             selectedIndexes={selectedIndexes}
             selectedServices={selectedServices}
             selectedEnvs={selectedEnvs}
@@ -678,9 +663,19 @@ export default function LogsPage() {
           />
 
           <Box sx={{ p: 1.5, minWidth: 0 }}>
-            <Typography variant="h5" sx={{ fontWeight: 700, textAlign: 'center', mb: 1 }}>
-              {filtered.length.toLocaleString()} hits
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+                <Typography variant="h5" sx={{ fontWeight: 800, fontFamily: 'monospace' }}>
+                  {filtered.length.toLocaleString()}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>hits</Typography>
+              </Box>
+              {selectedBucketKey !== null && (
+                <Button size="small" variant="outlined" onClick={() => setSelectedBucketKey(null)} sx={{ fontSize: 11, py: 0.25, px: 1 }}>
+                  Clear time filter
+                </Button>
+              )}
+            </Box>
 
             {filtered.length === 0 ? (
               <NoDataState
@@ -689,14 +684,6 @@ export default function LogsPage() {
               />
             ) : (
               <>
-                {selectedBucketKey !== null && (
-                  <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1 }}>
-                    <Button size="small" variant="text" onClick={() => setSelectedBucketKey(null)}>
-                      Clear bucket filter
-                    </Button>
-                  </Stack>
-                )}
-
                 {/* 동적 차트 렌더링 */}
                 <LogsHistogram
                   histogramData={histogramData}
