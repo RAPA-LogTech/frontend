@@ -239,8 +239,13 @@ export default function LogsPage() {
   }, [isLiveEnabled])
 
   // live 로그가 있으면 우선, 없으면 query 로그 사용
+  // queryLogs를 liveLogs의 초기 seed로 병합해서 전환 시 데이터 감소 방지
   const logs = useMemo(() => {
-    return liveLogs.length > 0 ? liveLogs : queryLogs
+    if (liveLogs.length === 0) return queryLogs
+    // liveLogs에 없는 queryLogs 항목을 뒤에 붙여서 히스토그램이 줄어들지 않게 함
+    const liveIds = new Set(liveLogs.map(l => l.id))
+    const olderLogs = queryLogs.filter(l => !liveIds.has(l.id))
+    return [...liveLogs, ...olderLogs]
   }, [liveLogs, queryLogs])
 
   const getFieldValue = (log: LogEntry, field: string) => {
@@ -384,7 +389,6 @@ export default function LogsPage() {
   // 버킷 캐시: key → bucket (한번 집계된 버킷은 카운트를 줄이지 않음)
   const bucketCacheRef = useRef<Map<number, InternalHistogramBucket>>(new Map())
   const processedLogIdsRef = useRef<Set<string>>(new Set())
-  const lastTimeRangeRef = useRef<typeof timeRange>(timeRange)
   const lastIntervalRef = useRef<number>(0)
 
   const histogram = useMemo((): InternalHistogramBucket[] => {
@@ -394,41 +398,16 @@ export default function LogsPage() {
       return []
     }
 
-    const nowTs = Date.now()
-    const rangeMsMap: Record<typeof timeRange, number> = {
-      '15m': 15 * 60 * 1000,
-      '1h': 60 * 60 * 1000,
-      '6h': 6 * 60 * 60 * 1000,
-      '24h': 24 * 60 * 60 * 1000,
-      all: Number.MAX_SAFE_INTEGER,
-    }
-    const intervalByRange: Record<typeof timeRange, number> = {
-      '15m': 60 * 1000,
-      '1h': 5 * 60 * 1000,
-      '6h': 15 * 60 * 1000,
-      '24h': 60 * 60 * 1000,
-      all: 0,
-    }
-
     const timestamps = baseFiltered.map(item => new Date(item.timestamp).getTime())
     const latestTs = Math.max(...timestamps)
     const earliestTs = Math.min(...timestamps)
-    const durationMs = timeRange === 'all' ? latestTs - earliestTs : rangeMsMap[timeRange]
 
-    let interval: number
-    if (timeRange === 'all') {
-      const rawInterval = Math.max(Math.ceil(durationMs / 30), 1000)
-      const niceSteps = [1000, 5000, 10000, 30000, 60000, 5 * 60000, 10 * 60000, 30 * 60000, 60 * 60000, 2 * 60 * 60000, 6 * 60 * 60000, 12 * 60 * 60000, 24 * 60 * 60000]
-      interval = niceSteps.find(step => step >= rawInterval) ?? rawInterval
-    } else {
-      interval = intervalByRange[timeRange]
-    }
+    const interval = 60000 // 1분 고정
 
-    // timeRange나 interval이 바뀌면 캐시 초기화
-    if (lastTimeRangeRef.current !== timeRange || lastIntervalRef.current !== interval) {
+    // interval이 바뀌면 캐시 초기화
+    if (lastIntervalRef.current !== interval) {
       bucketCacheRef.current.clear()
       processedLogIdsRef.current.clear()
-      lastTimeRangeRef.current = timeRange
       lastIntervalRef.current = interval
     }
 
@@ -463,18 +442,9 @@ export default function LogsPage() {
       else bucket.unknown += 1
     }
 
-    // 화면에 표시할 시간 범위 계산
-    const bucketCount = timeRange === 'all' ? 30 : Math.min(Math.ceil(durationMs / interval), 60)
-    const alignedLatest = Math.ceil(latestTs / interval) * interval
-    const windowStart = timeRange === 'all'
-      ? Math.floor(earliestTs / interval) * interval
-      : alignedLatest - bucketCount * interval
-    const windowEnd = alignedLatest
-
-    // 윈도우 안에 있는 버킷만 반환 (밖으로 나간 버킷은 자연스럽게 제외)
-    const totalBuckets = timeRange === 'all'
-      ? Math.max(1, Math.ceil((windowEnd - windowStart) / interval))
-      : bucketCount
+    const alignedLatest = Math.ceil(Date.now() / interval) * interval
+    const windowStart = alignedLatest - 15 * interval
+    const totalBuckets = 15
 
     return Array.from({ length: totalBuckets }, (_, idx) => {
       const bucketStartTs = windowStart + idx * interval
@@ -487,26 +457,29 @@ export default function LogsPage() {
         bucketEnd: new Date(bucketStartTs + interval),
       }
     })
-  }, [baseFiltered, timeRange])
+  }, [baseFiltered])
+
+  const windowStart15m = useMemo(() => Date.now() - 15 * 60 * 1000, [])
+  const baseFiltered15m = useMemo(
+    () => baseFiltered.filter(log => new Date(log.timestamp).getTime() >= windowStart15m),
+    [baseFiltered, windowStart15m]
+  )
 
   const filtered = useMemo(() => {
-    if (selectedBucketKey === null || histogram.length === 0) {
-      return baseFiltered
-    }
-
-    const bucket = histogram.find(item => item.key === selectedBucketKey)
-    if (!bucket) {
-      return baseFiltered
-    }
-
-    const bucketStartTs = bucket.bucketStart.getTime()
-    const bucketEndTs = bucket.bucketEnd.getTime()
-
-    return baseFiltered.filter(log => {
-      const ts = new Date(log.timestamp).getTime()
-      return ts >= bucketStartTs && ts < bucketEndTs
-    })
-  }, [baseFiltered, histogram, selectedBucketKey])
+    const base = selectedBucketKey === null || histogram.length === 0
+      ? baseFiltered15m
+      : (() => {
+          const bucket = histogram.find(item => item.key === selectedBucketKey)
+          if (!bucket) return baseFiltered15m
+          const bucketStartTs = bucket.bucketStart.getTime()
+          const bucketEndTs = bucket.bucketEnd.getTime()
+          return baseFiltered15m.filter(log => {
+            const ts = new Date(log.timestamp).getTime()
+            return ts >= bucketStartTs && ts < bucketEndTs
+          })
+        })()
+    return base
+  }, [baseFiltered15m, histogram, selectedBucketKey])
 
   const visibleLogs = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount])
   const hasMoreLogs = visibleCount < filtered.length

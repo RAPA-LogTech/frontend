@@ -169,7 +169,7 @@ export function FieldExplorer({
   const hosts = [...new Set([...(app?.hosts ?? []), ...(host?.hosts ?? [])])]
 
   return (
-    <Box sx={{ borderRight: { lg: '1px solid' }, borderColor: 'divider', overflowY: 'auto' }}>
+    <Box sx={{ borderRight: { lg: '1px solid' }, borderColor: { lg: 'divider' }, overflowY: 'auto' }}>
       <List disablePadding>
         <FilterSection label="INDEX"   items={indexes}  prefix="index"   selected={selectedIndexes}  onSelect={onSectionChange} />
         <FilterSection label="SERVICE" items={services} prefix="service" selected={selectedServices} onSelect={onSectionChange} />

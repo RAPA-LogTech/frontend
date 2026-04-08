@@ -26,15 +26,12 @@ export default function LogFilters({
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       const trimmed = input.trim()
-      if (!trimmed) { onQueryChange(''); return }
-      // key:value 형태면 태그로, 아니면 쿼리로
-      if (trimmed.includes(':') && !customFilters.includes(trimmed)) {
+      if (!trimmed) return
+      if (!customFilters.includes(trimmed)) {
         onCustomFiltersChange([...customFilters, trimmed])
-        setInput('')
-        onQueryChange('')
-      } else {
-        onQueryChange(trimmed)
       }
+      setInput('')
+      onQueryChange('')
     }
     if (e.key === 'Escape') {
       setInput('')
