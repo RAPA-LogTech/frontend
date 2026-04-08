@@ -500,56 +500,56 @@ export default function TracesPage() {
           <Typography variant="h4" sx={{ fontWeight: 700 }}>Traces</Typography>
           <Skeleton variant="rounded" width={80} height={28} />
         </Stack>
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {/* Filter panel skeleton */}
-          <Paper
-            variant="outlined"
-            sx={{ width: 260, flexShrink: 0, p: 2, borderColor: 'divider', bgcolor: 'background.paper', display: { xs: 'none', md: 'flex' }, flexDirection: 'column', gap: 1.5 }}
-          >
-            <Skeleton variant="text" width="60%" height={28} />
-            <Skeleton variant="text" width="50%" height={18} />
-            <Skeleton variant="rounded" height={36} />
-            <Skeleton variant="text" width="50%" height={18} />
-            <Skeleton variant="rounded" height={36} />
+          <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
+            <Skeleton variant="text" width="15%" height={28} sx={{ mb: 1.5 }} />
+            <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'repeat(4, minmax(0, 1fr))' } }}>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Box key={i}>
+                  <Skeleton variant="text" width="50%" height={18} sx={{ mb: 0.5 }} />
+                  <Skeleton variant="rounded" height={36} />
+                </Box>
+              ))}
+            </Box>
           </Paper>
-          {/* Right content skeleton */}
-          <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2, md: 3 } }}>
-            <Paper variant="outlined" sx={{ p: { xs: 1.5, md: 2 }, borderColor: 'divider', bgcolor: 'background.paper' }}>
-              <Skeleton variant="rounded" height={250} />
-            </Paper>
-            <Paper variant="outlined" sx={{ borderColor: 'divider', bgcolor: 'background.paper', p: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Skeleton variant="text" width={100} height={28} />
-                <Stack direction="row" gap={1}>
-                  <Skeleton variant="rounded" width={120} height={32} />
-                  <Skeleton variant="rounded" width={140} height={32} />
-                  <Skeleton variant="rounded" width={160} height={32} />
-                </Stack>
-              </Box>
-              <Stack gap={1.25}>
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <Paper key={i} variant="outlined" sx={{ borderColor: 'divider', overflow: 'hidden' }}>
-                    <Box sx={{ px: 1, py: 1.5, bgcolor: 'action.hover', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Skeleton variant="circular" width={20} height={20} />
-                        <Skeleton variant="text" width={180} height={22} />
-                        <Skeleton variant="text" width={100} height={18} />
-                      </Box>
-                      <Skeleton variant="text" width={60} height={22} />
-                    </Box>
-                    <Box sx={{ px: 1.5, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Stack direction="row" gap={1}>
-                        <Skeleton variant="rounded" width={70} height={22} />
-                        <Skeleton variant="rounded" width={70} height={22} />
-                        <Skeleton variant="rounded" width={90} height={22} />
-                      </Stack>
-                      <Skeleton variant="text" width={120} height={18} />
-                    </Box>
-                  </Paper>
-                ))}
+          {/* Chart skeleton */}
+          <Paper variant="outlined" sx={{ p: { xs: 1.5, md: 2 }, borderColor: 'divider', bgcolor: 'background.paper' }}>
+            <Skeleton variant="rounded" height={266} />
+          </Paper>
+          {/* Trace list skeleton */}
+          <Paper variant="outlined" sx={{ borderColor: 'divider', bgcolor: 'background.paper', p: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Skeleton variant="text" width={100} height={28} />
+              <Stack direction="row" gap={1}>
+                <Skeleton variant="rounded" width={120} height={32} />
+                <Skeleton variant="rounded" width={140} height={32} />
+                <Skeleton variant="rounded" width={160} height={32} />
               </Stack>
-            </Paper>
-          </Box>
+            </Box>
+            <Stack gap={1.25}>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Paper key={i} variant="outlined" sx={{ borderColor: 'divider', overflow: 'hidden' }}>
+                  <Box sx={{ px: 1, py: 1.5, bgcolor: 'action.hover', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Skeleton variant="circular" width={20} height={20} />
+                      <Skeleton variant="text" width={180} height={22} />
+                      <Skeleton variant="text" width={100} height={18} />
+                    </Box>
+                    <Skeleton variant="text" width={60} height={22} />
+                  </Box>
+                  <Box sx={{ px: 1.5, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Stack direction="row" gap={1}>
+                      <Skeleton variant="rounded" width={70} height={22} />
+                      <Skeleton variant="rounded" width={70} height={22} />
+                      <Skeleton variant="rounded" width={90} height={22} />
+                    </Stack>
+                    <Skeleton variant="text" width={120} height={18} />
+                  </Box>
+                </Paper>
+              ))}
+            </Stack>
+          </Paper>
         </Box>
       </Box>
     )

@@ -88,7 +88,7 @@ export const KPICard: React.FC<KPICardProps> = ({
               letterSpacing: '-0.5px',
             }}
           >
-            {typeof value === 'number' ? value.toFixed(1) : value}
+            {typeof value === 'number' ? value.toFixed(2) : value}
             {unit && (
               <span style={{ fontSize: '18px', marginLeft: '4px', fontWeight: 500 }}>{unit}</span>
             )}

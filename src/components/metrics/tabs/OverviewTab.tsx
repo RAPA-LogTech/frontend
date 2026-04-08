@@ -114,10 +114,10 @@ export default function OverviewTab(props: Props) {
                       <>
                         <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
                           <Typography variant="caption" sx={{ fontWeight: 700, color: theme.palette.warning.main }}>
-                            4xx: {getSeriesLast(s4xx).toFixed(1)}%
+                            4xx: {(getSeriesLast(s4xx) * 100).toFixed(1)}%
                           </Typography>
                           <Typography variant="caption" sx={{ fontWeight: 700, color: theme.palette.error.main }}>
-                            5xx: {getSeriesLast(s5xx).toFixed(1)}%
+                            5xx: {(getSeriesLast(s5xx) * 100).toFixed(1)}%
                           </Typography>
                         </Stack>
                         <Box sx={{ height: 56, mt: 0.75 }}>
@@ -169,13 +169,15 @@ export default function OverviewTab(props: Props) {
             {latencyServices.map(svc => {
               const s = latencySeries.find(l => l.service === svc)
               const val = getSeriesLast(s)
+              // ms → s 변환 (소수점 2자리)
+              const valSec = val / 1000
               return (
                 <Box key={svc} sx={{ flex: '1 1 220px', minWidth: 0, maxWidth: 300 }}>
                   <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper', borderRadius: 1 }}>
                     <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 1, display: 'block', mb: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {svc.toUpperCase()}
                     </Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.warning.main }}>{val.toFixed(0)}ms</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 700, color: theme.palette.warning.main }}>{valSec.toFixed(2)}s</Typography>
                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>p95 latency</Typography>
                     {s && <ResponsiveContainer width="100%" height={40}>
                       <LineChart data={sliceLast5Min(s.points)} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
@@ -184,7 +186,7 @@ export default function OverviewTab(props: Props) {
                           cursor={false}
                           isAnimationActive={false}
                           labelFormatter={(label, payload) => formatTooltipTime(label, payload as Array<{ payload?: { ts?: number } }>)}
-                          formatter={(value) => [`${Number(value ?? 0).toFixed(2)}ms`, 'p95']}
+                          formatter={(value) => [`${(Number(value ?? 0) / 1000).toFixed(2)}s`, 'p95']}
                           {...compactTooltipSx}
                         />
                         <Line type="monotone" dataKey="value" stroke={theme.palette.warning.main} strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls />
