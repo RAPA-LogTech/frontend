@@ -325,10 +325,7 @@ export default function TracesPage() {
     return theme.palette.success.main
   }
 
-  const formatDurationUnit = (value: number) => {
-    if (value >= 1000) return `${(value / 1000).toFixed(2)}s`
-    return `${value.toFixed(0)}ms`
-  }
+  const formatDurationUnit = (value: number) => `${(value / 1000).toFixed(3)}s`
 
   const formatTimeUnit = (value: number) => {
     const date = new Date(value)
@@ -491,7 +488,9 @@ export default function TracesPage() {
 
   const xDomain: [number, number] = [chartNow - 10 * 60 * 1000, chartNow]
   const xTicks = Array.from({ length: 11 }, (_, i) => chartNow - 10 * 60 * 1000 + i * 60 * 1000)
-  const yDomain: [number, number] = [Math.max(0, minDuration * 0.9), maxDuration * 1.05]
+  const chartMaxDuration = Math.max(chartData.length > 0 ? Math.max(...chartData.map(p => p.duration)) : 0, 10000)
+  const chartMinDuration = chartData.length > 0 ? Math.min(...chartData.map(p => p.duration)) : 0
+  const yDomain: [number, number] = [Math.max(0, chartMinDuration * 0.9), chartMaxDuration]
 
   if (isTracesLoading) {
     return (
@@ -932,7 +931,7 @@ export default function TracesPage() {
                       </Typography>
                     </Stack>
                     <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                      {trace.duration.toFixed(2)}ms
+                      {(trace.duration / 1000).toFixed(3)}s
                     </Typography>
                   </Stack>
 

@@ -52,7 +52,7 @@ function FilterSection({
   selected: string[]
   onSelect: (prefix: string, values: string[]) => void
 }) {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
 
   if (items.length === 0) return null
 

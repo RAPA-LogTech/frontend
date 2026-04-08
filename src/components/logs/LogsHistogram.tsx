@@ -26,6 +26,7 @@ type HistogramDataItem = {
   info: number
   warn: number
   error: number
+  unknown: number
   label: Date
   interval: number
 }
@@ -84,13 +85,27 @@ export const LogsHistogram = memo(function LogsHistogram({
                 width={32}
               />
               <Tooltip cursor={false} isAnimationActive={false} content={<HistogramTooltip />} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Legend content={({ }) => (
+                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap', pt: 0.5 }}>
+                  {['error', 'warn', 'info', 'debug', 'unknown'].map(key => {
+                    const colors: Record<string, string> = {
+                      error: '#f87171', warn: '#fbbf24', info: '#60a5fa', debug: '#34d399', unknown: '#94a3b8'
+                    }
+                    return (
+                      <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: colors[key] }} />
+                        <Box component="span" sx={{ fontSize: 11 }}>{key}</Box>
+                      </Box>
+                    )
+                  })}
+                </Box>
+              )} />
 
               <Bar
-                dataKey="debug"
+                dataKey="error"
                 stackId="levels"
-                fill="#34d399"
-                activeBar={{ fill: '#34d399', fillOpacity: 1, stroke: '#86efc6', strokeWidth: 1.2 }}
+                fill="#f87171"
+                activeBar={{ fill: '#f87171', fillOpacity: 1, stroke: '#fecaca', strokeWidth: 1.2 }}
                 onClick={(_, index) => {
                   const bucket = histogramData[index]
                   if (!bucket) return
@@ -100,8 +115,32 @@ export const LogsHistogram = memo(function LogsHistogram({
               >
                 {histogramData.map(bucket => (
                   <Cell
-                    key={`bucket-debug-${bucket.key}`}
-                    fill="#34d399"
+                    key={`bucket-error-${bucket.key}`}
+                    fill="#f87171"
+                    fillOpacity={getBucketOpacity(bucket.key)}
+                    stroke={selectedBucketKey === bucket.key ? '#ffffff' : 'none'}
+                    strokeWidth={selectedBucketKey === bucket.key ? 1.2 : 0}
+                    style={{ cursor: 'pointer' }}
+                  />
+                ))}
+              </Bar>
+
+              <Bar
+                dataKey="warn"
+                stackId="levels"
+                fill="#fbbf24"
+                activeBar={{ fill: '#fbbf24', fillOpacity: 1, stroke: '#fde68a', strokeWidth: 1.2 }}
+                onClick={(_, index) => {
+                  const bucket = histogramData[index]
+                  if (!bucket) return
+                  onSelectBucket(bucket.key)
+                }}
+                isAnimationActive={false}
+              >
+                {histogramData.map(bucket => (
+                  <Cell
+                    key={`bucket-warn-${bucket.key}`}
+                    fill="#fbbf24"
                     fillOpacity={getBucketOpacity(bucket.key)}
                     stroke={selectedBucketKey === bucket.key ? '#ffffff' : 'none'}
                     strokeWidth={selectedBucketKey === bucket.key ? 1 : 0}
@@ -135,10 +174,10 @@ export const LogsHistogram = memo(function LogsHistogram({
               </Bar>
 
               <Bar
-                dataKey="warn"
+                dataKey="debug"
                 stackId="levels"
-                fill="#fbbf24"
-                activeBar={{ fill: '#fbbf24', fillOpacity: 1, stroke: '#fde68a', strokeWidth: 1.2 }}
+                fill="#34d399"
+                activeBar={{ fill: '#34d399', fillOpacity: 1, stroke: '#86efc6', strokeWidth: 1.2 }}
                 onClick={(_, index) => {
                   const bucket = histogramData[index]
                   if (!bucket) return
@@ -148,8 +187,8 @@ export const LogsHistogram = memo(function LogsHistogram({
               >
                 {histogramData.map(bucket => (
                   <Cell
-                    key={`bucket-warn-${bucket.key}`}
-                    fill="#fbbf24"
+                    key={`bucket-debug-${bucket.key}`}
+                    fill="#34d399"
                     fillOpacity={getBucketOpacity(bucket.key)}
                     stroke={selectedBucketKey === bucket.key ? '#ffffff' : 'none'}
                     strokeWidth={selectedBucketKey === bucket.key ? 1 : 0}
@@ -159,10 +198,10 @@ export const LogsHistogram = memo(function LogsHistogram({
               </Bar>
 
               <Bar
-                dataKey="error"
+                dataKey="unknown"
                 stackId="levels"
-                fill="#f87171"
-                activeBar={{ fill: '#f87171', fillOpacity: 1, stroke: '#fecaca', strokeWidth: 1.2 }}
+                fill="#94a3b8"
+                activeBar={{ fill: '#94a3b8', fillOpacity: 1, stroke: '#cbd5e1', strokeWidth: 1.2 }}
                 radius={[3, 3, 0, 0]}
                 onClick={(_, index) => {
                   const bucket = histogramData[index]
@@ -173,11 +212,11 @@ export const LogsHistogram = memo(function LogsHistogram({
               >
                 {histogramData.map(bucket => (
                   <Cell
-                    key={`bucket-error-${bucket.key}`}
-                    fill="#f87171"
+                    key={`bucket-unknown-${bucket.key}`}
+                    fill="#94a3b8"
                     fillOpacity={getBucketOpacity(bucket.key)}
                     stroke={selectedBucketKey === bucket.key ? '#ffffff' : 'none'}
-                    strokeWidth={selectedBucketKey === bucket.key ? 1.2 : 0}
+                    strokeWidth={selectedBucketKey === bucket.key ? 1 : 0}
                     style={{ cursor: 'pointer' }}
                   />
                 ))}

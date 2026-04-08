@@ -81,11 +81,12 @@ function LogsTableComponent({ logs, onSelect, query, compact = false }: LogsTabl
         bgcolor: theme => (theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff'),
         border: '1px solid',
         borderColor: theme => theme.palette.divider,
+        overflow: 'visible',
       }}
     >
       <Table sx={{ minWidth: 650 }}>
         <TableHead
-          sx={{ bgcolor: theme => (theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff') }}
+          sx={{ bgcolor: theme => (theme.palette.mode === 'dark' ? '#0f172a' : '#ffffff'), position: 'sticky', top: 0, zIndex: 1 }}
         >
           <TableRow sx={{ borderBottom: '1px solid', borderColor: theme => theme.palette.divider }}>
             <TableCell

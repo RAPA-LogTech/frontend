@@ -38,6 +38,7 @@ type InternalHistogramBucket = {
   info: number
   warn: number
   error: number
+  unknown: number
   interval: number
   bucketStart: Date
   bucketEnd: Date
@@ -469,6 +470,7 @@ export default function LogsPage() {
         info: 0,
         warn: 0,
         error: 0,
+        unknown: 0,
         interval,
         bucketStart: new Date(bucketStartTs),
         bucketEnd: new Date(bucketStartTs + interval),
@@ -490,8 +492,10 @@ export default function LogsPage() {
         bucket.warn += 1
       } else if (item.level === 'DEBUG') {
         bucket.debug += 1
-      } else {
+      } else if (item.level === 'INFO') {
         bucket.info += 1
+      } else {
+        bucket.unknown += 1
       }
     }
 
