@@ -136,7 +136,7 @@ export default function LoginPage() {
                   로그인
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Observability 대시보드에 접속합니다.
+                  LogTech Observability 대시보드에 접속합니다.
                 </Typography>
                 {error && (
                   <Alert severity="error" sx={{ mb: 2 }}>
