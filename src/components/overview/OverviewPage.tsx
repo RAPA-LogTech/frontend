@@ -25,23 +25,25 @@ export default function OverviewPage() {
     setLastUpdated(new Date())
   }, [])
 
-  const { data: serviceHealth = EMPTY_ARRAY as ServiceHealth[], isLoading: isHealthLoading } = useQuery({
-    queryKey: ['metric-health', refreshKey],
-    queryFn: async () => {
-      const data = await apiClient.getMetricServiceHealth()
-      setLastUpdated(new Date())
-      return data as ServiceHealth[]
-    },
-    staleTime: 30_000,
-    refetchInterval: 30_000,
-  })
+  const { data: serviceHealth = EMPTY_ARRAY as ServiceHealth[], isLoading: isHealthLoading } =
+    useQuery({
+      queryKey: ['metric-health', refreshKey],
+      queryFn: async () => {
+        const data = await apiClient.getMetricServiceHealth()
+        setLastUpdated(new Date())
+        return data as ServiceHealth[]
+      },
+      staleTime: 30_000,
+      refetchInterval: 30_000,
+    })
 
-  const { data: metricsData = EMPTY_ARRAY as MetricSeries[], isLoading: isMetricsLoading } = useQuery({
-    queryKey: ['metrics', refreshKey],
-    queryFn: apiClient.getMetrics,
-    staleTime: 30_000,
-    refetchInterval: 30_000,
-  })
+  const { data: metricsData = EMPTY_ARRAY as MetricSeries[], isLoading: isMetricsLoading } =
+    useQuery({
+      queryKey: ['metrics', refreshKey],
+      queryFn: apiClient.getMetrics,
+      staleTime: 30_000,
+      refetchInterval: 30_000,
+    })
 
   const { data: tracesData, isLoading: isTracesLoading } = useQuery({
     queryKey: ['traces', refreshKey],
@@ -49,7 +51,7 @@ export default function OverviewPage() {
     staleTime: 30_000,
     refetchInterval: 30_000,
   })
-  const traces: Trace[] = tracesData ?? EMPTY_ARRAY as Trace[]
+  const traces: Trace[] = tracesData ?? (EMPTY_ARRAY as Trace[])
 
   const { data: errorLogsData, isLoading: isLogsLoading } = useQuery({
     queryKey: ['overview-error-logs', refreshKey],
@@ -57,7 +59,7 @@ export default function OverviewPage() {
     staleTime: 30_000,
     refetchInterval: 30_000,
   })
-  const errorLogs: LogEntry[] = errorLogsData ?? EMPTY_ARRAY as LogEntry[]
+  const errorLogs: LogEntry[] = errorLogsData ?? (EMPTY_ARRAY as LogEntry[])
 
   const { data: slackStatus } = useQuery({
     queryKey: ['slack-integration'],
@@ -66,13 +68,16 @@ export default function OverviewPage() {
   })
 
   const errorTraces = traces.filter(t => t.status === 'error')
-  const serviceCount = [...new Set(serviceHealth.filter(h => !h.rds_cpu).map(h => h.service))].length
+  const serviceCount = [...new Set(serviceHealth.filter(h => !h.rds_cpu).map(h => h.service))]
+    .length
   const isLoading = isHealthLoading || isMetricsLoading
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
       <Box>
-        <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>Overview</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5 }}>
+          Overview
+        </Typography>
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           Real-time health across all services and infrastructure
         </Typography>

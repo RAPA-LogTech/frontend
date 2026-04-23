@@ -12,8 +12,10 @@ export async function GET() {
     return Response.json(data, { status: res.status })
   } catch (error) {
     return Response.json(
-      { detail: error instanceof Error ? error.message : 'Failed to connect observability service' },
-      { status: 503 },
+      {
+        detail: error instanceof Error ? error.message : 'Failed to connect observability service',
+      },
+      { status: 503 }
     )
   }
 }

@@ -33,9 +33,7 @@ export async function GET(request: Request) {
     }
 
     if (!code) {
-      return Response.redirect(
-        new URL('/notifications?slack=missing-code', origin).toString()
-      )
+      return Response.redirect(new URL('/notifications?slack=missing-code', origin).toString())
     }
 
     if (!state) {
@@ -59,9 +57,8 @@ export async function GET(request: Request) {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       const errorObj = errorData as Record<string, unknown>
-      const errorMsg: string = typeof errorObj.detail === 'string'
-        ? errorObj.detail
-        : 'Unknown error'
+      const errorMsg: string =
+        typeof errorObj.detail === 'string' ? errorObj.detail : 'Unknown error'
       return Response.redirect(
         new URL(
           `/notifications?slack=oauth-error&details=${encodeURIComponent(errorMsg)}`,

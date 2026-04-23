@@ -18,7 +18,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  if (!RUNBOOK_URL) return Response.json({ detail: 'RUNBOOK_SERVICE_URL not configured' }, { status: 503 })
+  if (!RUNBOOK_URL)
+    return Response.json({ detail: 'RUNBOOK_SERVICE_URL not configured' }, { status: 503 })
   try {
     const formData = await request.formData()
     const res = await fetch(`${RUNBOOK_URL}v1/runbooks/`, {

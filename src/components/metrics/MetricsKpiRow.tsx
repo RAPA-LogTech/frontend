@@ -26,26 +26,54 @@ function Sparkline({ points, color }: { points: { v: number }[]; color: string }
               <stop offset="95%" stopColor={color} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <Area type="monotone" dataKey="v" stroke={color} fill={`url(#mkpi-${color.replace('#', '')})`} strokeWidth={1.5} dot={false} isAnimationActive={false} />
+          <Area
+            type="monotone"
+            dataKey="v"
+            stroke={color}
+            fill={`url(#mkpi-${color.replace('#', '')})`}
+            strokeWidth={1.5}
+            dot={false}
+            isAnimationActive={false}
+          />
         </AreaChart>
       </ResponsiveContainer>
     </Box>
   )
 }
 
-function KpiCard({ label, value, sub, color, sparkPoints, isLoading }: {
-  label: string; value: string; sub: string; color: string
-  sparkPoints: { v: number }[]; isLoading: boolean
+function KpiCard({
+  label,
+  value,
+  sub,
+  color,
+  sparkPoints,
+  isLoading,
+}: {
+  label: string
+  value: string
+  sub: string
+  color: string
+  sparkPoints: { v: number }[]
+  isLoading: boolean
 }) {
   return (
-    <Paper variant="outlined" sx={{
-      flex: '1 1 0', minWidth: 0, p: 2,
-      borderColor: 'divider', bgcolor: 'background.paper',
-      borderTop: `3px solid ${color}`,
-      transition: 'box-shadow 0.2s',
-      '&:hover': { boxShadow: `0 0 0 1px ${color}55` },
-    }}>
-      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: 0.5 }}>
+    <Paper
+      variant="outlined"
+      sx={{
+        flex: '1 1 0',
+        minWidth: 0,
+        p: 2,
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+        borderTop: `3px solid ${color}`,
+        transition: 'box-shadow 0.2s',
+        '&:hover': { boxShadow: `0 0 0 1px ${color}55` },
+      }}
+    >
+      <Typography
+        variant="caption"
+        sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: 0.5 }}
+      >
         {label}
       </Typography>
       {isLoading ? (
@@ -58,7 +86,9 @@ function KpiCard({ label, value, sub, color, sparkPoints, isLoading }: {
           <Typography variant="h4" sx={{ fontWeight: 800, color, mt: 0.25, lineHeight: 1.2 }}>
             {value}
           </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>{sub}</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            {sub}
+          </Typography>
           <Sparkline points={sparkPoints} color={color} />
         </>
       )}
@@ -66,24 +96,34 @@ function KpiCard({ label, value, sub, color, sparkPoints, isLoading }: {
   )
 }
 
-export default function MetricsKpiRow({ serviceHealth, metricSeries, envFilter, isLoading }: Props) {
+export default function MetricsKpiRow({
+  serviceHealth,
+  metricSeries,
+  envFilter,
+  isLoading,
+}: Props) {
   const services = serviceHealth.filter(h => !h.rds_cpu)
   const filtered = services.filter(h => envFilter === 'all' || h.env === envFilter)
 
   const healthy = filtered.filter(s => s.error_rate < 1).length
-  const avgError = filtered.length > 0
-    ? filtered.reduce((sum, s) => sum + s.error_rate, 0) / filtered.length
-    : 0
+  const avgError =
+    filtered.length > 0 ? filtered.reduce((sum, s) => sum + s.error_rate, 0) / filtered.length : 0
 
-  const latencySeries = metricSeries.filter(s => s.name.includes('latency_p95') && filterByEnv(s, envFilter))
-  const avgLatency = latencySeries.length > 0
-    ? latencySeries.reduce((sum, s) => sum + getSeriesLast(s), 0) / latencySeries.length / 1000
-    : 0
+  const latencySeries = metricSeries.filter(
+    s => s.name.includes('latency_p95') && filterByEnv(s, envFilter)
+  )
+  const avgLatency =
+    latencySeries.length > 0
+      ? latencySeries.reduce((sum, s) => sum + getSeriesLast(s), 0) / latencySeries.length / 1000
+      : 0
 
-  const throughputSeries = metricSeries.filter(s => s.name.includes('request_rate') && filterByEnv(s, envFilter))
+  const throughputSeries = metricSeries.filter(
+    s => s.name.includes('request_rate') && filterByEnv(s, envFilter)
+  )
   const totalThroughput = throughputSeries.reduce((sum, s) => sum + getSeriesLast(s), 0)
 
-  const healthColor = healthy === filtered.length ? '#4ade80' : healthy > filtered.length / 2 ? '#fbbf24' : '#f87171'
+  const healthColor =
+    healthy === filtered.length ? '#4ade80' : healthy > filtered.length / 2 ? '#fbbf24' : '#f87171'
   const errorColor = avgError >= 60 ? '#f87171' : avgError >= 1 ? '#fbbf24' : '#4ade80'
 
   const latencyPoints = latencySeries[0]?.points.slice(-12).map(p => ({ v: p.value / 1000 })) ?? []

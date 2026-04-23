@@ -59,7 +59,8 @@ export async function GET(request: Request) {
     return redirectToNotifications(request, 'connect-error', connectMessage)
   } catch (error) {
     console.error('[slackConnect] Error:', error)
-    const message = error instanceof Error ? error.message : 'Slack 연동 시작 중 예외가 발생했습니다.'
+    const message =
+      error instanceof Error ? error.message : 'Slack 연동 시작 중 예외가 발생했습니다.'
     return redirectToNotifications(request, 'connect-error', message)
   }
 }

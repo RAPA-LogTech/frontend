@@ -30,7 +30,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ tra
     return Response.json(data)
   } catch (error) {
     return Response.json(
-      { detail: error instanceof Error ? error.message : 'Failed to connect observability service' },
+      {
+        detail: error instanceof Error ? error.message : 'Failed to connect observability service',
+      },
       { status: 503 }
     )
   }

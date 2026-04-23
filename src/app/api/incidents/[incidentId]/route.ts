@@ -20,12 +20,15 @@ export async function GET(
       )
     }
 
-    const response = await fetch(`${ALERT_SERVICE_URL}/v1/incidents/${encodeURIComponent(incidentId)}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
+    const response = await fetch(
+      `${ALERT_SERVICE_URL}/v1/incidents/${encodeURIComponent(incidentId)}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    )
 
     const responseBody = await response.json().catch(() => ({}))
 

@@ -26,7 +26,11 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 function FilterSelect({
-  label, value, options, onChange, colorMap,
+  label,
+  value,
+  options,
+  onChange,
+  colorMap,
 }: {
   label: string
   value: string
@@ -37,7 +41,10 @@ function FilterSelect({
   const isActive = value !== 'all'
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
-      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, fontSize: 10, letterSpacing: 0.5 }}>
+      <Typography
+        variant="caption"
+        sx={{ color: 'text.secondary', fontWeight: 600, fontSize: 10, letterSpacing: 0.5 }}
+      >
         {label} ({options.length})
       </Typography>
       <Select
@@ -53,12 +60,22 @@ function FilterSelect({
           },
         }}
       >
-        <MenuItem value="all" sx={{ fontSize: 12 }}>All</MenuItem>
+        <MenuItem value="all" sx={{ fontSize: 12 }}>
+          All
+        </MenuItem>
         {options.map(opt => (
           <MenuItem key={opt} value={opt} sx={{ fontSize: 12 }}>
             <Stack direction="row" alignItems="center" gap={0.75}>
               {colorMap?.[opt] && (
-                <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: colorMap[opt], flexShrink: 0 }} />
+                <Box
+                  sx={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    bgcolor: colorMap[opt],
+                    flexShrink: 0,
+                  }}
+                />
               )}
               {opt}
             </Stack>
@@ -70,27 +87,71 @@ function FilterSelect({
 }
 
 export default function TracesFilterBar({
-  filterService, filterOperation, filterStatus, filterEnvironment,
-  serviceList, operationList, statusList, environmentList,
-  onFilterService, onFilterOperation, onFilterStatus, onFilterEnvironment,
+  filterService,
+  filterOperation,
+  filterStatus,
+  filterEnvironment,
+  serviceList,
+  operationList,
+  statusList,
+  environmentList,
+  onFilterService,
+  onFilterOperation,
+  onFilterStatus,
+  onFilterEnvironment,
 }: Props) {
   const activeFilters = [
-    filterService !== 'all' && { label: `service: ${filterService}`, clear: () => onFilterService('all') },
-    filterOperation !== 'all' && { label: `op: ${filterOperation}`, clear: () => onFilterOperation('all') },
-    filterStatus !== 'all' && { label: `status: ${filterStatus}`, clear: () => onFilterStatus('all') },
-    filterEnvironment !== 'all' && { label: `env: ${filterEnvironment}`, clear: () => onFilterEnvironment('all') },
+    filterService !== 'all' && {
+      label: `service: ${filterService}`,
+      clear: () => onFilterService('all'),
+    },
+    filterOperation !== 'all' && {
+      label: `op: ${filterOperation}`,
+      clear: () => onFilterOperation('all'),
+    },
+    filterStatus !== 'all' && {
+      label: `status: ${filterStatus}`,
+      clear: () => onFilterStatus('all'),
+    },
+    filterEnvironment !== 'all' && {
+      label: `env: ${filterEnvironment}`,
+      clear: () => onFilterEnvironment('all'),
+    },
   ].filter(Boolean) as { label: string; clear: () => void }[]
 
   return (
     <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
       <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 2, flexWrap: 'wrap' }}>
-        <FilterSelect label="SERVICE"     value={filterService}     options={serviceList}     onChange={onFilterService} />
-        <FilterSelect label="OPERATION"   value={filterOperation}   options={operationList}   onChange={onFilterOperation} />
-        <FilterSelect label="STATUS"      value={filterStatus}      options={statusList}      onChange={onFilterStatus}  colorMap={STATUS_COLORS} />
-        <FilterSelect label="ENVIRONMENT" value={filterEnvironment} options={environmentList} onChange={onFilterEnvironment} />
+        <FilterSelect
+          label="SERVICE"
+          value={filterService}
+          options={serviceList}
+          onChange={onFilterService}
+        />
+        <FilterSelect
+          label="OPERATION"
+          value={filterOperation}
+          options={operationList}
+          onChange={onFilterOperation}
+        />
+        <FilterSelect
+          label="STATUS"
+          value={filterStatus}
+          options={statusList}
+          onChange={onFilterStatus}
+          colorMap={STATUS_COLORS}
+        />
+        <FilterSelect
+          label="ENVIRONMENT"
+          value={filterEnvironment}
+          options={environmentList}
+          onChange={onFilterEnvironment}
+        />
 
         {activeFilters.length > 0 && (
-          <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center', ml: 'auto' }}>
+          <Box
+            sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', alignItems: 'center', ml: 'auto' }}
+          >
             {activeFilters.map(f => (
               <Chip
                 key={f.label}
@@ -98,8 +159,11 @@ export default function TracesFilterBar({
                 size="small"
                 onDelete={f.clear}
                 sx={{
-                  height: 22, fontSize: 11, fontFamily: 'monospace',
-                  bgcolor: 'rgba(99,102,241,0.1)', color: '#818cf8',
+                  height: 22,
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                  bgcolor: 'rgba(99,102,241,0.1)',
+                  color: '#818cf8',
                   border: '1px solid rgba(99,102,241,0.3)',
                   '& .MuiChip-deleteIcon': { fontSize: 13, color: '#818cf8' },
                 }}
@@ -108,7 +172,12 @@ export default function TracesFilterBar({
             <Chip
               label="clear all"
               size="small"
-              onClick={() => { onFilterService('all'); onFilterOperation('all'); onFilterStatus('all'); onFilterEnvironment('all') }}
+              onClick={() => {
+                onFilterService('all')
+                onFilterOperation('all')
+                onFilterStatus('all')
+                onFilterEnvironment('all')
+              }}
               sx={{ height: 22, fontSize: 11, color: 'text.secondary', cursor: 'pointer' }}
             />
           </Box>

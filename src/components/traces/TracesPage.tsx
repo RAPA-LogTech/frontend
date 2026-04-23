@@ -109,7 +109,9 @@ export default function TracesPage() {
 
       try {
         for (let step = 0; step < 10; step += 1) {
-          const response = await fetch(`/api/observability/traces/backlog?cursor=${cursor}&limit=${limit}`)
+          const response = await fetch(
+            `/api/observability/traces/backlog?cursor=${cursor}&limit=${limit}`
+          )
           if (!response.ok) return
 
           const data = (await response.json()) as {
@@ -409,22 +411,27 @@ export default function TracesPage() {
     URL.revokeObjectURL(url)
   }
 
-
   if (isTracesLoading) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>Traces</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>
+            Traces
+          </Typography>
           <Skeleton variant="rounded" width={80} height={28} />
         </Box>
         <Box sx={{ display: 'flex', gap: 2 }}>
-          {[1,2,3,4].map(i => <Skeleton key={i} variant="rounded" height={100} sx={{ flex: 1 }} />)}
+          {[1, 2, 3, 4].map(i => (
+            <Skeleton key={i} variant="rounded" height={100} sx={{ flex: 1 }} />
+          ))}
         </Box>
         <Skeleton variant="rounded" height={56} />
         <Skeleton variant="rounded" height={280} />
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           <Skeleton variant="rounded" height={40} />
-          {[1,2,3,4,5].map(i => <Skeleton key={i} variant="rounded" height={40} sx={{ opacity: 1 - i * 0.1 }} />)}
+          {[1, 2, 3, 4, 5].map(i => (
+            <Skeleton key={i} variant="rounded" height={40} sx={{ opacity: 1 - i * 0.1 }} />
+          ))}
         </Box>
       </Box>
     )
@@ -433,7 +440,9 @@ export default function TracesPage() {
   if (isTracesFetched && !hasSourceTraces) {
     return (
       <Box>
-        <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>Traces</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
+          Traces
+        </Typography>
         <NoDataState title="No traces data" description="트레이스 데이터를 찾지 못했습니다." />
       </Box>
     )
@@ -444,7 +453,9 @@ export default function TracesPage() {
       {/* 헤더 */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>Traces</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>
+            Traces
+          </Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.25 }}>
             Distributed trace explorer · real-time
           </Typography>
@@ -483,86 +494,193 @@ export default function TracesPage() {
 
       {/* 트레이스 목록 */}
       <Paper variant="outlined" sx={{ borderColor: 'divider', bgcolor: 'background.paper' }}>
-        <Box sx={{
-          px: 2, py: 1.25,
-          borderBottom: '1px solid', borderColor: 'divider',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1,
-        }}>
+        <Box
+          sx={{
+            px: 2,
+            py: 1.25,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 1,
+          }}
+        >
           <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
             <Typography variant="h5" sx={{ fontWeight: 800, fontFamily: 'monospace' }}>
               {displayedTraces.length.toLocaleString()}
             </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>traces</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+              traces
+            </Typography>
             {selectedTraceId && (
               <Chip
                 label="filtered by dot"
                 size="small"
                 onDelete={() => setSelectedTraceId(null)}
-                sx={{ height: 20, fontSize: 10, ml: 1, bgcolor: 'rgba(99,102,241,0.1)', color: '#818cf8', border: '1px solid rgba(99,102,241,0.3)' }}
+                sx={{
+                  height: 20,
+                  fontSize: 10,
+                  ml: 1,
+                  bgcolor: 'rgba(99,102,241,0.1)',
+                  color: '#818cf8',
+                  border: '1px solid rgba(99,102,241,0.3)',
+                }}
               />
             )}
           </Box>
           <Stack direction="row" alignItems="center" gap={1}>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>Sort:</Typography>
-            <Select value={sortKey} onChange={handleSortChange} size="small" sx={{ fontSize: 12, minWidth: 150 }}>
-              <MenuItem value="recent" sx={{ fontSize: 12 }}>Most Recent</MenuItem>
-              <MenuItem value="duration" sx={{ fontSize: 12 }}>Longest Duration</MenuItem>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              Sort:
+            </Typography>
+            <Select
+              value={sortKey}
+              onChange={handleSortChange}
+              size="small"
+              sx={{ fontSize: 12, minWidth: 150 }}
+            >
+              <MenuItem value="recent" sx={{ fontSize: 12 }}>
+                Most Recent
+              </MenuItem>
+              <MenuItem value="duration" sx={{ fontSize: 12 }}>
+                Longest Duration
+              </MenuItem>
             </Select>
-            <Button variant="outlined" size="small" onClick={handleDownloadResults} sx={{ fontSize: 11, whiteSpace: 'nowrap' }}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleDownloadResults}
+              sx={{ fontSize: 11, whiteSpace: 'nowrap' }}
+            >
               Export CSV
             </Button>
-            <Button variant="outlined" size="small" onClick={() => setShowDependencyGraph(true)} sx={{ fontSize: 11, whiteSpace: 'nowrap' }}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => setShowDependencyGraph(true)}
+              sx={{ fontSize: 11, whiteSpace: 'nowrap' }}
+            >
               Dependency Graph
             </Button>
           </Stack>
         </Box>
 
-        <Box
-          onScroll={handleTraceListScroll}
-          sx={{ maxHeight: 520, overflowY: 'auto' }}
-        >
+        <Box onScroll={handleTraceListScroll} sx={{ maxHeight: 520, overflowY: 'auto' }}>
           <TracesTable traces={visibleTraces} selectedTraceId={selectedTraceId} />
         </Box>
 
         <Box sx={{ px: 2, py: 1, borderTop: '1px solid', borderColor: 'divider' }}>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            Showing {visibleTraces.length.toLocaleString()} of {displayedTraces.length.toLocaleString()} traces
+            Showing {visibleTraces.length.toLocaleString()} of{' '}
+            {displayedTraces.length.toLocaleString()} traces
             {hasMoreTraces ? ' · Scroll down to load more' : ''}
           </Typography>
         </Box>
       </Paper>
 
       {/* Dependency Graph Dialog */}
-      <Dialog open={showDependencyGraph} onClose={() => setShowDependencyGraph(false)} fullWidth maxWidth="md">
+      <Dialog
+        open={showDependencyGraph}
+        onClose={() => setShowDependencyGraph(false)}
+        fullWidth
+        maxWidth="md"
+      >
         <DialogTitle sx={{ fontWeight: 700 }}>
           Dependency Graph
-          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontWeight: 400 }}>
+          <Typography
+            variant="caption"
+            sx={{ color: 'text.secondary', display: 'block', fontWeight: 400 }}
+          >
             {dependencyGraph.nodes.length} nodes · {dependencyGraph.edges.length} edges
           </Typography>
         </DialogTitle>
         <DialogContent>
           <Stack gap={1.5} sx={{ pt: 0.5 }}>
-            <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', p: 1.25, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 0.75,
+                flexWrap: 'wrap',
+                p: 1.25,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+              }}
+            >
               {dependencyGraph.nodes.map(node => (
-                <Chip key={node} label={node} size="small" variant="outlined" sx={{ fontFamily: 'monospace', fontSize: 11 }} />
+                <Chip
+                  key={node}
+                  label={node}
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontFamily: 'monospace', fontSize: 11 }}
+                />
               ))}
             </Box>
-            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px', px: 1.5, py: 1, bgcolor: 'action.hover', borderBottom: '1px solid', borderColor: 'divider' }}>
+            <Box
+              sx={{
+                border: '1px solid',
+                borderColor: 'divider',
+                borderRadius: 1,
+                overflow: 'hidden',
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr 100px',
+                  px: 1.5,
+                  py: 1,
+                  bgcolor: 'action.hover',
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                }}
+              >
                 {['Source', 'Target', 'Calls'].map(h => (
-                  <Typography key={h} variant="caption" sx={{ fontWeight: 700, fontSize: 10, letterSpacing: 0.5 }}>{h.toUpperCase()}</Typography>
+                  <Typography
+                    key={h}
+                    variant="caption"
+                    sx={{ fontWeight: 700, fontSize: 10, letterSpacing: 0.5 }}
+                  >
+                    {h.toUpperCase()}
+                  </Typography>
                 ))}
               </Box>
               <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
                 {dependencyGraph.edges.length === 0 ? (
-                  <Typography variant="body2" sx={{ color: 'text.secondary', p: 1.5 }}>No cross-service dependencies found.</Typography>
-                ) : dependencyGraph.edges.map(edge => (
-                  <Box key={`${edge.source}->${edge.target}`} sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 100px', px: 1.5, py: 0.875, borderBottom: '1px solid', borderColor: 'divider', '&:hover': { bgcolor: 'action.hover' } }}>
-                    <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: 11 }}>{edge.source}</Typography>
-                    <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: 11 }}>{edge.target}</Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 800, color: '#60a5fa', fontFamily: 'monospace' }}>{edge.count}</Typography>
-                  </Box>
-                ))}
+                  <Typography variant="body2" sx={{ color: 'text.secondary', p: 1.5 }}>
+                    No cross-service dependencies found.
+                  </Typography>
+                ) : (
+                  dependencyGraph.edges.map(edge => (
+                    <Box
+                      key={`${edge.source}->${edge.target}`}
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr 100px',
+                        px: 1.5,
+                        py: 0.875,
+                        borderBottom: '1px solid',
+                        borderColor: 'divider',
+                        '&:hover': { bgcolor: 'action.hover' },
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: 11 }}>
+                        {edge.source}
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: 11 }}>
+                        {edge.target}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{ fontWeight: 800, color: '#60a5fa', fontFamily: 'monospace' }}
+                      >
+                        {edge.count}
+                      </Typography>
+                    </Box>
+                  ))
+                )}
               </Box>
             </Box>
           </Stack>

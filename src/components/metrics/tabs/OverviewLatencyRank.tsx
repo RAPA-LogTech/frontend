@@ -28,16 +28,37 @@ export default function OverviewLatencyRank({ metricSeries, envFilter }: Props) 
   }
 
   return (
-    <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper', flex: '0 0 340px', minWidth: 0 }}>
+    <Paper
+      variant="outlined"
+      sx={{
+        p: 2,
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+        flex: '0 0 340px',
+        minWidth: 0,
+      }}
+    >
       <SectionLabel>Latency p95 Ranking</SectionLabel>
       {latencySeries.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">No latency data.</Typography>
+        <Typography variant="body2" color="text.secondary">
+          No latency data.
+        </Typography>
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
           {latencySeries.map(({ service, value }) => (
             <Box key={service}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.4 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '65%' }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 600,
+                    color: 'text.primary',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    maxWidth: '65%',
+                  }}
+                >
                   {service}
                 </Typography>
                 <Typography variant="caption" sx={{ fontWeight: 700, color: getBarColor(value) }}>
@@ -45,21 +66,29 @@ export default function OverviewLatencyRank({ metricSeries, envFilter }: Props) 
                 </Typography>
               </Box>
               <Box sx={{ height: 8, bgcolor: 'action.hover', borderRadius: 1, overflow: 'hidden' }}>
-                <Box sx={{
-                  height: '100%',
-                  width: `${(value / max) * 100}%`,
-                  bgcolor: getBarColor(value),
-                  borderRadius: 1,
-                  transition: 'width 0.4s ease',
-                }} />
+                <Box
+                  sx={{
+                    height: '100%',
+                    width: `${(value / max) * 100}%`,
+                    bgcolor: getBarColor(value),
+                    borderRadius: 1,
+                    transition: 'width 0.4s ease',
+                  }}
+                />
               </Box>
             </Box>
           ))}
           <Box sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
-            {[{ label: '< 1s', color: theme.palette.success.main }, { label: '1–2s', color: theme.palette.warning.main }, { label: '≥ 2s', color: theme.palette.error.main }].map(item => (
+            {[
+              { label: '< 1s', color: theme.palette.success.main },
+              { label: '1–2s', color: theme.palette.warning.main },
+              { label: '≥ 2s', color: theme.palette.error.main },
+            ].map(item => (
               <Box key={item.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <Box sx={{ width: 8, height: 8, borderRadius: 0.5, bgcolor: item.color }} />
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10 }}>{item.label}</Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: 10 }}>
+                  {item.label}
+                </Typography>
               </Box>
             ))}
           </Box>

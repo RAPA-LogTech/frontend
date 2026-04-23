@@ -169,7 +169,9 @@ export default function LogsPage() {
 
       try {
         for (let step = 0; step < 20; step += 1) {
-          const response = await fetch(`/api/observability/logs/backlog?cursor=${cursor}&limit=${limit}`)
+          const response = await fetch(
+            `/api/observability/logs/backlog?cursor=${cursor}&limit=${limit}`
+          )
           if (!response.ok) return
 
           const data = (await response.json()) as {
@@ -253,7 +255,11 @@ export default function LogsPage() {
     const metadata = log.metadata ?? {}
     const tags = log.tags ?? {}
 
-    if (normalizedField === 'index' || normalizedField === 'source' || normalizedField === 'log_source') {
+    if (
+      normalizedField === 'index' ||
+      normalizedField === 'source' ||
+      normalizedField === 'log_source'
+    ) {
       return log.source
     }
     if (normalizedField === 'service') return log.service
@@ -343,7 +349,10 @@ export default function LogsPage() {
       }
 
       const field = normalizeFilterField(rawField)
-      const value = trimmed.slice(idx + 1).trim().replace(/^"|"$/g, '')
+      const value = trimmed
+        .slice(idx + 1)
+        .trim()
+        .replace(/^"|"$/g, '')
       if (!value) continue
 
       const existing = grouped.get(field) ?? []
@@ -426,7 +435,12 @@ export default function LogsPage() {
         cache.set(bucketKey, {
           key: bucketKey,
           label: new Date(bucketKey),
-          count: 0, debug: 0, info: 0, warn: 0, error: 0, unknown: 0,
+          count: 0,
+          debug: 0,
+          info: 0,
+          warn: 0,
+          error: 0,
+          unknown: 0,
           interval,
           bucketStart: new Date(bucketKey),
           bucketEnd: new Date(bucketKey + interval),
@@ -448,14 +462,21 @@ export default function LogsPage() {
 
     return Array.from({ length: totalBuckets }, (_, idx) => {
       const bucketStartTs = windowStart + idx * interval
-      return cache.get(bucketStartTs) ?? {
-        key: bucketStartTs,
-        label: new Date(bucketStartTs),
-        count: 0, debug: 0, info: 0, warn: 0, error: 0, unknown: 0,
-        interval,
-        bucketStart: new Date(bucketStartTs),
-        bucketEnd: new Date(bucketStartTs + interval),
-      }
+      return (
+        cache.get(bucketStartTs) ?? {
+          key: bucketStartTs,
+          label: new Date(bucketStartTs),
+          count: 0,
+          debug: 0,
+          info: 0,
+          warn: 0,
+          error: 0,
+          unknown: 0,
+          interval,
+          bucketStart: new Date(bucketStartTs),
+          bucketEnd: new Date(bucketStartTs + interval),
+        }
+      )
     })
   }, [baseFiltered])
 
@@ -466,18 +487,19 @@ export default function LogsPage() {
   )
 
   const filtered = useMemo(() => {
-    const base = selectedBucketKey === null || histogram.length === 0
-      ? baseFiltered15m
-      : (() => {
-          const bucket = histogram.find(item => item.key === selectedBucketKey)
-          if (!bucket) return baseFiltered15m
-          const bucketStartTs = bucket.bucketStart.getTime()
-          const bucketEndTs = bucket.bucketEnd.getTime()
-          return baseFiltered15m.filter(log => {
-            const ts = new Date(log.timestamp).getTime()
-            return ts >= bucketStartTs && ts < bucketEndTs
-          })
-        })()
+    const base =
+      selectedBucketKey === null || histogram.length === 0
+        ? baseFiltered15m
+        : (() => {
+            const bucket = histogram.find(item => item.key === selectedBucketKey)
+            if (!bucket) return baseFiltered15m
+            const bucketStartTs = bucket.bucketStart.getTime()
+            const bucketEndTs = bucket.bucketEnd.getTime()
+            return baseFiltered15m.filter(log => {
+              const ts = new Date(log.timestamp).getTime()
+              return ts >= bucketStartTs && ts < bucketEndTs
+            })
+          })()
     return base
   }, [baseFiltered15m, histogram, selectedBucketKey])
 
@@ -535,17 +557,37 @@ export default function LogsPage() {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2, md: 3 } }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>Logs</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+            Logs
+          </Typography>
           <Skeleton variant="rounded" width={80} height={32} />
         </Box>
-        <Paper variant="outlined" sx={{ borderColor: 'divider', bgcolor: 'background.paper', overflow: 'hidden' }}>
+        <Paper
+          variant="outlined"
+          sx={{ borderColor: 'divider', bgcolor: 'background.paper', overflow: 'hidden' }}
+        >
           {/* Search bar */}
           <Box sx={{ p: 1.5 }}>
             <Skeleton variant="rounded" height={44} />
           </Box>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '300px minmax(0, 1fr)' }, minHeight: 520 }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', lg: '300px minmax(0, 1fr)' },
+              minHeight: 520,
+            }}
+          >
             {/* Field Explorer skeleton */}
-            <Box sx={{ borderRight: '1px solid', borderColor: 'divider', p: 1.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Box
+              sx={{
+                borderRight: '1px solid',
+                borderColor: 'divider',
+                p: 1.5,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2,
+              }}
+            >
               <Skeleton variant="rounded" height={40} />
               <Skeleton variant="rounded" height={40} />
               {Array.from({ length: 4 }).map((_, i) => (
@@ -638,7 +680,12 @@ export default function LogsPage() {
           <Box sx={{ p: 1.5, minWidth: 0 }}>
             {selectedBucketKey !== null && (
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-                <Button size="small" variant="outlined" onClick={() => setSelectedBucketKey(null)} sx={{ fontSize: 11, py: 0.25, px: 1 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setSelectedBucketKey(null)}
+                  sx={{ fontSize: 11, py: 0.25, px: 1 }}
+                >
                   Clear time filter
                 </Button>
               </Box>

@@ -26,7 +26,10 @@ type IncidentListResponse = {
   next_cursor?: string | null
 }
 
-const fetchByStatus = async (status: IncidentStatus, limit: number): Promise<IncidentListResponse> => {
+const fetchByStatus = async (
+  status: IncidentStatus,
+  limit: number
+): Promise<IncidentListResponse> => {
   const params = new URLSearchParams({
     status,
     limit: String(limit),
@@ -66,7 +69,10 @@ export async function GET(request: Request) {
 
     if (status === 'all') {
       const results = await Promise.all(STATUS_ORDER.map(item => fetchByStatus(item, limit)))
-      const merged = results.flatMap(result => result.items).sort(sortByCreatedAtDesc).slice(0, limit)
+      const merged = results
+        .flatMap(result => result.items)
+        .sort(sortByCreatedAtDesc)
+        .slice(0, limit)
 
       return Response.json({
         items: merged,

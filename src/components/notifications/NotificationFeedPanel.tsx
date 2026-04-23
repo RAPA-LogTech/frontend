@@ -1,11 +1,5 @@
 import Link from 'next/link'
-import {
-  Box,
-  Button,
-  Divider,
-  Stack,
-  Typography,
-} from '@mui/material'
+import { Box, Button, Divider, Stack, Typography } from '@mui/material'
 import { formatDateTime } from '@/lib/formatters'
 import NoDataState from '@/components/common/NoDataState'
 import type { NotificationItem } from '@/lib/types'

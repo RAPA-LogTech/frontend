@@ -66,7 +66,11 @@ export default function NotificationsPage() {
       )
       results.forEach(r => {
         if (r.summary.status !== 'ongoing') {
-          setAnalyzingIds(prev => { const next = new Set(prev); next.delete(r.summary.incident_id); return next })
+          setAnalyzingIds(prev => {
+            const next = new Set(prev)
+            next.delete(r.summary.incident_id)
+            return next
+          })
           setAutoOpenReportId(r.summary.incident_id)
           queryClient.invalidateQueries({ queryKey: ['slack-incidents'] })
         }
@@ -80,9 +84,16 @@ export default function NotificationsPage() {
 
   const handleAnalyzeRequest = (incidentId: string) => {
     setAnalyzingIds(prev => new Set(prev).add(incidentId))
-    setTimeout(() => {
-      setAnalyzingIds(prev => { const next = new Set(prev); next.delete(incidentId); return next })
-    }, 5 * 60 * 1000)
+    setTimeout(
+      () => {
+        setAnalyzingIds(prev => {
+          const next = new Set(prev)
+          next.delete(incidentId)
+          return next
+        })
+      },
+      5 * 60 * 1000
+    )
   }
 
   const toSlackMessagePermalink = (slackTs?: string | null, slackChannel?: string | null) => {
@@ -101,7 +112,9 @@ export default function NotificationsPage() {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2, md: 3 } }}>
       <Box>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>Slack 알람 이력</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+          Slack 알람 이력
+        </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
           Slack으로 전달된 알람 이력을 확인하고 상세 내용을 볼 수 있습니다.
         </Typography>
@@ -115,7 +128,9 @@ export default function NotificationsPage() {
           <Button
             variant="contained"
             size="large"
-            onClick={() => { window.location.href = '/api/integrations/slack/connect' }}
+            onClick={() => {
+              window.location.href = '/api/integrations/slack/connect'
+            }}
             sx={{ textTransform: 'none', mt: 1.5 }}
           >
             Slack 연동하기
@@ -142,10 +157,12 @@ export default function NotificationsPage() {
                     : 'Slack 알람 이력 조회에 실패했습니다.'
                   : null
               }
-              onOpenSlackMessage={(incident) => {
+              onOpenSlackMessage={incident => {
                 const permalink = toSlackMessagePermalink(incident.slack_ts, incident.slack_channel)
                 if (!permalink) {
-                  window.alert('Slack 링크를 만들 수 없습니다. teamDomain 또는 channelId를 확인해 주세요.')
+                  window.alert(
+                    'Slack 링크를 만들 수 없습니다. teamDomain 또는 channelId를 확인해 주세요.'
+                  )
                   return
                 }
                 window.open(permalink, '_blank', 'noopener,noreferrer')

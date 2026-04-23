@@ -18,7 +18,12 @@ import {
   Typography,
 } from '@mui/material'
 
-function SwitchRow({ label, description, checked, onChange }: {
+function SwitchRow({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
   label: string
   description?: string
   checked: boolean
@@ -43,13 +48,20 @@ function SwitchRow({ label, description, checked, onChange }: {
       <Switch
         size="small"
         checked={checked}
-        onChange={e => { e.stopPropagation(); onChange(e.target.checked) }}
+        onChange={e => {
+          e.stopPropagation()
+          onChange(e.target.checked)
+        }}
         sx={{ flexShrink: 0 }}
       />
       <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1.4 }}>{label}</Typography>
+        <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1.4 }}>
+          {label}
+        </Typography>
         {description && (
-          <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>{description}</Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>
+            {description}
+          </Typography>
         )}
       </Box>
     </Stack>
@@ -59,7 +71,11 @@ import { apiClient } from '@/lib/apiClient'
 import type { SlackAlertSettings, SlackAlertSeverity } from '@/lib/types'
 import { DEFAULT_SLACK_ALERT_SETTINGS } from '@/lib/types'
 
-const SEVERITY_OPTIONS: { value: SlackAlertSeverity; label: string; color: 'default' | 'info' | 'warning' | 'error' }[] = [
+const SEVERITY_OPTIONS: {
+  value: SlackAlertSeverity
+  label: string
+  color: 'default' | 'info' | 'warning' | 'error'
+}[] = [
   { value: 'low', label: 'Low', color: 'default' },
   { value: 'medium', label: 'Medium', color: 'info' },
   { value: 'high', label: 'High', color: 'warning' },
@@ -77,13 +93,25 @@ const RENOTIFY_MARKS = [
   { value: 360, label: '6시간' },
 ]
 
-function SectionCard({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+function SectionCard({
+  title,
+  description,
+  children,
+}: {
+  title: string
+  description: string
+  children: React.ReactNode
+}) {
   return (
     <Card variant="outlined" sx={{ borderColor: 'divider' }}>
       <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
         <Box sx={{ mb: 2 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{title}</Typography>
-          <Typography variant="caption" color="text.secondary">{description}</Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            {title}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {description}
+          </Typography>
         </Box>
         {children}
       </CardContent>
@@ -110,7 +138,7 @@ export default function AlertSettingsPanel() {
 
   const saveMutation = useMutation({
     mutationFn: apiClient.updateSlackAlertSettings,
-    onSuccess: (saved) => {
+    onSuccess: saved => {
       queryClient.setQueryData(['slack-alert-settings'], saved)
       setIsDirty(false)
     },
@@ -120,7 +148,6 @@ export default function AlertSettingsPanel() {
     setDraft(prev => ({ ...prev, [key]: value }))
     setIsDirty(true)
   }
-
 
   if (isLoading) {
     return (
@@ -145,7 +172,9 @@ export default function AlertSettingsPanel() {
       >
         <Box sx={{ px: 1 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
-            <Typography variant="body2" color="text.secondary">현재 설정</Typography>
+            <Typography variant="body2" color="text.secondary">
+              현재 설정
+            </Typography>
             <Chip
               size="small"
               label={
@@ -165,7 +194,7 @@ export default function AlertSettingsPanel() {
             step={1}
             marks={RENOTIFY_MARKS}
             valueLabelDisplay="auto"
-            valueLabelFormat={v => v < 60 ? `${v}분` : `${v / 60}시간`}
+            valueLabelFormat={v => (v < 60 ? `${v}분` : `${v / 60}시간`)}
           />
         </Box>
       </SectionCard>
@@ -188,10 +217,14 @@ export default function AlertSettingsPanel() {
           ))}
         </Stack>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>
-          선택된 심각도 이상: {SEVERITY_OPTIONS.filter(o =>
-            SEVERITY_OPTIONS.findIndex(x => x.value === o.value) >=
-            SEVERITY_OPTIONS.findIndex(x => x.value === draft.min_severity)
-          ).map(o => o.label).join(', ')}
+          선택된 심각도 이상:{' '}
+          {SEVERITY_OPTIONS.filter(
+            o =>
+              SEVERITY_OPTIONS.findIndex(x => x.value === o.value) >=
+              SEVERITY_OPTIONS.findIndex(x => x.value === draft.min_severity)
+          )
+            .map(o => o.label)
+            .join(', ')}
         </Typography>
       </SectionCard>
 
@@ -210,7 +243,13 @@ export default function AlertSettingsPanel() {
             <>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>시작 시간</Typography>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', mb: 0.5 }}
+                  >
+                    시작 시간
+                  </Typography>
                   <TextField
                     type="time"
                     size="small"
@@ -220,9 +259,17 @@ export default function AlertSettingsPanel() {
                     inputProps={{ step: 300 }}
                   />
                 </Box>
-                <Typography variant="body2" color="text.secondary" sx={{ pt: { sm: 2.5 } }}>~</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ pt: { sm: 2.5 } }}>
+                  ~
+                </Typography>
                 <Box sx={{ flex: 1 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>종료 시간</Typography>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', mb: 0.5 }}
+                  >
+                    종료 시간
+                  </Typography>
                   <TextField
                     type="time"
                     size="small"
@@ -270,22 +317,28 @@ export default function AlertSettingsPanel() {
         </Stack>
       </SectionCard>
 
-
       {/* 저장 */}
       <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="flex-end">
         {saveMutation.isError && (
           <Typography variant="caption" color="error">
-            {saveMutation.error instanceof Error ? saveMutation.error.message : '저장에 실패했습니다.'}
+            {saveMutation.error instanceof Error
+              ? saveMutation.error.message
+              : '저장에 실패했습니다.'}
           </Typography>
         )}
         {saveMutation.isSuccess && !isDirty && (
-          <Typography variant="caption" color="success.main">저장되었습니다.</Typography>
+          <Typography variant="caption" color="success.main">
+            저장되었습니다.
+          </Typography>
         )}
         <Button
           variant="outlined"
           size="small"
           disabled={!isDirty || saveMutation.isPending}
-          onClick={() => { setDraft(data ?? DEFAULT_SLACK_ALERT_SETTINGS); setIsDirty(false) }}
+          onClick={() => {
+            setDraft(data ?? DEFAULT_SLACK_ALERT_SETTINGS)
+            setIsDirty(false)
+          }}
           sx={{ textTransform: 'none' }}
         >
           되돌리기

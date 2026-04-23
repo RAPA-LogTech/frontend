@@ -60,7 +60,13 @@ export default function ChatSidebar({
       >
         <Typography
           variant="caption"
-          sx={{ color: theme.palette.text.disabled, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', fontSize: '0.7rem' }}
+          sx={{
+            color: theme.palette.text.disabled,
+            fontWeight: 600,
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
+            fontSize: '0.7rem',
+          }}
         >
           대화 목록
         </Typography>
@@ -99,72 +105,86 @@ export default function ChatSidebar({
       >
         {conversations.map(conv => {
           const isActive = activeConversationId === conv.id
-            return (
-              <Box
-                key={conv.id}
-                onClick={() => onSelectConversation(conv.id)}
-                sx={{
-                  mx: 0.75,
-                  mb: 0.25,
-                  px: 1.25,
-                  py: 1,
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
+          return (
+            <Box
+              key={conv.id}
+              onClick={() => onSelectConversation(conv.id)}
+              sx={{
+                mx: 0.75,
+                mb: 0.25,
+                px: 1.25,
+                py: 1,
+                borderRadius: '10px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                bgcolor: isActive
+                  ? isDark
+                    ? 'rgba(147,51,234,0.15)'
+                    : 'rgba(147,51,234,0.08)'
+                  : 'transparent',
+                border: `1px solid ${isActive ? 'rgba(147,51,234,0.3)' : 'transparent'}`,
+                transition: 'all 0.12s ease',
+                '&:hover': {
                   bgcolor: isActive
-                    ? isDark ? 'rgba(147,51,234,0.15)' : 'rgba(147,51,234,0.08)'
-                    : 'transparent',
-                  border: `1px solid ${isActive ? 'rgba(147,51,234,0.3)' : 'transparent'}`,
-                  transition: 'all 0.12s ease',
-                  '&:hover': {
-                    bgcolor: isActive
-                      ? isDark ? 'rgba(147,51,234,0.18)' : 'rgba(147,51,234,0.1)'
-                      : isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
-                    '& .delete-btn': { opacity: 1 },
-                  },
-                  '& .delete-btn': { opacity: 0, transition: 'opacity 0.12s' },
-                }}
-              >
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontSize: '0.8rem',
-                      fontWeight: isActive ? 500 : 400,
-                      color: isActive ? theme.palette.primary.light : theme.palette.text.primary,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    {conv.title}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{ fontSize: '0.7rem', color: theme.palette.text.disabled, mt: 0.1, display: 'block' }}
-                  >
-                    {formatTimestamp(conv.updatedAt)}
-                  </Typography>
-                </Box>
-                {onDeleteConversation && (
-                  <IconButton
-                    className="delete-btn"
-                    size="small"
-                    onClick={e => { e.stopPropagation(); onDeleteConversation(conv.id) }}
-                    sx={{
-                      p: 0.25,
-                      color: theme.palette.text.disabled,
-                      flexShrink: 0,
-                      '&:hover': { color: theme.palette.error.main, bgcolor: 'rgba(239,68,68,0.1)' },
-                    }}
-                  >
-                    <DeleteIcon sx={{ fontSize: '0.85rem' }} />
-                  </IconButton>
-                )}
+                    ? isDark
+                      ? 'rgba(147,51,234,0.18)'
+                      : 'rgba(147,51,234,0.1)'
+                    : isDark
+                      ? 'rgba(255,255,255,0.04)'
+                      : 'rgba(0,0,0,0.04)',
+                  '& .delete-btn': { opacity: 1 },
+                },
+                '& .delete-btn': { opacity: 0, transition: 'opacity 0.12s' },
+              }}
+            >
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontSize: '0.8rem',
+                    fontWeight: isActive ? 500 : 400,
+                    color: isActive ? theme.palette.primary.light : theme.palette.text.primary,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {conv.title}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontSize: '0.7rem',
+                    color: theme.palette.text.disabled,
+                    mt: 0.1,
+                    display: 'block',
+                  }}
+                >
+                  {formatTimestamp(conv.updatedAt)}
+                </Typography>
               </Box>
+              {onDeleteConversation && (
+                <IconButton
+                  className="delete-btn"
+                  size="small"
+                  onClick={e => {
+                    e.stopPropagation()
+                    onDeleteConversation(conv.id)
+                  }}
+                  sx={{
+                    p: 0.25,
+                    color: theme.palette.text.disabled,
+                    flexShrink: 0,
+                    '&:hover': { color: theme.palette.error.main, bgcolor: 'rgba(239,68,68,0.1)' },
+                  }}
+                >
+                  <DeleteIcon sx={{ fontSize: '0.85rem' }} />
+                </IconButton>
+              )}
+            </Box>
           )
         })}
       </Box>

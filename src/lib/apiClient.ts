@@ -49,10 +49,7 @@ const toNumber = (value: number | string) => {
 
 const getServiceFromMetric = (metric: Record<string, string>) => {
   const fromService =
-    metric.service ||
-    metric.service_name ||
-    metric.container_name ||
-    metric.service_namespace
+    metric.service || metric.service_name || metric.container_name || metric.service_namespace
   if (fromService) return fromService
   const job = metric.job || ''
   return job.includes('/') ? job.split('/').pop() || '' : job
@@ -120,7 +117,11 @@ const normalizeServiceHealthPayload = (payload: unknown): ServiceHealthRow[] => 
   })
 }
 
-const toMetricSeriesFromProm = (rows: PromRangeResult[], metricName: string, unit = '%'): MetricSeries[] => {
+const toMetricSeriesFromProm = (
+  rows: PromRangeResult[],
+  metricName: string,
+  unit = '%'
+): MetricSeries[] => {
   return rows
     .map((row, idx) => {
       const metric = row.metric ?? {}
@@ -129,7 +130,7 @@ const toMetricSeriesFromProm = (rows: PromRangeResult[], metricName: string, uni
       const env = getEnvFromMetric(metric)
       const points = (row.values ?? [])
         .map(([ts, value]) => ({ ts: Math.round(toNumber(ts) * 1000), value: toNumber(value) }))
-        .filter((p) => Number.isFinite(p.ts) && Number.isFinite(p.value))
+        .filter(p => Number.isFinite(p.ts) && Number.isFinite(p.value))
 
       if (points.length === 0) return null
       return {
@@ -149,18 +150,18 @@ export async function getContainerMetrics(): Promise<MetricSeries[]> {
   try {
     const response = await fetch('/api/observability/metrics/container')
     if (!response.ok) return []
-    const data = await response.json() as unknown
+    const data = (await response.json()) as unknown
 
     if (Array.isArray(data)) return data as MetricSeries[]
     if (!data || typeof data !== 'object') return []
 
     const cpu = toMetricSeriesFromProm(
-      ((data as { cpu?: PromRangeResult[] }).cpu ?? []),
+      (data as { cpu?: PromRangeResult[] }).cpu ?? [],
       'app_container_cpu_utilization_avg_5m',
       '%'
     )
     const memory = toMetricSeriesFromProm(
-      ((data as { memory?: PromRangeResult[] }).memory ?? []),
+      (data as { memory?: PromRangeResult[] }).memory ?? [],
       'app_container_memory_utilization_avg_5m',
       '%'
     )
@@ -174,23 +175,23 @@ export async function getHostMetrics(): Promise<MetricSeries[]> {
   try {
     const response = await fetch('/api/observability/metrics/host')
     if (!response.ok) return []
-    const data = await response.json() as unknown
+    const data = (await response.json()) as unknown
 
     if (Array.isArray(data)) return data as MetricSeries[]
     if (!data || typeof data !== 'object') return []
 
     const memory = toMetricSeriesFromProm(
-      ((data as { memory?: PromRangeResult[] }).memory ?? []),
+      (data as { memory?: PromRangeResult[] }).memory ?? [],
       'host_memory_usage_avg_5m',
       'bytes'
     )
     const networkRx = toMetricSeriesFromProm(
-      ((data as { network_rx?: PromRangeResult[] }).network_rx ?? []),
+      (data as { network_rx?: PromRangeResult[] }).network_rx ?? [],
       'host_network_rx_bytes_5m',
       'bytes'
     )
     const networkTx = toMetricSeriesFromProm(
-      ((data as { network_tx?: PromRangeResult[] }).network_tx ?? []),
+      (data as { network_tx?: PromRangeResult[] }).network_tx ?? [],
       'host_network_tx_bytes_5m',
       'bytes'
     )
@@ -268,7 +269,13 @@ export const getLogs = async ({
 // 기존 방식도 유지 (호환성)
 export type OverviewData = {
   kpi: { error_rate: number; latency_p95: number; throughput: number }
-  services: Array<{ service: string; envs: string[]; error_rate: number; latency_p95: number; throughput: number }>
+  services: Array<{
+    service: string
+    envs: string[]
+    error_rate: number
+    latency_p95: number
+    throughput: number
+  }>
   recent_logs: LogEntry[]
 }
 
@@ -560,8 +567,9 @@ export const apiClient = {
 
   async getSlackAlertSettings() {
     const response = await fetch('/api/integrations/slack/alert-settings', { cache: 'no-store' })
-    if (!response.ok) throw new Error(await readErrorMessage(response, '알람 설정 조회에 실패했습니다.'))
-    const data = await response.json() as { ok: boolean; settings: SlackAlertSettings }
+    if (!response.ok)
+      throw new Error(await readErrorMessage(response, '알람 설정 조회에 실패했습니다.'))
+    const data = (await response.json()) as { ok: boolean; settings: SlackAlertSettings }
     return data.settings
   },
 
@@ -571,8 +579,9 @@ export const apiClient = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(settings),
     })
-    if (!response.ok) throw new Error(await readErrorMessage(response, '알람 설정 저장에 실패했습니다.'))
-    const data = await response.json() as { ok: boolean; settings: SlackAlertSettings }
+    if (!response.ok)
+      throw new Error(await readErrorMessage(response, '알람 설정 저장에 실패했습니다.'))
+    const data = (await response.json()) as { ok: boolean; settings: SlackAlertSettings }
     return data.settings
   },
 

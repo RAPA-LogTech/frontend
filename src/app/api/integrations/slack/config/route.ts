@@ -19,7 +19,10 @@ export async function GET() {
 
     const data = await response.json()
     const ready = Boolean((data as Record<string, unknown>).ready)
-    const msg = typeof (data as Record<string, unknown>).message === 'string' ? (data as Record<string, unknown>).message : ''
+    const msg =
+      typeof (data as Record<string, unknown>).message === 'string'
+        ? (data as Record<string, unknown>).message
+        : ''
     return Response.json({
       configured: ready,
       ...(ready ? {} : { message: msg || 'Slack OAuth 설정이 필요합니다.' }),

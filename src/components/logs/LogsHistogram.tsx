@@ -3,8 +3,17 @@
 import { memo } from 'react'
 import { Box, Typography, useTheme } from '@mui/material'
 import {
-  Bar, BarChart, CartesianGrid, Cell, ComposedChart,
-  Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ComposedChart,
+  Legend,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts'
 import { HistogramTooltip } from './HistogramTooltip'
 
@@ -69,23 +78,55 @@ export const LogsHistogram = memo(function LogsHistogram({
   return (
     <Box sx={{ mb: 1.5 }}>
       {/* KPI 배너 */}
-      <Box sx={{
-        display: 'flex', gap: 1, mb: 1,
-        p: 1.25, borderRadius: 1.5,
-        border: '1px solid', borderColor: 'divider',
-        bgcolor: 'background.default',
-      }}>
+      <Box
+        sx={{
+          display: 'flex',
+          gap: 1,
+          mb: 1,
+          p: 1.25,
+          borderRadius: 1.5,
+          border: '1px solid',
+          borderColor: 'divider',
+          bgcolor: 'background.default',
+        }}
+      >
         {[
           { label: 'Total', value: totalLogs.toLocaleString(), color: theme.palette.text.primary },
           { label: 'ERROR', value: totalErrors.toLocaleString(), color: LEVEL_COLORS.error },
           { label: 'WARN', value: totalWarns.toLocaleString(), color: LEVEL_COLORS.warn },
-          { label: 'Error Rate', value: `${errorRate.toFixed(1)}%`, color: errorRate >= 10 ? LEVEL_COLORS.error : errorRate >= 1 ? LEVEL_COLORS.warn : '#4ade80' },
+          {
+            label: 'Error Rate',
+            value: `${errorRate.toFixed(1)}%`,
+            color:
+              errorRate >= 10 ? LEVEL_COLORS.error : errorRate >= 1 ? LEVEL_COLORS.warn : '#4ade80',
+          },
         ].map(item => (
-          <Box key={item.label} sx={{ flex: 1, textAlign: 'center', borderRight: '1px solid', borderColor: 'divider', '&:last-child': { borderRight: 'none' } }}>
-            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: 10, fontWeight: 600, letterSpacing: 0.5 }}>
+          <Box
+            key={item.label}
+            sx={{
+              flex: 1,
+              textAlign: 'center',
+              borderRight: '1px solid',
+              borderColor: 'divider',
+              '&:last-child': { borderRight: 'none' },
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                color: 'text.secondary',
+                display: 'block',
+                fontSize: 10,
+                fontWeight: 600,
+                letterSpacing: 0.5,
+              }}
+            >
               {item.label}
             </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 800, color: item.color, fontFamily: 'monospace' }}>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 800, color: item.color, fontFamily: 'monospace' }}
+            >
               {item.value}
             </Typography>
           </Box>
@@ -93,11 +134,16 @@ export const LogsHistogram = memo(function LogsHistogram({
       </Box>
 
       {/* 차트 */}
-      <Box sx={{
-        border: '1px solid', borderColor: 'divider',
-        borderRadius: 1.5, bgcolor: 'background.default',
-        p: 1, overflow: 'hidden',
-      }}>
+      <Box
+        sx={{
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 1.5,
+          bgcolor: 'background.default',
+          p: 1,
+          overflow: 'hidden',
+        }}
+      >
         <Box sx={{ height: 200 }}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartData} margin={{ top: 4, right: 40, left: 0, bottom: 0 }}>
@@ -107,7 +153,11 @@ export const LogsHistogram = memo(function LogsHistogram({
                   <stop offset="100%" stopColor="#f87171" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke={theme.palette.divider}
+              />
               <XAxis
                 dataKey="tsLabel"
                 minTickGap={28}
@@ -145,7 +195,12 @@ export const LogsHistogram = memo(function LogsHistogram({
                   stackId="levels"
                   fill={LEVEL_COLORS[level]}
                   radius={idx === 4 ? [3, 3, 0, 0] : undefined}
-                  activeBar={{ fill: LEVEL_COLORS[level], fillOpacity: 1, stroke: '#ffffff44', strokeWidth: 1 }}
+                  activeBar={{
+                    fill: LEVEL_COLORS[level],
+                    fillOpacity: 1,
+                    stroke: '#ffffff44',
+                    strokeWidth: 1,
+                  }}
                   onClick={handleClick}
                   isAnimationActive={false}
                 >
@@ -183,12 +238,24 @@ export const LogsHistogram = memo(function LogsHistogram({
           {Object.entries(LEVEL_COLORS).map(([key, color]) => (
             <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Box sx={{ width: 10, height: 10, borderRadius: 0.5, bgcolor: color }} />
-              <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary' }}>{key}</Typography>
+              <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary' }}>
+                {key}
+              </Typography>
             </Box>
           ))}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Box sx={{ width: 16, height: 2, bgcolor: LEVEL_COLORS.error, borderRadius: 1, opacity: 0.7 }} />
-            <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary' }}>error rate %</Typography>
+            <Box
+              sx={{
+                width: 16,
+                height: 2,
+                bgcolor: LEVEL_COLORS.error,
+                borderRadius: 1,
+                opacity: 0.7,
+              }}
+            />
+            <Typography variant="caption" sx={{ fontSize: 10, color: 'text.secondary' }}>
+              error rate %
+            </Typography>
           </Box>
         </Box>
       </Box>

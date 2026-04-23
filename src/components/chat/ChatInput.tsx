@@ -13,7 +13,13 @@ interface ChatInputProps {
   inputRef?: React.Ref<HTMLInputElement>
 }
 
-export default function ChatInput({ value, onChange, onSend, disabled = false, inputRef }: ChatInputProps) {
+export default function ChatInput({
+  value,
+  onChange,
+  onSend,
+  disabled = false,
+  inputRef,
+}: ChatInputProps) {
   const theme = useTheme()
   const isDark = theme.palette.mode === 'dark'
   const canSend = !disabled && value.trim().length > 0
@@ -58,8 +64,12 @@ export default function ChatInput({ value, onChange, onSend, disabled = false, i
           value={value}
           onChange={e => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          onCompositionStart={() => { isComposing.current = true }}
-          onCompositionEnd={() => { isComposing.current = false }}
+          onCompositionStart={() => {
+            isComposing.current = true
+          }}
+          onCompositionEnd={() => {
+            isComposing.current = false
+          }}
           disabled={disabled}
           placeholder="메시지를 입력하세요..."
           variant="standard"
@@ -91,13 +101,13 @@ export default function ChatInput({ value, onChange, onSend, disabled = false, i
             height: 32,
             background: canSend
               ? 'linear-gradient(135deg, #7e22ce 0%, #9333ea 100%)'
-              : isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+              : isDark
+                ? 'rgba(255,255,255,0.06)'
+                : 'rgba(0,0,0,0.06)',
             color: canSend ? '#fff' : theme.palette.text.disabled,
             transition: 'all 0.15s ease',
             '&:hover': {
-              background: canSend
-                ? 'linear-gradient(135deg, #6b21a8 0%, #7e22ce 100%)'
-                : undefined,
+              background: canSend ? 'linear-gradient(135deg, #6b21a8 0%, #7e22ce 100%)' : undefined,
               transform: canSend ? 'scale(1.05)' : undefined,
             },
             '&.Mui-disabled': { opacity: 1 },
@@ -107,10 +117,7 @@ export default function ChatInput({ value, onChange, onSend, disabled = false, i
         </IconButton>
       </Box>
       <Box sx={{ mt: 0.75, textAlign: 'center' }}>
-        <Box
-          component="span"
-          sx={{ fontSize: '0.7rem', color: theme.palette.text.disabled }}
-        >
+        <Box component="span" sx={{ fontSize: '0.7rem', color: theme.palette.text.disabled }}>
           Enter로 전송 · Shift+Enter로 줄바꿈
         </Box>
       </Box>

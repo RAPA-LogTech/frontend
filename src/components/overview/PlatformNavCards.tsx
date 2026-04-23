@@ -17,7 +17,12 @@ interface Props {
   slackConnected: boolean
 }
 
-export default function PlatformNavCards({ errorLogs, traces, serviceCount, slackConnected }: Props) {
+export default function PlatformNavCards({
+  errorLogs,
+  traces,
+  serviceCount,
+  slackConnected,
+}: Props) {
   const router = useRouter()
 
   const cards = [
@@ -80,7 +85,13 @@ export default function PlatformNavCards({ errorLogs, traces, serviceCount, slac
   return (
     <Paper
       variant="outlined"
-      sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper', flex: '0 0 380px', minWidth: 0 }}
+      sx={{
+        p: 2,
+        borderColor: 'divider',
+        bgcolor: 'background.paper',
+        flex: '0 0 380px',
+        minWidth: 0,
+      }}
     >
       <Box sx={{ mb: 2 }}>
         <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
@@ -117,10 +128,16 @@ export default function PlatformNavCards({ errorLogs, traces, serviceCount, slac
                 {card.label}
               </Typography>
             </Stack>
-            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.75, lineHeight: 1.3 }}>
+            <Typography
+              variant="caption"
+              sx={{ color: 'text.secondary', display: 'block', mb: 0.75, lineHeight: 1.3 }}
+            >
               {card.desc}
             </Typography>
-            <Typography variant="caption" sx={{ color: card.badgeColor, fontWeight: 600, fontSize: 10 }}>
+            <Typography
+              variant="caption"
+              sx={{ color: card.badgeColor, fontWeight: 600, fontSize: 10 }}
+            >
               {card.badge}
             </Typography>
           </Box>

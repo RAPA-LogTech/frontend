@@ -8,25 +8,31 @@ interface CheckboxFiltersProps {
   onChange: (selected: string[]) => void
 }
 
-export default function CheckboxFilters({ label, options, selected, onChange }: CheckboxFiltersProps) {
+export default function CheckboxFilters({
+  label,
+  options,
+  selected,
+  onChange,
+}: CheckboxFiltersProps) {
   // "All" 단일 선택 로직
   const handleChange = (option: string) => {
     if (option === 'All') {
       onChange(['All'])
     } else {
-      const next = selected.includes(option)
-        ? selected.filter((v) => v !== option)
-        : [option]
+      const next = selected.includes(option) ? selected.filter(v => v !== option) : [option]
       onChange(next.length === 0 ? ['All'] : next)
     }
   }
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      <Typography variant="caption" sx={{ color: 'text.secondary', whiteSpace: 'nowrap', fontWeight: 500 }}>
+      <Typography
+        variant="caption"
+        sx={{ color: 'text.secondary', whiteSpace: 'nowrap', fontWeight: 500 }}
+      >
         {label}
       </Typography>
       <Stack direction="row" gap={0.5} alignItems="center">
-        {options.map((option) => (
+        {options.map(option => (
           <FormControlLabel
             key={option}
             control={

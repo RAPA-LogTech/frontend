@@ -40,7 +40,7 @@ export default function IntegrationsPage() {
       await queryClient.invalidateQueries({ queryKey: ['notifications-slack-integration-status'] })
       await integrationQuery.refetch()
     },
-    onError: (error) => console.error('Slack 연동 해제 실패:', error),
+    onError: error => console.error('Slack 연동 해제 실패:', error),
   })
 
   const isConnected = integrationQuery.data?.connected ?? false
@@ -48,7 +48,9 @@ export default function IntegrationsPage() {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2, md: 3 } }}>
       <Box>
-        <Typography variant="h4" sx={{ fontWeight: 700 }}>Integrations</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+          Integrations
+        </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
           외부 서비스와의 연동을 설정하고 관리합니다.
         </Typography>
@@ -68,7 +70,9 @@ export default function IntegrationsPage() {
             onReconnect={() => {
               if (window.confirm('연동을 초기화하고 새로 연동하시겠습니까?')) {
                 disconnectSlackMutation.mutate()
-                setTimeout(() => { window.location.href = '/api/integrations/slack/connect' }, 500)
+                setTimeout(() => {
+                  window.location.href = '/api/integrations/slack/connect'
+                }, 500)
               }
             }}
             onDisconnect={() => disconnectSlackMutation.mutate()}
@@ -86,7 +90,9 @@ export default function IntegrationsPage() {
           />
           <Divider />
           <Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>알람 설정</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
+              알람 설정
+            </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Slack으로 전송되는 알람의 동작 방식을 세부적으로 설정합니다.
             </Typography>

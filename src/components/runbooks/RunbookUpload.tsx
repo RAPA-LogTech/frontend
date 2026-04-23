@@ -41,33 +41,48 @@ export default function RunbookUpload({ open, onClose, onSuccess }: RunbookUploa
       formData.append('file', file)
       formData.append('title', file.name.replace(/\.md$/i, ''))
       const res = await fetch('/api/runbooks', { method: 'POST', body: formData })
-      if (res.ok) { onSuccess(); onClose() }
-      else {
+      if (res.ok) {
+        onSuccess()
+        onClose()
+      } else {
         const data = await res.json().catch(() => ({}))
         setError((data as Record<string, string>).detail ?? 'Upload failed')
       }
-    } catch { setError('Upload failed') }
-    finally { setUploading(false) }
+    } catch {
+      setError('Upload failed')
+    } finally {
+      setUploading(false)
+    }
   }
 
   const uploadText = async () => {
-    if (!fileName.trim() || !textContent.trim()) { setError('Filename and content are required'); return }
+    if (!fileName.trim() || !textContent.trim()) {
+      setError('Filename and content are required')
+      return
+    }
     setUploading(true)
     setError(null)
     try {
       const blob = new Blob([textContent], { type: 'text/markdown' })
-      const file = new File([blob], fileName.endsWith('.md') ? fileName : `${fileName}.md`, { type: 'text/markdown' })
+      const file = new File([blob], fileName.endsWith('.md') ? fileName : `${fileName}.md`, {
+        type: 'text/markdown',
+      })
       const formData = new FormData()
       formData.append('file', file)
       formData.append('title', fileName.replace(/\.md$/i, ''))
       const res = await fetch('/api/runbooks', { method: 'POST', body: formData })
-      if (res.ok) { onSuccess(); onClose() }
-      else {
+      if (res.ok) {
+        onSuccess()
+        onClose()
+      } else {
         const data = await res.json().catch(() => ({}))
         setError((data as Record<string, string>).detail ?? 'Upload failed')
       }
-    } catch { setError('Upload failed') }
-    finally { setUploading(false) }
+    } catch {
+      setError('Upload failed')
+    } finally {
+      setUploading(false)
+    }
   }
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -86,25 +101,60 @@ export default function RunbookUpload({ open, onClose, onSuccess }: RunbookUploa
         </Tabs>
         {tab === 0 && (
           <Stack gap={2} alignItems="center" sx={{ py: 3 }}>
-            <Typography variant="body2" color="text.secondary">Select a markdown (.md) file to upload</Typography>
-            <Button variant="outlined" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+            <Typography variant="body2" color="text.secondary">
+              Select a markdown (.md) file to upload
+            </Typography>
+            <Button
+              variant="outlined"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
               {uploading ? 'Uploading...' : 'Choose File'}
             </Button>
-            <input ref={fileInputRef} type="file" accept=".md,.markdown,text/markdown" style={{ display: 'none' }} onChange={handleFileChange} />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".md,.markdown,text/markdown"
+              style={{ display: 'none' }}
+              onChange={handleFileChange}
+            />
           </Stack>
         )}
         {tab === 1 && (
           <Stack gap={1.5} sx={{ mt: 1 }}>
-            <TextField label="Filename" size="small" value={fileName} onChange={e => setFileName(e.target.value)} placeholder="e.g. db-failure-response.md" />
-            <TextField label="Markdown Content" multiline minRows={12} value={textContent} onChange={e => setTextContent(e.target.value)} />
+            <TextField
+              label="Filename"
+              size="small"
+              value={fileName}
+              onChange={e => setFileName(e.target.value)}
+              placeholder="e.g. db-failure-response.md"
+            />
+            <TextField
+              label="Markdown Content"
+              multiline
+              minRows={12}
+              value={textContent}
+              onChange={e => setTextContent(e.target.value)}
+            />
           </Stack>
         )}
-        {error && <Typography variant="body2" color="error" sx={{ mt: 1 }}>{error}</Typography>}
+        {error && (
+          <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+            {error}
+          </Typography>
+        )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} sx={{ textTransform: 'none' }}>Cancel</Button>
+        <Button onClick={onClose} sx={{ textTransform: 'none' }}>
+          Cancel
+        </Button>
         {tab === 1 && (
-          <Button onClick={uploadText} variant="contained" disabled={uploading} sx={{ textTransform: 'none' }}>
+          <Button
+            onClick={uploadText}
+            variant="contained"
+            disabled={uploading}
+            sx={{ textTransform: 'none' }}
+          >
             {uploading ? 'Uploading...' : 'Save'}
           </Button>
         )}

@@ -43,17 +43,23 @@ export default function RunbookList({ data, onDelete }: RunbookListProps) {
             <TableCell sx={{ fontWeight: 700 }}>Filename</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Tags</TableCell>
             <TableCell sx={{ fontWeight: 700 }}>Updated</TableCell>
-            <TableCell sx={{ fontWeight: 700 }} align="right">Actions</TableCell>
+            <TableCell sx={{ fontWeight: 700 }} align="right">
+              Actions
+            </TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {data.map(item => (
             <TableRow key={item.runbook_id} hover sx={{ '&:last-child td': { border: 0 } }}>
               <TableCell>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>{item.title}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {item.title}
+                </Typography>
               </TableCell>
               <TableCell>
-                <Typography variant="body2" color="text.secondary">{item.filename}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {item.filename}
+                </Typography>
               </TableCell>
               <TableCell>
                 <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
@@ -61,7 +67,9 @@ export default function RunbookList({ data, onDelete }: RunbookListProps) {
                     <Chip key={tag} label={tag} size="small" variant="outlined" />
                   ))}
                   {(!item.tags || item.tags.length === 0) && (
-                    <Typography variant="caption" color="text.secondary">-</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      -
+                    </Typography>
                   )}
                 </Stack>
               </TableCell>
@@ -78,7 +86,11 @@ export default function RunbookList({ data, onDelete }: RunbookListProps) {
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Delete">
-                    <IconButton size="small" color="error" onClick={() => onDelete(item.runbook_id, item.title)}>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => onDelete(item.runbook_id, item.title)}
+                    >
                       <DeleteIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>

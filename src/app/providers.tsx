@@ -76,7 +76,10 @@ export const useFilters = () => {
 
 // ============ AiChat Context ============
 
-function toAiConversation(conv: { id: string; title: string; created_at: string; updated_at: string }, messages: AiMessage[] = []): AiConversation {
+function toAiConversation(
+  conv: { id: string; title: string; created_at: string; updated_at: string },
+  messages: AiMessage[] = []
+): AiConversation {
   return {
     id: conv.id,
     title: conv.title,
@@ -86,7 +89,12 @@ function toAiConversation(conv: { id: string; title: string; created_at: string;
   }
 }
 
-function toAiMessage(msg: { id: string; role: string; content: string; created_at: string }): AiMessage {
+function toAiMessage(msg: {
+  id: string
+  role: string
+  content: string
+  created_at: string
+}): AiMessage {
   return {
     id: msg.id,
     role: msg.role as 'user' | 'assistant',
@@ -189,63 +197,71 @@ export default function AppProviders({ children }: { children: React.ReactNode }
     setFiltersState(prev => ({ ...prev, timeRange, startTime, endTime }))
   }
 
-  const sendMessage = useCallback(async (content: string) => {
-    let cid = drawerConversation?.id ?? null
+  const sendMessage = useCallback(
+    async (content: string) => {
+      let cid = drawerConversation?.id ?? null
 
-    if (!cid) {
+      if (!cid) {
+        try {
+          const res = await fetch('/api/chat/conversations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: content }),
+          })
+          const conv = await res.json()
+          const newConv = toAiConversation(conv)
+          setDrawerConversation(newConv)
+          cid = newConv.id
+        } catch {
+          return
+        }
+      }
+
+      const tempUserMsg: AiMessage = {
+        id: `temp-${Date.now()}`,
+        role: 'user',
+        content,
+        timestamp: Date.now(),
+      }
+      setDrawerConversation(prev =>
+        prev ? { ...prev, messages: [...prev.messages, tempUserMsg] } : prev
+      )
+
+      setIsChatLoading(true)
       try {
-        const res = await fetch('/api/chat/conversations', {
+        const res = await fetch(`/api/chat/conversations/${cid}/messages`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: content }),
         })
-        const conv = await res.json()
-        const newConv = toAiConversation(conv)
-        setDrawerConversation(newConv)
-        cid = newConv.id
+        const data = await res.json()
+        const assistantMsg = toAiMessage(data.message)
+        setDrawerConversation(prev => {
+          if (!prev) return prev
+          const msgs = prev.messages.filter(m => m.id !== tempUserMsg.id)
+          const userMsg: AiMessage = { ...tempUserMsg, id: `user-${Date.now()}` }
+          return { ...prev, messages: [...msgs, userMsg, assistantMsg], updatedAt: Date.now() }
+        })
       } catch {
-        return
+        console.error('Failed to send message')
+      } finally {
+        setIsChatLoading(false)
       }
-    }
+    },
+    [drawerConversation]
+  )
 
-    const tempUserMsg: AiMessage = {
-      id: `temp-${Date.now()}`,
-      role: 'user',
-      content,
-      timestamp: Date.now(),
-    }
-    setDrawerConversation(prev => prev ? { ...prev, messages: [...prev.messages, tempUserMsg] } : prev)
-
-    setIsChatLoading(true)
-    try {
-      const res = await fetch(`/api/chat/conversations/${cid}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: content }),
-      })
-      const data = await res.json()
-      const assistantMsg = toAiMessage(data.message)
-      setDrawerConversation(prev => {
-        if (!prev) return prev
-        const msgs = prev.messages.filter(m => m.id !== tempUserMsg.id)
-        const userMsg: AiMessage = { ...tempUserMsg, id: `user-${Date.now()}` }
-        return { ...prev, messages: [...msgs, userMsg, assistantMsg], updatedAt: Date.now() }
-      })
-    } catch {
-      console.error('Failed to send message')
-    } finally {
-      setIsChatLoading(false)
-    }
-  }, [drawerConversation])
-
-  const aiChatValue = useMemo(() => ({
-    drawerOpen,
-    openDrawer: () => setDrawerOpen(true),
-    closeDrawer: () => setDrawerOpen(false),
-    drawerConversation,
-    isLoading: isChatLoading,
-    sendMessage,
-  }), [drawerOpen, drawerConversation, isChatLoading, sendMessage])
+  const aiChatValue = useMemo(
+    () => ({
+      drawerOpen,
+      openDrawer: () => setDrawerOpen(true),
+      closeDrawer: () => setDrawerOpen(false),
+      drawerConversation,
+      isLoading: isChatLoading,
+      sendMessage,
+    }),
+    [drawerOpen, drawerConversation, isChatLoading, sendMessage]
+  )
 
   const colorModeValue = useMemo(() => ({ mode, toggleMode }), [mode])
   const filterValue = useMemo(() => ({ filters, setFilters, updateTimeRange }), [filters])

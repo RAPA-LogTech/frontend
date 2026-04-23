@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { CognitoIdentityProviderClient, ListUsersCommand, AdminCreateUserCommand } from '@aws-sdk/client-cognito-identity-provider'
+import {
+  CognitoIdentityProviderClient,
+  ListUsersCommand,
+  AdminCreateUserCommand,
+} from '@aws-sdk/client-cognito-identity-provider'
 
-const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION ?? 'ap-northeast-2' })
+const cognito = new CognitoIdentityProviderClient({
+  region: process.env.AWS_REGION ?? 'ap-northeast-2',
+})
 const USER_POOL_ID = process.env.COGNITO_USER_POOL_ID!
 
 export async function GET() {
@@ -27,16 +33,18 @@ export async function POST(req: NextRequest) {
     if (!email || !tempPassword) {
       return NextResponse.json({ error: '이메일과 임시 비밀번호는 필수입니다.' }, { status: 400 })
     }
-    await cognito.send(new AdminCreateUserCommand({
-      UserPoolId: USER_POOL_ID,
-      Username: email,
-      TemporaryPassword: tempPassword,
-      MessageAction: 'SUPPRESS',
-      UserAttributes: [
-        { Name: 'email', Value: email },
-        { Name: 'email_verified', Value: 'true' },
-      ],
-    }))
+    await cognito.send(
+      new AdminCreateUserCommand({
+        UserPoolId: USER_POOL_ID,
+        Username: email,
+        TemporaryPassword: tempPassword,
+        MessageAction: 'SUPPRESS',
+        UserAttributes: [
+          { Name: 'email', Value: email },
+          { Name: 'email_verified', Value: 'true' },
+        ],
+      })
+    )
     return NextResponse.json({ ok: true })
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : '유저 생성에 실패했습니다.'

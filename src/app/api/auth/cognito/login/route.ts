@@ -4,8 +4,11 @@ async function makeSecretHash(username: string) {
   const clientId = process.env.COGNITO_CLIENT_ID!
   const clientSecret = process.env.COGNITO_CLIENT_SECRET!
   const key = await crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(clientSecret),
-    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+    'raw',
+    new TextEncoder().encode(clientSecret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
   )
   const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(username + clientId))
   return Buffer.from(sig).toString('base64')
@@ -37,7 +40,11 @@ export async function POST(req: NextRequest) {
       }),
     })
     const data = await res.json()
-    if (!res.ok) return NextResponse.json({ error: data.message ?? '비밀번호 변경에 실패했습니다.' }, { status: 400 })
+    if (!res.ok)
+      return NextResponse.json(
+        { error: data.message ?? '비밀번호 변경에 실패했습니다.' },
+        { status: 400 }
+      )
     return setTokenCookies(NextResponse.json({ ok: true }), data.AuthenticationResult)
   }
 
@@ -61,18 +68,31 @@ export async function POST(req: NextRequest) {
   })
 
   const data = await res.json()
-  if (!res.ok) return NextResponse.json({ error: data.message ?? '로그인에 실패했습니다.' }, { status: 401 })
+  if (!res.ok)
+    return NextResponse.json({ error: data.message ?? '로그인에 실패했습니다.' }, { status: 401 })
 
   // 임시 비밀번호 변경 필요
   if (data.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
-    return NextResponse.json({ challenge: 'NEW_PASSWORD_REQUIRED', session: data.Session, username })
+    return NextResponse.json({
+      challenge: 'NEW_PASSWORD_REQUIRED',
+      session: data.Session,
+      username,
+    })
   }
 
   return setTokenCookies(NextResponse.json({ ok: true }), data.AuthenticationResult)
 }
 
-function setTokenCookies(response: NextResponse, auth: { IdToken: string; AccessToken: string; RefreshToken: string; ExpiresIn: number }) {
-  const opts = { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' as const, path: '/' }
+function setTokenCookies(
+  response: NextResponse,
+  auth: { IdToken: string; AccessToken: string; RefreshToken: string; ExpiresIn: number }
+) {
+  const opts = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/',
+  }
   response.cookies.set('id_token', auth.IdToken, { ...opts, maxAge: auth.ExpiresIn })
   response.cookies.set('access_token', auth.AccessToken, { ...opts, maxAge: auth.ExpiresIn })
   response.cookies.set('refresh_token', auth.RefreshToken, { ...opts, maxAge: 60 * 60 * 24 * 30 })

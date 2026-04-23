@@ -26,7 +26,15 @@ function Sparkline({ points, color }: { points: { v: number }[]; color: string }
               <stop offset="95%" stopColor={color} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <Area type="monotone" dataKey="v" stroke={color} fill={`url(#kpi-${color.replace('#', '')})`} strokeWidth={1.5} dot={false} isAnimationActive={false} />
+          <Area
+            type="monotone"
+            dataKey="v"
+            stroke={color}
+            fill={`url(#kpi-${color.replace('#', '')})`}
+            strokeWidth={1.5}
+            dot={false}
+            isAnimationActive={false}
+          />
         </AreaChart>
       </ResponsiveContainer>
     </Box>
@@ -62,7 +70,10 @@ function KpiCard({
         '&:hover': { boxShadow: `0 0 0 1px ${color}66` },
       }}
     >
-      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: 0.5 }}>
+      <Typography
+        variant="caption"
+        sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: 0.5 }}
+      >
         {label}
       </Typography>
       {isLoading ? (
@@ -75,7 +86,9 @@ function KpiCard({
           <Typography variant="h4" sx={{ fontWeight: 800, color, mt: 0.25, lineHeight: 1.2 }}>
             {value}
           </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>{sub}</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            {sub}
+          </Typography>
           <Sparkline points={sparkPoints} color={color} />
         </>
       )}
@@ -83,27 +96,40 @@ function KpiCard({
   )
 }
 
-export default function KpiRow({ serviceHealth, metricSeries, traces, errorLogs, isLoading }: Props) {
+export default function KpiRow({
+  serviceHealth,
+  metricSeries,
+  traces,
+  errorLogs,
+  isLoading,
+}: Props) {
   const services = serviceHealth.filter(h => h.rds_cpu === undefined)
   const healthy = services.filter(s => s.error_rate < 1).length
-  const avgError = services.length > 0
-    ? services.reduce((sum, s) => sum + s.error_rate, 0) / services.length
-    : 0
+  const avgError =
+    services.length > 0 ? services.reduce((sum, s) => sum + s.error_rate, 0) / services.length : 0
 
   const latencySeries = metricSeries.filter(s => s.name.includes('latency_p95'))
-  const avgLatency = latencySeries.length > 0
-    ? latencySeries.reduce((sum, s) => {
-        const last = s.points[s.points.length - 1]?.value ?? 0
-        return sum + last
-      }, 0) / latencySeries.length / 1000
-    : 0
+  const avgLatency =
+    latencySeries.length > 0
+      ? latencySeries.reduce((sum, s) => {
+          const last = s.points[s.points.length - 1]?.value ?? 0
+          return sum + last
+        }, 0) /
+        latencySeries.length /
+        1000
+      : 0
 
   const errorSparkPoints = services.map((s, i) => ({ v: s.error_rate }))
   const latencyPoints = latencySeries[0]?.points.slice(-12).map(p => ({ v: p.value / 1000 })) ?? []
-  const tracePoints = Array.from({ length: 10 }, (_, i) => ({ v: Math.max(0, traces.length - i * 2) })).reverse()
-  const errorLogPoints = Array.from({ length: 10 }, (_, i) => ({ v: Math.max(0, errorLogs.length - i * 3) })).reverse()
+  const tracePoints = Array.from({ length: 10 }, (_, i) => ({
+    v: Math.max(0, traces.length - i * 2),
+  })).reverse()
+  const errorLogPoints = Array.from({ length: 10 }, (_, i) => ({
+    v: Math.max(0, errorLogs.length - i * 3),
+  })).reverse()
 
-  const healthColor = healthy === services.length ? '#4ade80' : healthy > services.length / 2 ? '#fbbf24' : '#f87171'
+  const healthColor =
+    healthy === services.length ? '#4ade80' : healthy > services.length / 2 ? '#fbbf24' : '#f87171'
 
   return (
     <Box sx={{ display: 'flex', gap: 2 }}>

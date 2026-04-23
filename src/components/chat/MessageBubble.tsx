@@ -22,7 +22,9 @@ export default function MessageBubble({ message, isUser }: MessageBubbleProps) {
     const tailColor = isDark ? '#9333ea' : '#a855f7'
 
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', px: 1, gap: 0.5 }}>
+      <Box
+        sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', px: 1, gap: 0.5 }}
+      >
         <Box sx={{ position: 'relative', maxWidth: '72%' }}>
           <Box
             sx={{
@@ -40,7 +42,12 @@ export default function MessageBubble({ message, isUser }: MessageBubbleProps) {
           >
             <Typography
               variant="body2"
-              sx={{ fontSize: '0.875rem', lineHeight: 1.65, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+              sx={{
+                fontSize: '0.875rem',
+                lineHeight: 1.65,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+              }}
             >
               {message.content}
             </Typography>

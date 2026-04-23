@@ -22,7 +22,10 @@ export default function StatusBanner({ serviceHealth, isLoading, onRefresh, last
   const [elapsed, setElapsed] = useState<number | null>(null)
 
   useEffect(() => {
-    if (!lastUpdated) { setElapsed(null); return }
+    if (!lastUpdated) {
+      setElapsed(null)
+      return
+    }
 
     let id: ReturnType<typeof setInterval>
 
@@ -104,7 +107,13 @@ export default function StatusBanner({ serviceHealth, isLoading, onRefresh, last
           <Chip
             label={status.toUpperCase()}
             size="small"
-            sx={{ bgcolor: config.chipBg, color: config.chipColor, fontWeight: 700, fontSize: 11, border: `1px solid ${config.chipColor}44` }}
+            sx={{
+              bgcolor: config.chipBg,
+              color: config.chipColor,
+              fontWeight: 700,
+              fontSize: 11,
+              border: `1px solid ${config.chipColor}44`,
+            }}
           />
         )}
       </Stack>
@@ -115,7 +124,11 @@ export default function StatusBanner({ serviceHealth, isLoading, onRefresh, last
             Updated {elapsed < 60 ? `${elapsed}s` : `${Math.floor(elapsed / 60)}m`} ago
           </Typography>
         )}
-        <IconButton size="small" onClick={onRefresh} sx={{ color: '#64748b', '&:hover': { color: '#94a3b8' } }}>
+        <IconButton
+          size="small"
+          onClick={onRefresh}
+          sx={{ color: '#64748b', '&:hover': { color: '#94a3b8' } }}
+        >
           <RefreshIcon fontSize="small" />
         </IconButton>
       </Stack>

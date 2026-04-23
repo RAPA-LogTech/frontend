@@ -7,7 +7,16 @@ import ErrorRateChart from '@/components/overview/ErrorRateChart'
 import ServiceHeatmap from '@/components/overview/ServiceHeatmap'
 import OverviewLatencyRank from './OverviewLatencyRank'
 
-type ServiceHealth = { service: string; env?: string; error_rate: number; rds_cpu?: number; rds_connections?: number; rds_freeable_memory?: number; rds_read_latency?: number; rds_write_latency?: number }
+type ServiceHealth = {
+  service: string
+  env?: string
+  error_rate: number
+  rds_cpu?: number
+  rds_connections?: number
+  rds_freeable_memory?: number
+  rds_read_latency?: number
+  rds_write_latency?: number
+}
 
 interface Props {
   serviceHealth: ServiceHealth[]
@@ -18,11 +27,21 @@ interface Props {
   isLoading?: boolean
 }
 
-export default function OverviewTab({ serviceHealth, error4xxSeries, error5xxSeries, envFilter, metricSeries = [], isLoading }: Props) {
+export default function OverviewTab({
+  serviceHealth,
+  error4xxSeries,
+  error5xxSeries,
+  envFilter,
+  metricSeries = [],
+  isLoading,
+}: Props) {
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Paper variant="outlined" sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}>
+        <Paper
+          variant="outlined"
+          sx={{ p: 2, borderColor: 'divider', bgcolor: 'background.paper' }}
+        >
           <Skeleton variant="rounded" height={240} />
         </Paper>
         <Box sx={{ display: 'flex', gap: 2 }}>
@@ -37,7 +56,12 @@ export default function OverviewTab({ serviceHealth, error4xxSeries, error5xxSer
   const filtered = services.filter(h => envFilter === 'all' || h.env === envFilter)
 
   if (filtered.length === 0 && metricSeries.length === 0) {
-    return <NoDataState title="No metric data" description="No data available for the selected environment." />
+    return (
+      <NoDataState
+        title="No metric data"
+        description="No data available for the selected environment."
+      />
+    )
   }
 
   // error4xx/5xx를 serviceHealth 형태로 병합해서 ErrorRateChart에 전달
@@ -50,7 +74,10 @@ export default function OverviewTab({ serviceHealth, error4xxSeries, error5xxSer
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {/* 에러율 추이 차트 */}
-      <ErrorRateChart serviceHealth={filtered} metricSeries={[...error4xxSeries, ...error5xxSeries, ...metricSeries]} />
+      <ErrorRateChart
+        serviceHealth={filtered}
+        metricSeries={[...error4xxSeries, ...error5xxSeries, ...metricSeries]}
+      />
 
       {/* 히트맵 + 레이턴시 랭킹 */}
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'stretch' }}>

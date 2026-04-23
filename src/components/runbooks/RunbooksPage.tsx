@@ -40,7 +40,10 @@ type RunbooksResponse = {
 
 export default function RunbooksPage() {
   const [query, setQuery] = useState('')
-  const [notice, setNotice] = useState<{ message: string; severity: 'success' | 'info' | 'error' } | null>(null)
+  const [notice, setNotice] = useState<{
+    message: string
+    severity: 'success' | 'info' | 'error'
+  } | null>(null)
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null)
 
@@ -93,35 +96,73 @@ export default function RunbooksPage() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2, md: 3 } }}>
-      <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} justifyContent="space-between" gap={1.25}>
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        alignItems={{ md: 'center' }}
+        justifyContent="space-between"
+        gap={1.25}
+      >
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700 }}>Runbooks</Typography>
+          <Typography variant="h4" sx={{ fontWeight: 700 }}>
+            Runbooks
+          </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
             Manage runbook files. Uploaded to S3 and synced with Bedrock Knowledge Base.
           </Typography>
         </Box>
-        <Stack direction={{ xs: 'column', sm: 'row' }} gap={1} sx={{ width: { xs: '100%', md: 'auto' } }}>
-          <Button variant="contained" startIcon={<UploadIcon />} onClick={() => setUploadDialogOpen(true)} sx={{ textTransform: 'none' }}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          gap={1}
+          sx={{ width: { xs: '100%', md: 'auto' } }}
+        >
+          <Button
+            variant="contained"
+            startIcon={<UploadIcon />}
+            onClick={() => setUploadDialogOpen(true)}
+            sx={{ textTransform: 'none' }}
+          >
             Upload Runbook
           </Button>
-          <Button variant="outlined" onClick={() => refetch()} sx={{ textTransform: 'none' }} disabled={isRefetching}>
+          <Button
+            variant="outlined"
+            onClick={() => refetch()}
+            sx={{ textTransform: 'none' }}
+            disabled={isRefetching}
+          >
             {isRefetching ? 'Refreshing...' : 'Refresh'}
           </Button>
         </Stack>
       </Stack>
 
-      {notice && <Alert severity={notice.severity} onClose={() => setNotice(null)}>{notice.message}</Alert>}
+      {notice && (
+        <Alert severity={notice.severity} onClose={() => setNotice(null)}>
+          {notice.message}
+        </Alert>
+      )}
 
       <Card variant="outlined" sx={{ borderColor: 'divider' }}>
         <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-          <TextField fullWidth size="small" placeholder="Search by filename, title, or tag" value={query} onChange={e => setQuery(e.target.value)} />
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="Search by filename, title, or tag"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+          />
         </CardContent>
       </Card>
 
       {isLoading ? (
-        <Stack gap={1.25}>{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} variant="rounded" height={52} />)}</Stack>
+        <Stack gap={1.25}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} variant="rounded" height={52} />
+          ))}
+        </Stack>
       ) : isFetched && runbooks.length === 0 ? (
-        <NoDataState title="No runbooks" description="Click Upload Runbook to add a markdown file." />
+        <NoDataState
+          title="No runbooks"
+          description="Click Upload Runbook to add a markdown file."
+        />
       ) : filteredRunbooks.length === 0 ? (
         <NoDataState title="No results" description="No runbooks match your search." />
       ) : (
@@ -131,7 +172,11 @@ export default function RunbooksPage() {
       )}
 
       {/* [런북 기능 추가] 업로드 다이얼로그 — 파일 업로드 + 텍스트 입력 */}
-      <RunbookUpload open={uploadDialogOpen} onClose={() => setUploadDialogOpen(false)} onSuccess={handleUploadSuccess} />
+      <RunbookUpload
+        open={uploadDialogOpen}
+        onClose={() => setUploadDialogOpen(false)}
+        onSuccess={handleUploadSuccess}
+      />
 
       <Dialog open={deleteTarget !== null} onClose={() => setDeleteTarget(null)}>
         <DialogTitle sx={{ fontWeight: 700 }}>Delete Runbook</DialogTitle>
@@ -139,8 +184,17 @@ export default function RunbooksPage() {
           <Typography variant="body2">Delete &quot;{deleteTarget?.title}&quot;?</Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setDeleteTarget(null)} sx={{ textTransform: 'none' }}>Cancel</Button>
-          <Button onClick={handleDeleteConfirm} variant="contained" color="error" sx={{ textTransform: 'none' }}>Delete</Button>
+          <Button onClick={() => setDeleteTarget(null)} sx={{ textTransform: 'none' }}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            color="error"
+            sx={{ textTransform: 'none' }}
+          >
+            Delete
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

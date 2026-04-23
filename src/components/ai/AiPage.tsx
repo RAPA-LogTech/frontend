@@ -7,7 +7,10 @@ import { AiConversation, AiMessage } from '@/lib/types'
 import ChatSidebar from '@/components/chat/ChatSidebar'
 import ChatMain from '@/components/chat/ChatMain'
 
-function toAiConversation(conv: { id: string; title: string; created_at: string; updated_at: string }, messages: AiMessage[] = []): AiConversation {
+function toAiConversation(
+  conv: { id: string; title: string; created_at: string; updated_at: string },
+  messages: AiMessage[] = []
+): AiConversation {
   return {
     id: conv.id,
     title: conv.title,
@@ -17,7 +20,12 @@ function toAiConversation(conv: { id: string; title: string; created_at: string;
   }
 }
 
-function toAiMessage(msg: { id: string; role: string; content: string; created_at: string }): AiMessage {
+function toAiMessage(msg: {
+  id: string
+  role: string
+  content: string
+  created_at: string
+}): AiMessage {
   return {
     id: msg.id,
     role: msg.role as 'user' | 'assistant',
@@ -37,13 +45,19 @@ export default function AiPage() {
     try {
       const res = await fetch('/api/chat/conversations')
       const data = await res.json()
-      setConversations((data as { id: string; title: string; created_at: string; updated_at: string }[]).map(c => toAiConversation(c)))
+      setConversations(
+        (data as { id: string; title: string; created_at: string; updated_at: string }[]).map(c =>
+          toAiConversation(c)
+        )
+      )
     } catch {
       console.error('Failed to load conversations')
     }
   }, [])
 
-  useEffect(() => { loadConversations() }, [loadConversations])
+  useEffect(() => {
+    loadConversations()
+  }, [loadConversations])
 
   const activeConversation = conversations.find(c => c.id === activeConversationId)
 
@@ -55,11 +69,23 @@ export default function AiPage() {
       try {
         const res = await fetch(`/api/chat/conversations/${id}`)
         const data = await res.json()
-        setConversations(prev => prev.map(c =>
-          c.id === id
-            ? { ...c, messages: (data.messages as { id: string; role: string; content: string; created_at: string }[]).map(toAiMessage) }
-            : c
-        ))
+        setConversations(prev =>
+          prev.map(c =>
+            c.id === id
+              ? {
+                  ...c,
+                  messages: (
+                    data.messages as {
+                      id: string
+                      role: string
+                      content: string
+                      created_at: string
+                    }[]
+                  ).map(toAiMessage),
+                }
+              : c
+          )
+        )
       } catch {
         console.error('Failed to load messages')
       } finally {
@@ -109,9 +135,11 @@ export default function AiPage() {
       content,
       timestamp: Date.now(),
     }
-    setConversations(prev => prev.map(c =>
-      c.id === cid ? { ...c, messages: [...c.messages, tempUserMsg], updatedAt: Date.now() } : c
-    ))
+    setConversations(prev =>
+      prev.map(c =>
+        c.id === cid ? { ...c, messages: [...c.messages, tempUserMsg], updatedAt: Date.now() } : c
+      )
+    )
 
     setIsLoading(true)
     try {
@@ -123,12 +151,14 @@ export default function AiPage() {
       const data = await res.json()
       const assistantMsg = toAiMessage(data.message)
 
-      setConversations(prev => prev.map(c => {
-        if (c.id !== cid) return c
-        const msgs = c.messages.filter(m => m.id !== tempUserMsg.id)
-        const userMsg: AiMessage = { ...tempUserMsg, id: `user-${Date.now()}` }
-        return { ...c, messages: [...msgs, userMsg, assistantMsg], updatedAt: Date.now() }
-      }))
+      setConversations(prev =>
+        prev.map(c => {
+          if (c.id !== cid) return c
+          const msgs = c.messages.filter(m => m.id !== tempUserMsg.id)
+          const userMsg: AiMessage = { ...tempUserMsg, id: `user-${Date.now()}` }
+          return { ...c, messages: [...msgs, userMsg, assistantMsg], updatedAt: Date.now() }
+        })
+      )
     } catch {
       console.error('Failed to send message')
     } finally {
@@ -137,7 +167,14 @@ export default function AiPage() {
   }
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2, md: 3 }, height: '100%' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: { xs: 1.5, sm: 2, md: 3 },
+        height: '100%',
+      }}
+    >
       <Box>
         <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
           AI Assistant

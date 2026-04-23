@@ -29,11 +29,12 @@ export async function GET(): Promise<Response> {
 
     if (!response.ok) {
       const errorObj = data as Record<string, unknown>
-      const errorMsg: string = typeof errorObj.detail === 'string'
-        ? errorObj.detail
-        : typeof errorObj.message === 'string'
-        ? errorObj.message
-        : 'Slack 채널 조회 실패'
+      const errorMsg: string =
+        typeof errorObj.detail === 'string'
+          ? errorObj.detail
+          : typeof errorObj.message === 'string'
+            ? errorObj.message
+            : 'Slack 채널 조회 실패'
       return Response.json(
         {
           ok: false,

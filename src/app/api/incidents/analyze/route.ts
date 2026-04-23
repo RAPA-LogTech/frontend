@@ -11,10 +11,17 @@ export async function POST(request: Request) {
       body: JSON.stringify(body),
     })
     const data = await response.json()
-    if (!response.ok) return Response.json({ ok: false, message: data.detail || '분석 요청에 실패했습니다.' }, { status: response.status })
+    if (!response.ok)
+      return Response.json(
+        { ok: false, message: data.detail || '분석 요청에 실패했습니다.' },
+        { status: response.status }
+      )
     return Response.json(data)
   } catch (error) {
     console.error('[analyzeIncident] Error:', error)
-    return Response.json({ ok: false, message: '분석 요청 중 오류가 발생했습니다.' }, { status: 500 })
+    return Response.json(
+      { ok: false, message: '분석 요청 중 오류가 발생했습니다.' },
+      { status: 500 }
+    )
   }
 }

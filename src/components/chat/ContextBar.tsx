@@ -10,7 +10,11 @@ interface ContextBarProps {
   onToggleAttachContext: (value: boolean) => void
 }
 
-export default function ContextBar({ filters, attachContext, onToggleAttachContext }: ContextBarProps) {
+export default function ContextBar({
+  filters,
+  attachContext,
+  onToggleAttachContext,
+}: ContextBarProps) {
   const theme = useTheme()
 
   const chipSx = {
@@ -45,12 +49,7 @@ export default function ContextBar({ filters, attachContext, onToggleAttachConte
             sx={chipSx}
           />
         )}
-        <Chip
-          label={`Time: ${filters.timeRange}`}
-          size="small"
-          variant="outlined"
-          sx={chipSx}
-        />
+        <Chip label={`Time: ${filters.timeRange}`} size="small" variant="outlined" sx={chipSx} />
       </Box>
 
       <FormControlLabel

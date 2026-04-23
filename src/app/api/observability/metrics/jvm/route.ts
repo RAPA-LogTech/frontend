@@ -18,14 +18,18 @@ export async function GET(request: Request) {
 
     if (!res.ok) {
       let errorBody: unknown = { detail: 'Upstream observability service request failed' }
-      try { errorBody = await res.json() } catch {}
+      try {
+        errorBody = await res.json()
+      } catch {}
       return Response.json(errorBody, { status: res.status })
     }
 
     return Response.json(await res.json())
   } catch (error) {
     return Response.json(
-      { detail: error instanceof Error ? error.message : 'Failed to connect observability service' },
+      {
+        detail: error instanceof Error ? error.message : 'Failed to connect observability service',
+      },
       { status: 503 }
     )
   }

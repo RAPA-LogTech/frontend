@@ -8,8 +8,8 @@ import ChatMain from './ChatMain'
 export default function AiChatDrawer() {
   const { drawerOpen, closeDrawer, drawerConversation, isLoading, sendMessage } = useAiChat()
   const theme = useTheme()
-  const isXs = useMediaQuery(theme.breakpoints.down('sm'))   // < 600
-  const isSm = useMediaQuery(theme.breakpoints.down('md'))   // < 900
+  const isXs = useMediaQuery(theme.breakpoints.down('sm')) // < 600
+  const isSm = useMediaQuery(theme.breakpoints.down('md')) // < 900
   const drawerWidth = isXs ? '100vw' : isSm ? '85vw' : 520
 
   return (

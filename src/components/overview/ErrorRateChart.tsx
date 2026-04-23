@@ -3,8 +3,15 @@
 import { useMemo } from 'react'
 import { Box, Paper, Typography, useTheme } from '@mui/material'
 import {
-  Area, AreaChart, CartesianGrid, Legend, ReferenceLine,
-  ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Legend,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from 'recharts'
 import type { MetricSeries } from '@/lib/types'
 import LiveButton from '@/components/logs/LogFilters/LiveButton'
@@ -16,7 +23,16 @@ interface Props {
   metricSeries: MetricSeries[]
 }
 
-const SERVICE_COLORS = ['#f87171', '#60a5fa', '#4ade80', '#fbbf24', '#a78bfa', '#fb923c', '#34d399', '#e879f9']
+const SERVICE_COLORS = [
+  '#f87171',
+  '#60a5fa',
+  '#4ade80',
+  '#fbbf24',
+  '#a78bfa',
+  '#fb923c',
+  '#34d399',
+  '#e879f9',
+]
 
 export default function ErrorRateChart({ serviceHealth, metricSeries }: Props) {
   const theme = useTheme()
@@ -39,7 +55,11 @@ export default function ErrorRateChart({ serviceHealth, metricSeries }: Props) {
 
     return times.map(ts => {
       const row: Record<string, number | string> = {
-        time: new Date(ts).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        time: new Date(ts).toLocaleTimeString('ko-KR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        }),
       }
       services.forEach(svc => {
         const s4 = series4xx.find(s => s.service === svc.service)
@@ -81,12 +101,40 @@ export default function ErrorRateChart({ serviceHealth, metricSeries }: Props) {
               ))}
             </defs>
             <CartesianGrid stroke={theme.palette.divider} strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="time" tick={{ fontSize: 10, fill: theme.palette.text.secondary }} tickLine={false} axisLine={false} minTickGap={30} />
-            <YAxis tick={{ fontSize: 10, fill: theme.palette.text.secondary }} tickLine={false} axisLine={false} width={36} tickFormatter={v => `${v}%`} />
-            <ReferenceLine y={60} stroke="#f87171" strokeDasharray="4 4" strokeWidth={1.5} label={{ value: 'alert threshold 60%', position: 'insideTopRight', fontSize: 10, fill: '#f87171' }} />
+            <XAxis
+              dataKey="time"
+              tick={{ fontSize: 10, fill: theme.palette.text.secondary }}
+              tickLine={false}
+              axisLine={false}
+              minTickGap={30}
+            />
+            <YAxis
+              tick={{ fontSize: 10, fill: theme.palette.text.secondary }}
+              tickLine={false}
+              axisLine={false}
+              width={36}
+              tickFormatter={v => `${v}%`}
+            />
+            <ReferenceLine
+              y={60}
+              stroke="#f87171"
+              strokeDasharray="4 4"
+              strokeWidth={1.5}
+              label={{
+                value: 'alert threshold 60%',
+                position: 'insideTopRight',
+                fontSize: 10,
+                fill: '#f87171',
+              }}
+            />
             <Tooltip
-              contentStyle={{ backgroundColor: theme.palette.background.paper, border: `1px solid ${theme.palette.divider}`, borderRadius: 8, fontSize: 12 }}
-              formatter={(value, name) => [`${(value ?? 0)}%`, name as string]}
+              contentStyle={{
+                backgroundColor: theme.palette.background.paper,
+                border: `1px solid ${theme.palette.divider}`,
+                borderRadius: 8,
+                fontSize: 12,
+              }}
+              formatter={(value, name) => [`${value ?? 0}%`, name as string]}
             />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             {services.map((svc, i) => (

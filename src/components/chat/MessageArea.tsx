@@ -46,31 +46,66 @@ export default function MessageArea({
   // 메시지 로딩 중 스켈레톤
   if (isLoadingMessages) {
     return (
-      <Box sx={{ flex: 1, overflowY: 'auto', py: 3, px: 2, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+      <Box
+        sx={{
+          flex: 1,
+          overflowY: 'auto',
+          py: 3,
+          px: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2.5,
+        }}
+      >
         {/* AI 말풍선 스켈레톤 */}
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
           <Skeleton variant="circular" width={30} height={30} sx={{ flexShrink: 0 }} />
           <Box sx={{ flex: 1, maxWidth: '75%' }}>
-            <Skeleton variant="rounded" height={18} width="90%" sx={{ mb: 0.75, borderRadius: '0px 12px 12px 12px' }} />
+            <Skeleton
+              variant="rounded"
+              height={18}
+              width="90%"
+              sx={{ mb: 0.75, borderRadius: '0px 12px 12px 12px' }}
+            />
             <Skeleton variant="rounded" height={18} width="70%" sx={{ borderRadius: '12px' }} />
           </Box>
         </Box>
         {/* 유저 말풍선 스켈레톤 */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Skeleton variant="rounded" height={40} width="55%" sx={{ borderRadius: '18px 18px 0px 18px' }} />
+          <Skeleton
+            variant="rounded"
+            height={40}
+            width="55%"
+            sx={{ borderRadius: '18px 18px 0px 18px' }}
+          />
         </Box>
         {/* AI 말풍선 스켈레톤 */}
         <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
           <Skeleton variant="circular" width={30} height={30} sx={{ flexShrink: 0 }} />
           <Box sx={{ flex: 1, maxWidth: '80%' }}>
-            <Skeleton variant="rounded" height={18} width="100%" sx={{ mb: 0.75, borderRadius: '0px 12px 12px 12px' }} />
-            <Skeleton variant="rounded" height={18} width="85%" sx={{ mb: 0.75, borderRadius: '12px' }} />
+            <Skeleton
+              variant="rounded"
+              height={18}
+              width="100%"
+              sx={{ mb: 0.75, borderRadius: '0px 12px 12px 12px' }}
+            />
+            <Skeleton
+              variant="rounded"
+              height={18}
+              width="85%"
+              sx={{ mb: 0.75, borderRadius: '12px' }}
+            />
             <Skeleton variant="rounded" height={18} width="60%" sx={{ borderRadius: '12px' }} />
           </Box>
         </Box>
         {/* 유저 말풍선 스켈레톤 */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Skeleton variant="rounded" height={40} width="40%" sx={{ borderRadius: '18px 18px 0px 18px' }} />
+          <Skeleton
+            variant="rounded"
+            height={40}
+            width="40%"
+            sx={{ borderRadius: '18px 18px 0px 18px' }}
+          />
         </Box>
       </Box>
     )
@@ -97,7 +132,7 @@ export default function MessageArea({
               width: 52,
               height: 52,
               borderRadius: '16px',
-              
+
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -124,7 +159,9 @@ export default function MessageArea({
         {/* 프롬프트 카드 */}
         {compactPrompts ? (
           // 1x4 세로 나열 (Drawer)
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%', maxWidth: 480 }}>
+          <Box
+            sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%', maxWidth: 480 }}
+          >
             {suggestedPrompts.map(prompt => (
               <Box
                 key={prompt.title}
@@ -147,8 +184,13 @@ export default function MessageArea({
                   },
                 }}
               >
-                <Typography sx={{ fontSize: '1.1rem', lineHeight: 1, flexShrink: 0 }}>{prompt.icon}</Typography>
-                <Typography variant="body2" sx={{ fontSize: '0.82rem', lineHeight: 1.4, color: theme.palette.text.secondary }}>
+                <Typography sx={{ fontSize: '1.1rem', lineHeight: 1, flexShrink: 0 }}>
+                  {prompt.icon}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ fontSize: '0.82rem', lineHeight: 1.4, color: theme.palette.text.secondary }}
+                >
                   {prompt.title}
                 </Typography>
               </Box>
@@ -156,7 +198,15 @@ export default function MessageArea({
           </Box>
         ) : (
           // 2x2 그리드 (전체 대화창)
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, width: '100%', maxWidth: 600 }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 1,
+              width: '100%',
+              maxWidth: 600,
+            }}
+          >
             {suggestedPrompts.map(prompt => (
               <Box
                 key={prompt.title}
@@ -177,7 +227,10 @@ export default function MessageArea({
                 }}
               >
                 <Typography sx={{ fontSize: '1rem', mb: 0.5 }}>{prompt.icon}</Typography>
-                <Typography variant="body2" sx={{ fontSize: '0.8rem', lineHeight: 1.4, color: theme.palette.text.secondary }}>
+                <Typography
+                  variant="body2"
+                  sx={{ fontSize: '0.8rem', lineHeight: 1.4, color: theme.palette.text.secondary }}
+                >
                   {prompt.title}
                 </Typography>
               </Box>
@@ -226,30 +279,49 @@ export default function MessageArea({
           />
           <Box sx={{ position: 'relative' }}>
             {/* 꼬리 - 왼쪽 위 */}
-            <Box sx={{
-              position: 'absolute', top: 0, left: -8,
-              width: 0, height: 0, borderStyle: 'solid',
-              borderWidth: '0 8px 8px 0',
-              borderColor: `transparent ${isDark ? 'rgba(147,51,234,0.4)' : 'rgba(147,51,234,0.35)'} transparent transparent`,
-            }} />
-            <Box sx={{
-              position: 'absolute', top: 1, left: -5,
-              width: 0, height: 0, borderStyle: 'solid',
-              borderWidth: '0 6px 6px 0',
-              borderColor: `transparent ${isDark ? '#0f172a' : '#ffffff'} transparent transparent`,
-            }} />
-            <Box sx={{
-              px: 2, py: 1.25,
-              borderRadius: '0px 18px 18px 18px',
-              bgcolor: isDark ? '#0f172a' : '#ffffff',
-              border: `1px solid ${isDark ? 'rgba(147,51,234,0.4)' : 'rgba(147,51,234,0.35)'}`,
-              display: 'flex', gap: 0.5, alignItems: 'center',
-            }}>
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 0,
+                left: -8,
+                width: 0,
+                height: 0,
+                borderStyle: 'solid',
+                borderWidth: '0 8px 8px 0',
+                borderColor: `transparent ${isDark ? 'rgba(147,51,234,0.4)' : 'rgba(147,51,234,0.35)'} transparent transparent`,
+              }}
+            />
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 1,
+                left: -5,
+                width: 0,
+                height: 0,
+                borderStyle: 'solid',
+                borderWidth: '0 6px 6px 0',
+                borderColor: `transparent ${isDark ? '#0f172a' : '#ffffff'} transparent transparent`,
+              }}
+            />
+            <Box
+              sx={{
+                px: 2,
+                py: 1.25,
+                borderRadius: '0px 18px 18px 18px',
+                bgcolor: isDark ? '#0f172a' : '#ffffff',
+                border: `1px solid ${isDark ? 'rgba(147,51,234,0.4)' : 'rgba(147,51,234,0.35)'}`,
+                display: 'flex',
+                gap: 0.5,
+                alignItems: 'center',
+              }}
+            >
               {[0, 1, 2].map(i => (
                 <Box
                   key={i}
                   sx={{
-                    width: 7, height: 7, borderRadius: '50%',
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
                     bgcolor: theme.palette.primary.main,
                     opacity: 0.7,
                     animation: 'pulse 1.4s ease-in-out infinite',

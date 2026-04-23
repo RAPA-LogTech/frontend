@@ -83,7 +83,7 @@ export default function TopBar({ onMenuClick, showMenuButton = false }: TopBarPr
     setNotificationAnchorEl(null)
   }
 
-React.useEffect(() => {
+  React.useEffect(() => {
     router.prefetch('/notifications')
   }, [router])
 
@@ -254,7 +254,13 @@ React.useEffect(() => {
                   component={Link}
                   href="/notifications"
                   onClick={handleNotificationMenuClose}
-                  sx={{ textTransform: 'none', fontSize: '0.75rem', px: 0, minWidth: 'auto', color: 'text.secondary' }}
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: '0.75rem',
+                    px: 0,
+                    minWidth: 'auto',
+                    color: 'text.secondary',
+                  }}
                 >
                   전체 보기
                 </Button>
@@ -267,10 +273,18 @@ React.useEffect(() => {
                 <Box sx={{ p: 2 }}>
                   <Stack spacing={1.5} alignItems="center" textAlign="center">
                     <Box sx={{ width: 28, height: 28, position: 'relative' }}>
-                      <Image src="/images/icons/slack.png" alt="Slack" fill sizes="28px" style={{ objectFit: 'contain' }} />
+                      <Image
+                        src="/images/icons/slack.png"
+                        alt="Slack"
+                        fill
+                        sizes="28px"
+                        style={{ objectFit: 'contain' }}
+                      />
                     </Box>
                     <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>Slack 미연동</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        Slack 미연동
+                      </Typography>
                       <Typography variant="caption" color="text.secondary">
                         슬랙을 연동하면 알림을 받을 수 있습니다.
                       </Typography>
@@ -279,7 +293,9 @@ React.useEffect(() => {
                       variant="contained"
                       size="small"
                       disabled={!slackConfigQuery.data?.configured}
-                      onClick={() => { window.location.href = '/api/integrations/slack/connect' }}
+                      onClick={() => {
+                        window.location.href = '/api/integrations/slack/connect'
+                      }}
                       sx={{ textTransform: 'none' }}
                     >
                       Slack 연동하기
@@ -332,16 +348,29 @@ React.useEffect(() => {
                               }}
                             />
                             <Box sx={{ minWidth: 0, flex: 1 }}>
-                              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+                              <Stack
+                                direction="row"
+                                justifyContent="space-between"
+                                alignItems="flex-start"
+                                spacing={1}
+                              >
                                 <Typography
                                   variant="body2"
-                                  sx={{ fontWeight: isOngoing ? 700 : 400, lineHeight: 1.4, color: isOngoing ? 'text.primary' : 'text.secondary' }}
+                                  sx={{
+                                    fontWeight: isOngoing ? 700 : 400,
+                                    lineHeight: 1.4,
+                                    color: isOngoing ? 'text.primary' : 'text.secondary',
+                                  }}
                                   noWrap
                                 >
                                   {incident.alert_name ?? incident.incident_id}
                                 </Typography>
                                 {incident.severity && (
-                                  <Typography variant="caption" color="text.disabled" sx={{ flexShrink: 0 }}>
+                                  <Typography
+                                    variant="caption"
+                                    color="text.disabled"
+                                    sx={{ flexShrink: 0 }}
+                                  >
                                     {incident.severity}
                                   </Typography>
                                 )}
@@ -401,7 +430,9 @@ React.useEffect(() => {
             <MenuItem onClick={handleMenuClose}>Profile</MenuItem>
             <MenuItem onClick={handleMenuClose}>Settings</MenuItem>
             <MenuItem
-              onClick={() => { window.location.href = '/api/auth/cognito/logout' }}
+              onClick={() => {
+                window.location.href = '/api/auth/cognito/logout'
+              }}
               sx={{
                 color: '#ff6b6b',
               }}

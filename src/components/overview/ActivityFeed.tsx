@@ -43,7 +43,9 @@ export default function ActivityFeed({ errorLogs, errorTraces }: Props) {
       duration: trace.duration,
       id: trace.id,
     })),
-  ].sort((a, b) => b.ts - a.ts).slice(0, 8)
+  ]
+    .sort((a, b) => b.ts - a.ts)
+    .slice(0, 8)
 
   return (
     <Paper
@@ -63,22 +65,46 @@ export default function ActivityFeed({ errorLogs, errorTraces }: Props) {
       </Box>
 
       {items.length === 0 ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 160, gap: 1 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: 160,
+            gap: 1,
+          }}
+        >
           <Box sx={{ fontSize: 32 }}>✅</Box>
-          <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>No recent errors</Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }}>All systems running smoothly</Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>
+            No recent errors
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            All systems running smoothly
+          </Typography>
         </Box>
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
           {/* 타임라인 세로 바 */}
-          <Box sx={{ position: 'absolute', left: 11, top: 8, bottom: 8, width: 2, bgcolor: 'divider', borderRadius: 1 }} />
+          <Box
+            sx={{
+              position: 'absolute',
+              left: 11,
+              top: 8,
+              bottom: 8,
+              width: 2,
+              bgcolor: 'divider',
+              borderRadius: 1,
+            }}
+          />
 
           {items.map((item, idx) => (
             <Box
               key={`${item.kind}-${item.id}-${idx}`}
-              onClick={() => item.kind === 'log'
-                ? router.push(`/logs?service=${item.service}`)
-                : router.push(`/traces/${item.id}`)
+              onClick={() =>
+                item.kind === 'log'
+                  ? router.push(`/logs?service=${item.service}`)
+                  : router.push(`/traces/${item.id}`)
               }
               sx={{
                 display: 'flex',
@@ -106,10 +132,11 @@ export default function ActivityFeed({ errorLogs, errorTraces }: Props) {
                   zIndex: 1,
                 }}
               >
-                {item.kind === 'log'
-                  ? <ArticleIcon sx={{ fontSize: 12, color: '#f87171' }} />
-                  : <AccountTreeIcon sx={{ fontSize: 12, color: '#fb923c' }} />
-                }
+                {item.kind === 'log' ? (
+                  <ArticleIcon sx={{ fontSize: 12, color: '#f87171' }} />
+                ) : (
+                  <AccountTreeIcon sx={{ fontSize: 12, color: '#fb923c' }} />
+                )}
               </Box>
 
               {/* 내용 */}
@@ -125,19 +152,31 @@ export default function ActivityFeed({ errorLogs, errorTraces }: Props) {
                       height: 16,
                       fontSize: 10,
                       fontWeight: 700,
-                      bgcolor: item.kind === 'log' ? 'rgba(248,113,113,0.15)' : 'rgba(251,146,60,0.15)',
+                      bgcolor:
+                        item.kind === 'log' ? 'rgba(248,113,113,0.15)' : 'rgba(251,146,60,0.15)',
                       color: item.kind === 'log' ? '#f87171' : '#fb923c',
                     }}
                   />
-                  <Typography variant="caption" sx={{ color: 'text.secondary', ml: 'auto', whiteSpace: 'nowrap' }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: 'text.secondary', ml: 'auto', whiteSpace: 'nowrap' }}
+                  >
                     {timeAgo(item.ts)}
                   </Typography>
                 </Stack>
                 <Typography
                   variant="caption"
-                  sx={{ color: 'text.secondary', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  sx={{
+                    color: 'text.secondary',
+                    display: 'block',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
                 >
-                  {item.kind === 'log' ? item.message : `${item.operation} · ${(item.duration / 1000).toFixed(3)}s`}
+                  {item.kind === 'log'
+                    ? item.message
+                    : `${item.operation} · ${(item.duration / 1000).toFixed(3)}s`}
                 </Typography>
               </Box>
             </Box>

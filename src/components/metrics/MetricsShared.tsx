@@ -48,7 +48,10 @@ export function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
       <Box sx={{ width: 3, height: 16, bgcolor: 'primary.main', borderRadius: 1 }} />
-      <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 1 }}>
+      <Typography
+        variant="caption"
+        sx={{ fontWeight: 700, color: 'text.secondary', letterSpacing: 1 }}
+      >
         {children}
       </Typography>
     </Box>
@@ -77,13 +80,23 @@ export function MiniSparkline({ series, color }: { series: MetricSeries; color: 
           <Tooltip
             cursor={false}
             isAnimationActive={false}
-            labelFormatter={(label, payload) => formatTooltipTime(label, payload as Array<{ payload?: { ts?: number } }>)}
-            formatter={(value) => [Number(value ?? 0).toFixed(2), '값']}
+            labelFormatter={(label, payload) =>
+              formatTooltipTime(label, payload as Array<{ payload?: { ts?: number } }>)
+            }
+            formatter={value => [Number(value ?? 0).toFixed(2), '값']}
             contentStyle={{ fontSize: 11, padding: '6px 8px', borderRadius: 6 }}
             labelStyle={{ fontSize: 11, marginBottom: 4 }}
             itemStyle={{ fontSize: 11, padding: 0 }}
           />
-          <Area type="monotone" dataKey="v" stroke={color} fill={`url(#sg-${series.id})`} strokeWidth={1.5} dot={false} isAnimationActive={false} />
+          <Area
+            type="monotone"
+            dataKey="v"
+            stroke={color}
+            fill={`url(#sg-${series.id})`}
+            strokeWidth={1.5}
+            dot={false}
+            isAnimationActive={false}
+          />
         </AreaChart>
       </ResponsiveContainer>
     </Box>
