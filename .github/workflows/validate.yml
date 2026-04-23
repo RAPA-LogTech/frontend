@@ -1,0 +1,39 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Build
+        run: npm run build
+
+      - name: Docker build check
+        run: docker build --platform linux/amd64 -t dashboard:test .
+
+      - name: Run container & health check
+        run: |
+          docker run -d --name dashboard-test dashboard:test
+          sleep 10
+          docker exec dashboard-test curl -f http://localhost:3000 || exit 1
+          docker stop dashboard-test
